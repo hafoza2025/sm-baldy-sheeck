@@ -692,3 +692,47 @@
         font-size: 18px;
     }
 }
+/* زر طباعة Recipe */
+.btn-print-recipe {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #64B5F6 0%, #1976D2 100%);
+  color: white;
+  border: 3px solid #0D47A1;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.btn-print-recipe:hover {
+  background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+}
+
+.btn-print-recipe:active {
+  transform: translateY(0);
+}
+
+/* تحسين تخطيط الـ header */
+.order-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid var(--pharaoh-sand);
+}
+
+.order-item-header .item-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+
