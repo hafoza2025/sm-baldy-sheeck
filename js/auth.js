@@ -97,3 +97,24 @@ const Auth = {
 if (typeof window !== 'undefined') {
     window.Auth = Auth;
 }
+// حماية صفحة Recipe - Admin فقط
+Auth.checkRecipeAccess = function() {
+  const user = this.getCurrentUser();
+  
+  if (!user) {
+    alert('يجب تسجيل الدخول أولاً');
+    window.location.href = 'login.html';
+    return null;
+  }
+  
+  if (user.role !== 'admin') {
+    alert('غير مصرح لك بالوصول لهذه الصفحة - Admin فقط');
+    window.location.href = user.role === 'cashier' ? 'cashier.html' : 
+                           user.role === 'staff' ? 'staff-tablet.html' : 
+                           'kitchen-display.html';
+    return null;
+  }
+  
+  return user;
+};
+
