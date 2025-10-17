@@ -1,347 +1,459 @@
 /* css/kitchen.css */
+/* شاشة المطبخ - مطبخ المعبد المقدس الفرعوني */
 
+/* ===============================
+   رأس المطبخ - لافتة النار المقدسة
+   =============================== */
 .kitchen-header {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
-    color: white;
-    padding: 20px;
+    background: linear-gradient(135deg, #E57373 0%, #C94C4C 50%, #A84040 100%);
+    color: var(--pharaoh-ivory);
+    padding: 28px;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 
+        0 6px 20px rgba(168, 64, 64, 0.4),
+        inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+    border-bottom: 5px solid #8B3333;
+    position: relative;
+}
+
+.kitchen-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: repeating-linear-gradient(
+        90deg,
+        #FFD700,
+        #FFD700 12px,
+        transparent 12px,
+        transparent 24px
+    );
+}
+
+.kitchen-header::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: repeating-linear-gradient(
+        90deg,
+        var(--pharaoh-accent),
+        var(--pharaoh-accent) 8px,
+        transparent 8px,
+        transparent 16px
+    );
 }
 
 .kitchen-header h1 {
-    font-size: 28px;
-    margin-bottom: 5px;
+    font-size: 32px;
+    margin-bottom: 8px;
+    font-family: var(--font-decorative);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+    font-weight: 800;
 }
 
+.kitchen-header h1::before {
+    content: '🔥';
+    margin-left: 15px;
+}
+
+.kitchen-header h1::after {
+    content: '🔥';
+    margin-right: 15px;
+}
+
+/* ===============================
+   تبويبات الحالة - أختام الأوامر
+   =============================== */
 .status-tabs {
     display: flex;
     justify-content: center;
-    gap: 10px;
-    padding: 15px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    gap: 15px;
+    padding: 20px;
+    background: var(--pharaoh-ivory);
+    box-shadow: 0 4px 12px rgba(139, 115, 85, 0.2);
+    border-bottom: 4px solid var(--pharaoh-tan);
 }
 
 .status-tab {
-    padding: 10px 20px;
-    background: #f5f5f5;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
+    padding: 14px 28px;
+    background: var(--pharaoh-sand);
+    border: 3px solid var(--pharaoh-tan);
+    border-radius: 0;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
     transition: all 0.3s;
+    color: var(--pharaoh-dark);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.status-tab::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.status-tab:hover::before {
+    left: 100%;
+}
+
+.status-tab:hover {
+    background: var(--pharaoh-gold);
+    border-color: var(--pharaoh-accent);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
 }
 
 .status-tab.active {
-    background: #ff6b6b;
+    background: linear-gradient(135deg, #E57373 0%, #C94C4C 100%);
     color: white;
-    border-color: #ff6b6b;
+    border-color: #8B3333;
+    box-shadow: 
+        inset 0 2px 0 rgba(255, 255, 255, 0.3),
+        0 6px 16px rgba(168, 64, 64, 0.4);
 }
 
+/* ===============================
+   حاوية الطلبات - رفوف القرابين
+   =============================== */
 .orders-container {
-    padding: 20px;
+    padding: 25px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 25px;
+    background: var(--pharaoh-cream);
 }
 
+/* ===============================
+   بطاقة الطلب - لوح الأمر
+   =============================== */
 .order-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border-right: 5px solid #ff6b6b;
-    animation: slideIn 0.3s ease;
+    background: var(--pharaoh-ivory);
+    border: 4px solid var(--pharaoh-tan);
+    border-radius: 0;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(139, 115, 85, 0.25);
+    border-right: 8px solid #E57373;
+    animation: slideIn 0.4s ease;
+    position: relative;
+}
+
+.order-card::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 25px;
+    height: 25px;
+    border-top: 3px solid var(--pharaoh-bronze);
+    border-left: 3px solid var(--pharaoh-bronze);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .order-card.delivery {
-    border-right-color: #2196f3;
-    background: #e3f2fd;
+    border-right-color: #1976D2;
+    background: linear-gradient(to bottom, #E3F2FD 0%, var(--pharaoh-ivory) 30%);
 }
 
 .order-card.urgent {
-    border-right-color: #f44336;
-    animation: pulse 2s infinite;
+    border-right-color: #C62828;
+    animation: pulse 2s infinite, slideIn 0.4s ease;
+    box-shadow: 
+        0 4px 15px rgba(198, 40, 40, 0.4),
+        0 0 30px rgba(198, 40, 40, 0.2);
 }
 
 @keyframes pulse {
-
-    0%,
-    100% {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    0%, 100% {
+        box-shadow: 
+            0 4px 15px rgba(198, 40, 40, 0.4),
+            0 0 30px rgba(198, 40, 40, 0.2);
     }
-
     50% {
-        box-shadow: 0 4px 16px rgba(244, 67, 54, 0.3);
+        box-shadow: 
+            0 8px 25px rgba(198, 40, 40, 0.6),
+            0 0 50px rgba(198, 40, 40, 0.4);
     }
 }
 
+/* ===============================
+   رأس معلومات الطلب - ختم الأمر
+   =============================== */
 .order-header-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 20px;
+    padding-bottom: 18px;
+    border-bottom: 3px solid var(--pharaoh-tan);
+    position: relative;
+}
+
+.order-header-info::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    right: 0;
+    width: 100%;
+    height: 2px;
+    background: repeating-linear-gradient(
+        90deg,
+        var(--pharaoh-accent),
+        var(--pharaoh-accent) 6px,
+        transparent 6px,
+        transparent 12px
+    );
 }
 
 .order-number {
-    font-size: 24px;
-    font-weight: 700;
-    color: #333;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--pharaoh-dark);
+    font-family: var(--font-decorative);
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .order-type-badge {
-    padding: 5px 12px;
-    border-radius: 20px;
+    padding: 7px 16px;
+    border-radius: 0;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    border: 2px solid;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .order-type-badge.dine-in {
-    background: #d4edda;
-    color: #155724;
+    background: #C8E6C9;
+    color: #2E7D32;
+    border-color: #5A8A74;
 }
 
 .order-type-badge.delivery {
-    background: #cfe2ff;
-    color: #084298;
+    background: #BBDEFB;
+    color: #1565C0;
+    border-color: #1976D2;
 }
 
+/* ===============================
+   مؤقت الطلب - ساعة الرمل
+   =============================== */
 .order-time {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 15px;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: var(--pharaoh-dark);
 }
 
 .timer {
-    color: #ff6b6b;
+    color: #E57373;
+    font-family: var(--font-decorative);
+    font-size: 22px;
+    padding: 6px 14px;
+    background: var(--pharaoh-sand);
+    border: 2px solid var(--pharaoh-tan);
+    border-radius: 0;
 }
 
 .timer.urgent {
-    color: #f44336;
+    color: #C62828;
+    background: #FFCDD2;
+    border-color: #A84040;
     animation: blink 1s infinite;
+    box-shadow: 0 0 20px rgba(198, 40, 40, 0.4);
 }
 
 @keyframes blink {
-
-    0%,
-    50%,
-    100% {
+    0%, 50%, 100% {
         opacity: 1;
+        transform: scale(1);
     }
-
-    25%,
-    75% {
-        opacity: 0.5;
+    25%, 75% {
+        opacity: 0.6;
+        transform: scale(1.05);
     }
 }
 
+/* ===============================
+   قائمة أصناف الطلب
+   =============================== */
 .order-items-list {
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
 .order-item-row {
     display: flex;
     justify-content: space-between;
-    padding: 10px;
-    background: #f9f9f9;
-    border-radius: 6px;
-    margin-bottom: 8px;
+    padding: 14px;
+    background: var(--pharaoh-cream);
+    border: 2px solid var(--pharaoh-tan);
+    border-radius: 0;
+    margin-bottom: 10px;
+    border-right: 4px solid var(--pharaoh-bronze);
+    transition: all 0.3s;
+}
+
+.order-item-row:hover {
+    background: var(--pharaoh-sand);
+    transform: translateX(-3px);
+    box-shadow: 3px 0 12px rgba(139, 115, 85, 0.2);
 }
 
 .item-name {
-    font-weight: 600;
-    color: #333;
+    font-weight: 700;
+    color: var(--pharaoh-dark);
+    font-size: 15px;
 }
 
 .item-quantity {
-    background: #667eea;
-    color: white;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-weight: 600;
+    background: linear-gradient(135deg, var(--pharaoh-accent) 0%, var(--pharaoh-bronze) 100%);
+    color: var(--pharaoh-ivory);
+    padding: 4px 14px;
+    border-radius: 0;
+    font-weight: 800;
+    border: 2px solid var(--pharaoh-bronze);
+    font-family: var(--font-decorative);
 }
 
-.recipe-ingredients {
-    font-size: 12px;
-    color: #666;
-    margin-top: 5px;
-}
-
-.special-notes {
-    background: #fff3cd;
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 15px;
-    border-right: 3px solid #ffc107;
-}
-
-.special-notes strong {
-    color: #856404;
-}
-
-.order-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.order-actions .btn {
-    flex: 1;
-    padding: 12px;
-    font-size: 14px;
-}
-
-.sound-notification {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    z-index: 10000;
-    text-align: center;
-    animation: bounceIn 0.5s ease;
-}
-
-@keyframes bounceIn {
-    0% {
-        transform: translate(-50%, -50%) scale(0.3);
-        opacity: 0;
-    }
-
-    50% {
-        transform: translate(-50%, -50%) scale(1.05);
-    }
-
-    100% {
-        transform: translate(-50%, -50%) scale(1);
-        opacity: 1;
-    }
-}
-
-@media (max-width: 768px) {
-    .orders-container {
-        grid-template-columns: 1fr;
-    }
-
-    .order-card {
-        margin-bottom: 15px;
-    }
-}
-
-/* تنسيق Recipe Section */
-
+/* ===============================
+   بطاقة صنف الطلب - مع Recipe
+   =============================== */
 .order-item-card {
-    background: white;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 15px;
+    background: var(--pharaoh-ivory);
+    border: 3px solid var(--pharaoh-tan);
+    border-radius: 0;
+    padding: 18px;
+    margin-bottom: 18px;
     transition: all 0.3s ease;
+    position: relative;
+}
+
+.order-item-card::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-top: 2px solid var(--pharaoh-accent);
+    border-right: 2px solid var(--pharaoh-accent);
 }
 
 .order-item-card:hover {
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--pharaoh-accent);
+    box-shadow: 0 6px 18px rgba(139, 115, 85, 0.25);
+    transform: translateY(-3px);
 }
 
 .order-item-header {
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--pharaoh-sand);
 }
 
-.item-name {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-
-.item-quantity {
-    background: #667eea;
-    color: white;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-weight: 700;
-    font-size: 16px;
-}
-
-.special-notes {
-    background: #fff3cd;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #856404;
-    margin-top: 8px;
-    border-right: 3px solid #ffc107;
-}
-
-/* Recipe Section */
-
+/* ===============================
+   قسم Recipe - المكونات المطلوبة
+   =============================== */
 .recipe-section {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 10px;
+    background: var(--pharaoh-sand);
+    border: 2px solid var(--pharaoh-tan);
+    border-radius: 0;
+    padding: 15px;
+    margin-top: 12px;
 }
 
 .recipe-header {
     font-size: 14px;
-    font-weight: 700;
-    color: #495057;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid #dee2e6;
+    font-weight: 800;
+    color: var(--pharaoh-dark);
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--pharaoh-tan);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .recipe-ingredients {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .ingredient-row {
-    background: white;
-    padding: 10px 12px;
-    border-radius: 6px;
+    background: var(--pharaoh-ivory);
+    padding: 12px 15px;
+    border: 2px solid var(--pharaoh-tan);
+    border-radius: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-right: 3px solid #28a745;
+    border-right: 4px solid #5A8A74;
     transition: all 0.3s ease;
 }
 
 .ingredient-row:hover {
-    transform: translateX(-3px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateX(-4px);
+    box-shadow: 4px 0 12px rgba(139, 115, 85, 0.2);
+    background: var(--pharaoh-cream);
 }
 
 .ingredient-row.low-stock {
-    border-right-color: #dc3545;
-    background: #fff5f5;
+    border-right-color: #C62828;
+    background: #FFEBEE;
+    animation: warning-pulse 2s infinite;
+}
+
+@keyframes warning-pulse {
+    0%, 100% {
+        background: #FFEBEE;
+    }
+    50% {
+        background: #FFCDD2;
+    }
 }
 
 .ingredient-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
 }
 
 .ingredient-name {
-    font-weight: 600;
-    color: #212529;
+    font-weight: 700;
+    color: var(--pharaoh-dark);
     font-size: 14px;
 }
 
 .ingredient-amount {
-    color: #6c757d;
+    color: var(--pharaoh-bronze);
     font-size: 13px;
     font-weight: 600;
 }
@@ -350,64 +462,233 @@
     text-align: left;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    font-weight: 700;
 }
 
 .stock-warning {
-    font-size: 16px;
-    animation: blink 1s infinite;
+    font-size: 18px;
+    animation: blink-warning 1s infinite;
 }
 
-@keyframes blink {
+@keyframes blink-warning {
+    0%, 50%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    25%, 75% {
+        opacity: 0.3;
+        transform: scale(1.2);
+    }
+}
 
-    0%,
-    50%,
+/* ===============================
+   ملاحظات خاصة - لوح التحذير
+   =============================== */
+.special-notes {
+    background: #FFE0B2;
+    padding: 12px 16px;
+    border: 3px solid #F57C00;
+    border-radius: 0;
+    margin-bottom: 18px;
+    border-right: 6px solid #E65100;
+    font-size: 13px;
+    font-weight: 600;
+    color: #E65100;
+}
+
+.special-notes strong {
+    color: #BF360C;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===============================
+   إجراءات الطلب - أزرار الأوامر
+   =============================== */
+.order-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.order-actions .btn {
+    flex: 1;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* ===============================
+   إشعار صوتي - تنبيه طلب جديد
+   =============================== */
+.sound-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--pharaoh-ivory);
+    padding: 50px 70px;
+    border: 6px solid var(--pharaoh-bronze);
+    border-radius: 0;
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        inset 0 0 0 3px var(--pharaoh-accent);
+    z-index: 10000;
+    text-align: center;
+    animation: bounceIn 0.6s ease;
+}
+
+.sound-notification::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 40px;
+    height: 40px;
+    border-top: 4px solid var(--pharaoh-accent);
+    border-right: 4px solid var(--pharaoh-accent);
+}
+
+.sound-notification::after {
+    content: '';
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    width: 40px;
+    height: 40px;
+    border-bottom: 4px solid var(--pharaoh-accent);
+    border-left: 4px solid var(--pharaoh-accent);
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3) rotate(-5deg);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1) rotate(2deg);
+    }
     100% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
         opacity: 1;
     }
+}
 
-    25%,
+/* ===============================
+   تحذير المخزون المنخفض
+   =============================== */
+.low-stock .ingredient-name::before {
+    content: "⚠️ ";
+    margin-left: 8px;
+    animation: shake 0.5s infinite;
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-3px);
+    }
     75% {
-        opacity: 0.3;
+        transform: translateX(3px);
     }
 }
 
-/* تحسين عرض الطلبات */
-
-.order-items-list {
-    margin-bottom: 15px;
-}
-
-/* تنبيهات المخزون المنخفض */
-
-.low-stock .ingredient-name::before {
-    content: "⚠️ ";
-    margin-left: 5px;
-}
-
-/* تحسين الطباعة */
-
+/* ===============================
+   تحسين الطباعة
+   =============================== */
 @media print {
     .recipe-section {
         page-break-inside: avoid;
+        border: 2px solid #333;
     }
 
     .ingredient-row {
         border: 1px solid #333;
+        background: white !important;
+    }
+
+    .order-card {
+        border: 2px solid #333;
+        page-break-inside: avoid;
+    }
+
+    .kitchen-header,
+    .status-tabs,
+    .order-actions {
+        display: none;
     }
 }
 
-/* Responsive */
+/* ===============================
+   Responsive - التكيف الكامل
+   =============================== */
+@media (max-width: 1024px) {
+    .orders-container {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+}
 
 @media (max-width: 768px) {
+    .orders-container {
+        grid-template-columns: 1fr;
+        padding: 15px;
+    }
+
+    .order-card {
+        margin-bottom: 18px;
+        padding: 20px;
+    }
+
+    .kitchen-header h1 {
+        font-size: 24px;
+    }
+
+    .status-tabs {
+        flex-wrap: wrap;
+        padding: 15px;
+    }
+
+    .status-tab {
+        padding: 12px 20px;
+        font-size: 13px;
+    }
+
+    .order-number {
+        font-size: 24px;
+    }
+
     .ingredient-row {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 10px;
     }
 
     .ingredient-stock {
         width: 100%;
         justify-content: space-between;
+    }
+
+    .sound-notification {
+        padding: 40px 50px;
+    }
+}
+
+@media (max-width: 480px) {
+    .order-actions {
+        flex-direction: column;
+    }
+
+    .order-actions .btn {
+        width: 100%;
+    }
+
+    .order-time {
+        font-size: 16px;
+    }
+
+    .timer {
+        font-size: 18px;
     }
 }
