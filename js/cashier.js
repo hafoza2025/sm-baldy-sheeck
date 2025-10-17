@@ -772,3 +772,72 @@ const CashierSystem = {
 if (typeof window !== 'undefined') {
     window.CashierSystem = CashierSystem;
 }
+// ===============================
+// Auto-Protection للدوال
+// ===============================
+
+// حماية إرسال طلب جديد
+if (typeof CashierSystem !== 'undefined' && CashierSystem.sendNewOrder) {
+  const originalSendNewOrder = CashierSystem.sendNewOrder.bind(CashierSystem);
+  CashierSystem.sendNewOrder = protectAsync(originalSendNewOrder, 'send-new-order', true);
+}
+
+// حماية حفظ التعديلات
+if (typeof CashierSystem !== 'undefined' && CashierSystem.saveEditedOrder) {
+  const originalSaveEditedOrder = CashierSystem.saveEditedOrder.bind(CashierSystem);
+  CashierSystem.saveEditedOrder = protectAsync(originalSaveEditedOrder, 'save-edited-order', true);
+}
+
+// حماية إغلاق الفاتورة
+if (typeof CashierSystem !== 'undefined' && CashierSystem.closeAndPrintOrder) {
+  const originalCloseAndPrint = CashierSystem.closeAndPrintOrder.bind(CashierSystem);
+  CashierSystem.closeAndPrintOrder = async function(orderId) {
+    const operationId = `close-order-${orderId}`;
+    
+    if (Loading.isOperationActive(operationId)) {
+      Utils.showNotification('جاري إغلاق فاتورة أخرى...', 'warning');
+      return;
+    }
+
+    const order = this.openOrders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const confirmMsg = `هل تأكد من إغلاق الفاتورة؟\nالإجمالي: ${Utils.formatCurrency(order.total)}\n(العميل دفع)`;
+    if (!confirm(confirmMsg)) return;
+
+    if (!Loading.startOperation(operationId)) return;
+    
+    Loading.show('جاري إغلاق الفاتورة...', `طلب #${order.order_number}`);
+
+    try {
+      await originalCloseAndPrint.call(this, orderId);
+      Loading.success('تم إغلاق الفاتورة بنجاح ✅');
+    } catch (error) {
+      Loading.error('حدث خطأ أثناء إغلاق الفاتورة');
+      throw error;
+    } finally {
+      Loading.endOperation(operationId);
+    }
+  };
+}
+
+// حماية إضافة أصناف للفاتورة
+if (typeof CashierSystem !== 'undefined' && CashierSystem.addItemsToOrder) {
+  const originalAddItems = CashierSystem.addItemsToOrder.bind(CashierSystem);
+  CashierSystem.addItemsToOrder = protectAsync(originalAddItems, 'add-items', true);
+}
+
+// حماية خصم المخزون
+if (typeof CashierSystem !== 'undefined' && CashierSystem.deductInventory) {
+  const originalDeductInventory = CashierSystem.deductInventory.bind(CashierSystem);
+  CashierSystem.deductInventory = protectAsync(originalDeductInventory, 'deduct-inventory', false);
+}
+
+// حماية تحميل الطلبات المفتوحة
+if (typeof CashierSystem !== 'undefined' && CashierSystem.loadOpenOrders) {
+  const originalLoadOpenOrders = CashierSystem.loadOpenOrders.bind(CashierSystem);
+  CashierSystem.loadOpenOrders = protectAsync(originalLoadOpenOrders, 'load-open-orders', false);
+}
+
+console.log('✅ Cashier functions protected');
+
