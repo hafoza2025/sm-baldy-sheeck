@@ -348,3 +348,30 @@ const StaffTablet = {
 if (typeof window !== 'undefined') {
     window.StaffTablet = StaffTablet;
 }
+
+
+
+
+// ===============================
+// Auto-Protection للدوال
+// ===============================
+
+// حماية دالة إرسال الطلب
+if (typeof StaffTablet !== 'undefined' && StaffTablet.sendOrder) {
+  const originalSendOrder = StaffTablet.sendOrder.bind(StaffTablet);
+  StaffTablet.sendOrder = protectAsync(originalSendOrder, 'send-order', true);
+}
+
+// حماية دالة خصم المخزون
+if (typeof StaffTablet !== 'undefined' && StaffTablet.deductInventory) {
+  const originalDeductInventory = StaffTablet.deductInventory.bind(StaffTablet);
+  StaffTablet.deductInventory = protectAsync(originalDeductInventory, 'deduct-inventory', false);
+}
+
+// حماية دالة تحميل الطاولات
+if (typeof StaffTablet !== 'undefined' && StaffTablet.loadTables) {
+  const originalLoadTables = StaffTablet.loadTables.bind(StaffTablet);
+  StaffTablet.loadTables = protectAsync(originalLoadTables, 'load-tables', false);
+}
+
+console.log('✅ Staff functions protected');
