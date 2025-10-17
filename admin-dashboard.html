@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم المدير - نظام المطعم</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+    <div class="header">
+        <div>
+            <h1>🎛️ لوحة تحكم المدير</h1>
+            <span class="live-indicator"></span>
+            <span style="font-size: 14px;">مباشر</span>
+        </div>
+        <div class="user-info">
+            <span id="adminName">مرحباً، Admin</span>
+            <button class="btn-logout" onclick="Auth.logout()">تسجيل خروج</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- الإحصائيات -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>إجمالي المبيعات اليوم</h3>
+                <div class="value" id="totalSales">0 جنيه</div>
+            </div>
+            <div class="stat-card">
+                <h3>عدد الطلبات النشطة</h3>
+                <div class="value" id="activeOrders">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>طلبات ديليفري اليوم</h3>
+                <div class="value" id="deliveryOrders">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>عدد المستخدمين</h3>
+                <div class="value" id="totalUsers">0</div>
+            </div>
+        </div>
+
+        <!-- التبويبات -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('overview')">نظرة عامة</button>
+            <button class="tab-btn" onclick="switchTab('users')">المستخدمين</button>
+            <button class="tab-btn" onclick="switchTab('orders')">الطلبات</button>
+            <button class="tab-btn" onclick="switchTab('delivery')">الديليفري</button>
+            <button class="tab-btn" onclick="switchTab('inventory')">المخزون</button>
+            <button class="tab-btn" onclick="switchTab('reports')">التقارير</button>
+            <!-- أضف هذا في admin-dashboard.html داخل التبويبات -->
+
+            <div id="recipes" class="tab-content">
+                <h2 style="margin-bottom: 20px;">📋 إدارة Recipes</h2>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="openRecipeModal()">
+                        ➕ إضافة Recipe جديد
+                    </button>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الصنف</th>
+                            <th>عدد المكونات</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recipesBody"></tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- محتوى التبويبات -->
+
+        <!-- نظرة عامة -->
+        <div id="overview" class="tab-content active">
+            <h2 style="margin-bottom: 20px;">الطلبات الحالية</h2>
+            <table id="currentOrdersTable">
+                <thead>
+                    <tr>
+                        <th>رقم الطلب</th>
+                        <th>النوع</th>
+                        <th>الطاولة/العميل</th>
+                        <th>الحالة</th>
+                        <th>الإجمالي</th>
+                        <th>الوقت</th>
+                    </tr>
+                </thead>
+                <tbody id="currentOrdersBody"></tbody>
+            </table>
+        </div>
+
+        <!-- المستخدمين -->
+        <div id="users" class="tab-content">
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="AdminDashboard.openUserModal()">
+                    ➕ إضافة مستخدم جديد
+                </button>
+            </div>
+
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>اسم المستخدم</th>
+                        <th>الدور</th>
+                        <th>الموبايل</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="usersBody"></tbody>
+            </table>
+        </div>
+
+        <!-- الطلبات -->
+        <div id="orders" class="tab-content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label>من تاريخ</label>
+                    <input type="date" id="filterDateFrom">
+                </div>
+                <div class="filter-group">
+                    <label>إلى تاريخ</label>
+                    <input type="date" id="filterDateTo">
+                </div>
+                <div class="filter-group">
+                    <label>نوع الطلب</label>
+                    <select id="filterOrderType">
+                        <option value="">الكل</option>
+                        <option value="dine_in">داخل المطعم</option>
+                        <option value="delivery">ديليفري</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>الحالة</label>
+                    <select id="filterStatus">
+                        <option value="">الكل</option>
+                        <option value="new">جديد</option>
+                        <option value="preparing">قيد التحضير</option>
+                        <option value="ready">جاهز</option>
+                        <option value="completed">مكتمل</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-export" onclick="AdminDashboard.exportOrders()">
+                    📊 تصدير Excel
+                </button>
+                <button class="btn btn-primary" onclick="AdminDashboard.applyFilters()">
+                    🔍 تطبيق الفلتر
+                </button>
+            </div>
+
+            <table id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>رقم الطلب</th>
+                        <th>التاريخ</th>
+                        <th>النوع</th>
+                        <th>الطاولة/العميل</th>
+                        <th>الموظف</th>
+                        <th>الإجمالي</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersBody"></tbody>
+            </table>
+        </div>
+
+        <!-- الديليفري -->
+        <div id="delivery" class="tab-content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label>من تاريخ</label>
+                    <input type="date" id="filterDeliveryDateFrom">
+                </div>
+                <div class="filter-group">
+                    <label>إلى تاريخ</label>
+                    <input type="date" id="filterDeliveryDateTo">
+                </div>
+                <div class="filter-group">
+                    <label>حالة التوصيل</label>
+                    <select id="filterDeliveryStatus">
+                        <option value="">الكل</option>
+                        <option value="preparing">قيد التحضير</option>
+                        <option value="ready">جاهز</option>
+                        <option value="on_way">في الطريق</option>
+                        <option value="delivered">تم التوصيل</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-export" onclick="AdminDashboard.exportDeliveries()">
+                    📊 تصدير Excel
+                </button>
+                <button class="btn btn-primary" onclick="AdminDashboard.applyDeliveryFilters()">
+                    🔍 تطبيق الفلتر
+                </button>
+            </div>
+
+            <table id="deliveriesTable">
+                <thead>
+                    <tr>
+                        <th>رقم الطلب</th>
+                        <th>اسم العميل</th>
+                        <th>الموبايل</th>
+                        <th>العنوان</th>
+                        <th>المندوب</th>
+                        <th>رسوم التوصيل</th>
+                        <th>الحالة</th>
+                        <th>الوقت</th>
+                    </tr>
+                </thead>
+                <tbody id="deliveriesBody"></tbody>
+            </table>
+        </div>
+
+        <!-- المخزون -->
+        <div id="inventory" class="tab-content">
+            <div class="action-buttons">
+                <button class="btn btn-export" onclick="AdminDashboard.exportInventory()">
+                    📊 تصدير Excel
+                </button>
+            </div>
+
+            <table id="inventoryTable">
+                <thead>
+                    <tr>
+                        <th>المكون</th>
+                        <th>الكمية الحالية</th>
+                        <th>الوحدة</th>
+                        <th>الحد الأدنى</th>
+                        <th>التكلفة لكل وحدة</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryBody"></tbody>
+            </table>
+        </div>
+
+        <!-- التقارير -->
+        <div id="reports" class="tab-content">
+            <h2 style="margin-bottom: 20px;">تقارير مفصلة</h2>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label>نوع التقرير</label>
+                    <select id="reportType">
+                        <option value="sales">تقرير المبيعات</option>
+                        <option value="inventory_usage">استهلاك المخزون</option>
+                        <option value="employee_performance">أداء الموظفين</option>
+                        <option value="profit_loss">الأرباح والخسائر</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>من تاريخ</label>
+                    <input type="date" id="reportDateFrom">
+                </div>
+                <div class="filter-group">
+                    <label>إلى تاريخ</label>
+                    <input type="date" id="reportDateTo">
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="AdminDashboard.generateReport()">
+                    📈 إنشاء التقرير
+                </button>
+                <button class="btn btn-export" onclick="AdminDashboard.exportReport()">
+                    📊 تصدير Excel
+                </button>
+            </div>
+
+            <div id="reportContent" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <!-- Modal لإضافة مستخدم -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>إضافة مستخدم جديد</h2>
+                <span class="close-modal" onclick="AdminDashboard.closeUserModal()">×</span>
+            </div>
+
+            <form id="userForm">
+                <div class="form-group">
+                    <label>الاسم الكامل *</label>
+                    <input type="text" id="fullName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>اسم المستخدم *</label>
+                    <input type="text" id="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label>كلمة المرور *</label>
+                    <input type="password" id="userPassword" required>
+                </div>
+
+                <div class="form-group">
+                    <label>الدور الوظيفي *</label>
+                    <select id="userRole" required>
+                        <option value="">-- اختر --</option>
+                        <option value="staff">موظف (Staff)</option>
+                        <option value="cashier">كاشير (Cashier)</option>
+                        <option value="kitchen">مطبخ (Kitchen)</option>
+                        <option value="admin">مدير (Admin)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>رقم الموبايل</label>
+                    <input type="tel" id="userPhone">
+                </div>
+
+                <div class="form-group">
+                    <label>البريد الإلكتروني</label>
+                    <input type="email" id="userEmail">
+                </div>
+
+                <button type="submit" class="btn btn-success" style="width: 100%;">
+                    ✅ حفظ المستخدم
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="config/keys.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/realtime.js"></script>
+    <script src="js/admin.js"></script>
+
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            AdminDashboard.init();
+        });
+    </script>
+</body>
+
+</html>

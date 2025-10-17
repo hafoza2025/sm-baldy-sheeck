@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شاشة المطبخ - نظام المطعم</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/kitchen.css">
+</head>
+
+<body>
+    <div class="kitchen-header">
+        <h1>👨‍🍳 شاشة المطبخ</h1>
+        <div class="live-indicator"></div>
+        <span style="font-size: 14px;">مباشر</span>
+    </div>
+
+    <div class="status-tabs">
+        <button class="status-tab active" data-status="all" onclick="KitchenDisplay.filterOrders('all')">
+            الكل
+        </button>
+        <button class="status-tab" data-status="new" onclick="KitchenDisplay.filterOrders('new')">
+            جديد
+        </button>
+        <button class="status-tab" data-status="preparing" onclick="KitchenDisplay.filterOrders('preparing')">
+            قيد التحضير
+        </button>
+        <button class="status-tab" data-status="ready" onclick="KitchenDisplay.filterOrders('ready')">
+            جاهز
+        </button>
+    </div>
+
+
+    <div class="orders-container" id="ordersContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config/keys.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/realtime.js"></script>
+    <script src="js/kitchen.js"></script>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            KitchenDisplay.init();
+        });
+    </script>
+</body>
+
+</html>

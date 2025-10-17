@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الكاشير - نظام المطعم</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/cashier.css">
+  <style>
+    .cashier-main-layout {
+      display: grid;
+      grid-template-columns: 350px 1fr 450px;
+      gap: 20px;
+      padding: 20px;
+      height: calc(100vh - 80px);
+    }
+
+    .open-orders-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .menu-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .right-panel {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .order-card {
+      transition: all 0.3s ease;
+    }
+
+    .order-card.selected {
+      border-color: #667eea !important;
+      background: #f0f4ff !important;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .qty-btn {
+      width: 30px;
+      height: 30px;
+      border: none;
+      background: #667eea;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .qty-btn:hover {
+      background: #5568d3;
+    }
+
+    .item-remove {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .menu-item {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .menu-item:hover {
+      border-color: #667eea;
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .menu-item img {
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .menu-item h4 {
+      font-size: 14px;
+      margin: 5px 0;
+      color: #333;
+    }
+
+    .menu-item .price {
+      color: #667eea;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .section-hidden {
+      display: none;
+    }
+
+    @media (max-width: 1400px) {
+      .cashier-main-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>💰 نظام الكاشير</h1>
+    <div class="user-info">
+      <span id="cashierName">مرحباً</span>
+      <button class="btn-logout" onclick="Auth.logout()">تسجيل خروج</button>
+    </div>
+  </div>
+
+  <div class="cashier-main-layout">
+    <!-- القسم الأيسر: الفواتير المفتوحة -->
+    <div class="open-orders-panel">
+      <h2 style="margin-bottom: 20px;">📋 الفواتير المفتوحة</h2>
+      <div id="openOrdersList"></div>
+    </div>
+
+    <!-- القسم الأوسط: المنيو -->
+    <div class="menu-panel">
+      <h2 style="margin-bottom: 20px;">🍽️ المنيو</h2>
+      <div class="category-tabs" id="categoryTabs" style="margin-bottom: 20px;"></div>
+      <div id="menuGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px;"></div>
+    </div>
+
+    <!-- القسم الأيمن: التعديل / الطلب الجديد -->
+    <div class="right-panel">
+      
+      <!-- قسم التعديل على فاتورة موجودة -->
+      <div id="editSection" style="display: none; flex: 1;">
+        <h2 style="margin-bottom: 20px;">✏️ تعديل الفاتورة</h2>
+        <div id="editOrderItems" style="flex: 1; overflow-y: auto;"></div>
+        
+        <div style="margin-top: auto; padding-top: 15px; border-top: 2px solid #e0e0e0; display: flex; gap: 10px;">
+          <button id="saveEditBtn" class="btn btn-success" style="flex: 1;">
+            ✅ حفظ التعديلات
+          </button>
+          <button id="cancelEditBtn" class="btn btn-danger" style="flex: 1;">
+            ❌ إلغاء
+          </button>
+        </div>
+      </div>
+
+      <!-- قسم الطلب الجديد (ديليفري) -->
+      <div id="newOrderSection" style="flex: 1;">
+        <h2 style="margin-bottom: 20px;">🛵 طلب ديليفري جديد</h2>
+        
+        <!-- معلومات العميل -->
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+          <h4 style="margin: 0 0 10px 0;">معلومات العميل</h4>
+          <input type="text" id="customerName" placeholder="اسم العميل" 
+                 style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 5px; margin-bottom: 10px;">
+          <input type="tel" id="customerPhone" placeholder="رقم الموبايل" 
+                 style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 5px; margin-bottom: 10px;">
+          <input type="text" id="customerAddress" placeholder="العنوان" 
+                 style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 5px;">
+        </div>
+
+        <!-- الأصناف المطلوبة -->
+        <div style="flex: 1; overflow-y: auto; margin-bottom: 15px;">
+          <h4 style="margin-bottom: 10px;">الأصناف:</h4>
+          <div id="orderItems"></div>
+        </div>
+
+        <!-- الملخص المالي -->
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>المجموع الفرعي:</span>
+            <span id="subtotalAmount">0 جنيه</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>الضريبة (14%):</span>
+            <span id="taxAmount">0 جنيه</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span>رسوم التوصيل:</span>
+            <span id="deliveryAmount">20 جنيه</span>
+          </div>
+          <div style="border-top: 2px solid #667eea; padding-top: 10px; margin-top: 10px;">
+            <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; color: #667eea;">
+              <span>الإجمالي:</span>
+              <span id="totalAmount">0 جنيه</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- الأزرار -->
+        <div style="display: flex; gap: 10px;">
+          <button id="clearOrderBtn" class="btn btn-danger" style="flex: 1;">
+            🗑️ مسح
+          </button>
+          <button id="sendOrderBtn" class="btn btn-success" style="flex: 1;">
+            ✅ إرسال الطلب
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config/keys.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/realtime.js"></script>
+  <script src="js/cashier.js"></script>
+  
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      CashierSystem.init();
+    });
+  </script>
+</body>
+</html>
