@@ -113,3 +113,20 @@ if (typeof window !== 'undefined') {
 window.addEventListener('beforeunload', () => {
     Realtime.unsubscribeAll();
 });
+// Subscribe لأي جدول
+Realtime.subscribeToTable = function(tableName, callback) {
+  const subscription = supabase
+    .channel(`${tableName}-channel`)
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: tableName },
+      (payload) => {
+        console.log(`${tableName} change:`, payload);
+        callback(payload);
+      }
+    )
+    .subscribe();
+  
+  this.subscriptions.push(subscription);
+  return subscription;
+};
+
