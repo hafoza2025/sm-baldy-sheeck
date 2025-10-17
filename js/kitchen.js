@@ -1,5 +1,5 @@
 // js/kitchen.js
-// وظائف شاشة المطبخ مع عرض Recipes
+// وظائف شاشة المطبخ مع عرض Recipes وطباعتها
 
 const KitchenDisplay = {
   currentUser: null,
@@ -26,7 +26,7 @@ const KitchenDisplay = {
           *,
           order_items(
             *,
-            menu_item:menu_item_id(name_ar, name)
+            menu_item:menu_item_id(name_ar, name, price, category)
           ),
           deliveries(customer_name, customer_address)
         `)
@@ -63,7 +63,8 @@ const KitchenDisplay = {
             id,
             name,
             unit,
-            current_stock
+            current_stock,
+            cost_per_unit
           )
         `)
         .eq('menu_item_id', menuItemId);
@@ -121,12 +122,18 @@ const KitchenDisplay = {
                     <span style="font-size: 18px; font-weight: bold;">${item.menu_item.name_ar}</span>
                     <span class="item-quantity">× ${item.quantity}</span>
                   </div>
-                  ${item.special_notes ? `
-                    <div class="special-notes">
-                      <strong>ملاحظة:</strong> ${item.special_notes}
-                    </div>
-                  ` : ''}
+                  
+                  <!-- زر طباعة Recipe -->
+                  <button class="btn-print-recipe" onclick="KitchenDisplay.printRecipe(${item.id}, ${item.menu_item_id}, ${item.quantity}, '${item.menu_item.name_ar}')">
+                    🖨️ طباعة Recipe
+                  </button>
                 </div>
+
+                ${item.special_notes ? `
+                  <div class="special-notes">
+                    <strong>ملاحظة:</strong> ${item.special_notes}
+                  </div>
+                ` : ''}
 
                 ${item.recipe && item.recipe.length > 0 ? `
                   <div class="recipe-section">
@@ -135,11 +142,11 @@ const KitchenDisplay = {
                     </div>
                     <div class="recipe-ingredients">
                       ${item.recipe.map(r => {
-        const totalNeeded = (r.quantity_needed * item.quantity).toFixed(2);
-        const currentStock = r.ingredient?.current_stock || 0;
-        const isLowStock = currentStock < (totalNeeded * 2);
+                        const totalNeeded = (r.quantity_needed * item.quantity).toFixed(2);
+                        const currentStock = r.ingredient?.current_stock || 0;
+                        const isLowStock = currentStock < (totalNeeded * 2);
 
-        return `
+                        return `
                           <div class="ingredient-row ${isLowStock ? 'low-stock' : ''}">
                             <div class="ingredient-info">
                               <span class="ingredient-name">${r.ingredient?.name}</span>
@@ -155,7 +162,7 @@ const KitchenDisplay = {
                             </div>
                           </div>
                         `;
-      }).join('')}
+                      }).join('')}
                     </div>
                   </div>
                 ` : `
@@ -197,6 +204,385 @@ const KitchenDisplay = {
     }
   },
 
+  // ===================================
+  // طباعة Recipe - الدالة الجديدة 🖨️
+  // ===================================
+  async printRecipe(orderItemId, menuItemId, quantity, itemName) {
+    try {
+      Loading.show('جاري تحميل Recipe...', 'يرجى الانتظار');
+
+      // جلب معلومات الصنف
+      const { data: menuItem, error: menuError } = await supabase
+        .from('menu_items')
+        .select('name_ar, name_en, price, category')
+        .eq('id', menuItemId)
+        .single();
+
+      if (menuError) throw menuError;
+
+      // جلب Recipe (المكونات المطلوبة)
+      const { data: recipes, error: recipeError } = await supabase
+        .from('recipes')
+        .select(`
+          quantity_needed,
+          ingredient:ingredient_id (
+            name,
+            unit,
+            current_stock,
+            cost_per_unit
+          )
+        `)
+        .eq('menu_item_id', menuItemId);
+
+      if (recipeError) throw recipeError;
+
+      Loading.hide();
+
+      // إنشاء صفحة الطباعة
+      this.generateRecipePrintPage(menuItem, recipes, quantity);
+
+    } catch (error) {
+      console.error('Error printing recipe:', error);
+      Loading.error('حدث خطأ في تحميل Recipe');
+    }
+  },
+
+  generateRecipePrintPage(menuItem, recipes, quantity) {
+    const now = new Date();
+    const totalCost = recipes.reduce((sum, r) => 
+      sum + (r.quantity_needed * quantity * r.ingredient.cost_per_unit), 0
+    );
+
+    const printHTML = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>Recipe - ${menuItem.name_ar}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          body {
+            font-family: 'Cairo', Arial, sans-serif;
+            padding: 20mm;
+            background: #FAF3E0;
+            color: #333;
+          }
+
+          .recipe-container {
+            background: white;
+            border: 4px solid #D4B896;
+            padding: 20mm;
+            max-width: 210mm;
+            margin: 0 auto;
+            position: relative;
+          }
+
+          .recipe-container::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            border-top: 4px solid #D4AF37;
+            border-right: 4px solid #D4AF37;
+          }
+
+          .recipe-container::after {
+            content: '';
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: 40px;
+            height: 40px;
+            border-bottom: 4px solid #D4AF37;
+            border-left: 4px solid #D4AF37;
+          }
+
+          .recipe-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #D4B896;
+          }
+
+          .recipe-header h1 {
+            font-size: 32px;
+            color: #D4AF37;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+          }
+
+          .recipe-header .subtitle {
+            font-size: 18px;
+            color: #8B7355;
+            font-weight: bold;
+          }
+
+          .item-info {
+            background: #F5E6D3;
+            padding: 15px;
+            border: 2px solid #D4B896;
+            margin-bottom: 25px;
+          }
+
+          .item-info h2 {
+            font-size: 28px;
+            color: #8B7355;
+            margin-bottom: 10px;
+          }
+
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #D4B896;
+          }
+
+          .info-row:last-child {
+            border-bottom: none;
+          }
+
+          .info-label {
+            font-weight: bold;
+            color: #8B7355;
+          }
+
+          .info-value {
+            color: #333;
+            font-weight: bold;
+          }
+
+          .ingredients-section {
+            margin-bottom: 25px;
+          }
+
+          .ingredients-section h3 {
+            font-size: 22px;
+            color: #8B7355;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #D4B896;
+          }
+
+          .ingredients-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid #D4B896;
+          }
+
+          .ingredients-table thead {
+            background: #E8D7C1;
+          }
+
+          .ingredients-table th,
+          .ingredients-table td {
+            padding: 12px;
+            text-align: right;
+            border: 1px solid #D4B896;
+          }
+
+          .ingredients-table th {
+            font-weight: bold;
+            color: #8B7355;
+            text-transform: uppercase;
+            font-size: 14px;
+          }
+
+          .ingredients-table tbody tr:nth-child(even) {
+            background: #FAF3E0;
+          }
+
+          .stock-ok {
+            color: #2E7D32;
+            font-weight: bold;
+          }
+
+          .stock-low {
+            color: #E65100;
+            font-weight: bold;
+          }
+
+          .stock-critical {
+            color: #C62828;
+            font-weight: bold;
+          }
+
+          .cost-summary {
+            background: #FFF3CD;
+            padding: 15px;
+            border: 3px solid #F57C00;
+            margin-top: 20px;
+          }
+
+          .cost-summary h3 {
+            font-size: 20px;
+            color: #E65100;
+            margin-bottom: 12px;
+          }
+
+          .cost-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 16px;
+          }
+
+          .cost-row.total {
+            border-top: 2px solid #F57C00;
+            margin-top: 10px;
+            padding-top: 12px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #E65100;
+          }
+
+          .recipe-footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #D4B896;
+            text-align: center;
+            font-size: 12px;
+            color: #8B7355;
+          }
+
+          @media print {
+            body {
+              padding: 0;
+              background: white;
+            }
+
+            .recipe-container {
+              border: none;
+              box-shadow: none;
+            }
+
+            @page {
+              margin: 15mm;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="recipe-container">
+          <div class="recipe-header">
+            <h1>🍳 Recipe - الوصفة</h1>
+            <div class="subtitle">مطبخ المعبد المقدس</div>
+          </div>
+
+          <div class="item-info">
+            <h2>${menuItem.name_ar}</h2>
+            <div class="info-row">
+              <span class="info-label">الفئة:</span>
+              <span class="info-value">${menuItem.category}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">الكمية المطلوبة:</span>
+              <span class="info-value">× ${quantity}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">سعر البيع:</span>
+              <span class="info-value">${this.formatCurrency(menuItem.price)}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">التاريخ والوقت:</span>
+              <span class="info-value">${this.formatDate(now)} - ${this.formatTime(now)}</span>
+            </div>
+          </div>
+
+          <div class="ingredients-section">
+            <h3>📋 المكونات المطلوبة</h3>
+            <table class="ingredients-table">
+              <thead>
+                <tr>
+                  <th>المكون</th>
+                  <th>الكمية لوحدة واحدة</th>
+                  <th>الكمية الإجمالية</th>
+                  <th>الوحدة</th>
+                  <th>المخزون الحالي</th>
+                  <th>التكلفة</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${recipes.map(recipe => {
+                  const totalNeeded = recipe.quantity_needed * quantity;
+                  const totalCost = totalNeeded * recipe.ingredient.cost_per_unit;
+                  const stock = recipe.ingredient.current_stock;
+                  const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
+                  
+                  return `
+                    <tr>
+                      <td><strong>${recipe.ingredient.name}</strong></td>
+                      <td>${recipe.quantity_needed.toFixed(2)}</td>
+                      <td><strong>${totalNeeded.toFixed(2)}</strong></td>
+                      <td>${recipe.ingredient.unit}</td>
+                      <td class="${stockStatus}">${stock.toFixed(2)}</td>
+                      <td>${this.formatCurrency(totalCost)}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="cost-summary">
+            <h3>💰 ملخص التكلفة</h3>
+            <div class="cost-row">
+              <span>تكلفة المكونات الإجمالية:</span>
+              <span>${this.formatCurrency(totalCost)}</span>
+            </div>
+            <div class="cost-row">
+              <span>سعر البيع (× ${quantity}):</span>
+              <span>${this.formatCurrency(menuItem.price * quantity)}</span>
+            </div>
+            <div class="cost-row total">
+              <span>صافي الربح:</span>
+              <span>${this.formatCurrency((menuItem.price * quantity) - totalCost)}</span>
+            </div>
+          </div>
+
+          <div class="recipe-footer">
+            <p>⚠️ تأكد من توفر جميع المكونات قبل البدء في التحضير</p>
+            <p>تمت الطباعة من نظام إدارة المطعم - ${SYSTEM_CONFIG.restaurantName}</p>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() {
+              window.close();
+            }, 500);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=800');
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+  },
+
+  // دوال مساعدة للطباعة
+  formatCurrency(amount) {
+    return `${amount.toFixed(2)} جنيه`;
+  },
+
+  formatDate(date) {
+    return new Date(date).toLocaleDateString('ar-EG');
+  },
+
+  formatTime(date) {
+    return new Date(date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  },
+
   // تحديث حالة الطلب
   async updateOrderStatus(orderId, newStatus) {
     try {
@@ -207,7 +593,6 @@ const KitchenDisplay = {
 
       if (error) throw error;
 
-      // تحديث حالة الديليفري أيضاً
       if (newStatus === 'ready') {
         await supabase
           .from('deliveries')
@@ -223,7 +608,6 @@ const KitchenDisplay = {
 
       Utils.showNotification(`تم تحديث الطلب إلى: ${statusNames[newStatus]}`, 'success');
 
-      // تشغيل صوت عند الجاهزية
       if (newStatus === 'ready') {
         this.playNotificationSound();
       }
@@ -236,7 +620,6 @@ const KitchenDisplay = {
     }
   },
 
-  // إشعار الموظف
   async notifyWaiter(orderId) {
     try {
       const { data: order } = await supabase
@@ -258,7 +641,6 @@ const KitchenDisplay = {
     }
   },
 
-  // تشغيل صوت الإشعار
   playNotificationSound() {
     try {
       const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZXR0LQKX05GxfIAUthM/z0YUzBx5uwO/jmV0dC0Cl9ORsXyAFLYTP89GFMw==');
@@ -268,7 +650,6 @@ const KitchenDisplay = {
     }
   },
 
-  // فلترة الطلبات
   filterOrders(status) {
     this.currentFilter = status;
 
@@ -280,7 +661,6 @@ const KitchenDisplay = {
     this.displayOrders(this.orders);
   },
 
-  // بدء المؤقتات
   startTimers() {
     setInterval(() => {
       document.querySelectorAll('.timer').forEach(timer => {
@@ -293,14 +673,12 @@ const KitchenDisplay = {
           timer.closest('.order-card').classList.add('urgent');
         }
       });
-    }, 30000); // تحديث كل 30 ثانية
+    }, 30000);
   },
 
-  // إعداد الاشتراكات اللحظية
   setupRealtimeSubscriptions() {
     Realtime.subscribeToOrders((payload) => {
       if (payload.eventType === 'INSERT') {
-        // طلب جديد
         this.showNewOrderNotification();
         this.playNotificationSound();
       }
@@ -308,7 +686,6 @@ const KitchenDisplay = {
     });
   },
 
-  // إشعار طلب جديد
   showNewOrderNotification() {
     const notification = document.createElement('div');
     notification.className = 'sound-notification';
@@ -324,9 +701,7 @@ const KitchenDisplay = {
     }, 2000);
   },
 
-  // إعداد مستمعي الأحداث
   setupEventListeners() {
-    // إضافة مستمعين للفلاتر
     document.querySelectorAll('.status-tab').forEach(tab => {
       tab.addEventListener('click', function () {
         const status = this.getAttribute('data-status');
@@ -336,17 +711,14 @@ const KitchenDisplay = {
   }
 };
 
-// تهيئة عند تحميل الصفحة
 if (typeof window !== 'undefined') {
   window.KitchenDisplay = KitchenDisplay;
 }
-
 
 // ===============================
 // Auto-Protection للدوال
 // ===============================
 
-// حماية تحديث حالة الطلب
 if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.updateOrderStatus) {
   const originalUpdateStatus = KitchenDisplay.updateOrderStatus.bind(KitchenDisplay);
   KitchenDisplay.updateOrderStatus = async function(orderId, newStatus) {
@@ -379,16 +751,14 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.updateOrderStatus) {
   };
 }
 
-// حماية تحميل الطلبات
 if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadOrders) {
   const originalLoadOrders = KitchenDisplay.loadOrders.bind(KitchenDisplay);
   KitchenDisplay.loadOrders = protectAsync(originalLoadOrders, 'load-orders', false);
 }
 
-// حماية تحميل Recipe
 if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem) {
   const originalLoadRecipe = KitchenDisplay.loadRecipeForItem.bind(KitchenDisplay);
   KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
 }
 
-console.log('✅ Kitchen functions protected');
+console.log('✅ Kitchen functions with Recipe Printing protected');
