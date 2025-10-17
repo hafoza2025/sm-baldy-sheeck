@@ -1,124 +1,45 @@
-// js/inventory.js
-// نظام إدارة المخزون والوصفات
+// js/recipes-advanced.js
+// نظام Recipe Management المتقدم - متزامن 100%
 
-const InventoryManager = {
+const RecipeManager = {
   currentUser: null,
+  allMenuItems: [],
   allIngredients: [],
   allRecipes: [],
-  allMenuItems: [],
-  currentMenuItem: null,
+  selectedMenuItem: null,
+  currentRecipe: [],
+  currentFilter: 'all',
 
   // التهيئة
   async init() {
-    this.currentUser = Auth.checkAuth(['admin', 'kitchen']);
+    // حماية الوصول - Admin فقط
+    this.currentUser = Auth.checkRecipeAccess();
     if (!this.currentUser) return;
 
-    document.getElementById('userName').textContent = `مرحباً، ${this.currentUser.full_name}`;
+    document.getElementById('adminName').textContent = `مرحباً، ${this.currentUser.full_name}`;
     
     await this.loadAllData();
     this.setupEventListeners();
     this.setupRealtimeSubscriptions();
+    this.updateDashboardStats();
   },
 
   // تحميل جميع البيانات
   async loadAllData() {
-    await Promise.all([
-      this.loadIngredients(),
-      this.loadMenuItems(),
-      this.updateStats()
-    ]);
-  },
-
-  // تحميل المكونات
-  async loadIngredients() {
+    Loading.show('جاري تحميل البيانات...', 'يرجى الانتظار');
+    
     try {
-      const { data, error } = await supabase
-        .from('ingredients')
-        .select('*')
-        .order('name');
+      await Promise.all([
+        this.loadMenuItems(),
+        this.loadIngredients(),
+        this.loadAllRecipes()
+      ]);
       
-      if (error) throw error;
-      
-      this.allIngredients = data;
-      this.displayIngredients(data);
-      
+      Loading.hide();
     } catch (error) {
-      console.error('Error loading ingredients:', error);
-      Utils.showNotification('خطأ في تحميل المكونات', 'error');
+      Loading.error('حدث خطأ في تحميل البيانات');
+      console.error('Error loading data:', error);
     }
-  },
-
-  // عرض المكونات
-  displayIngredients(ingredients) {
-    const tbody = document.getElementById('inventoryBody');
-    if (!tbody) return;
-
-    tbody.innerHTML = ingredients.map(item => {
-      const totalValue = (item.current_stock * item.cost_per_unit).toFixed(2);
-      const stockStatus = this.getStockStatus(item);
-      
-      return `
-        <tr>
-          <td><strong>${item.name}</strong></td>
-          <td style="font-weight: bold; ${stockStatus === 'critical' ? 'color: #f44336;' : stockStatus === 'low' ? 'color: #ff9800;' : ''}">${item.current_stock.toFixed(2)}</td>
-          <td>${item.unit}</td>
-          <td>${item.min_stock.toFixed(2)}</td>
-          <td>${Utils.formatCurrency(item.cost_per_unit)}</td>
-          <td><strong>${Utils.formatCurrency(totalValue)}</strong></td>
-          <td>${this.getStockStatusBadge(stockStatus)}</td>
-          <td>
-            <button class="action-btn btn-update" onclick="InventoryManager.openUpdateStockModal(${item.id})">
-              📦 تحديث
-            </button>
-            <button class="action-btn btn-edit" onclick="InventoryManager.editIngredient(${item.id})">
-              ✏️ تعديل
-            </button>
-            <button class="action-btn btn-delete" onclick="InventoryManager.deleteIngredient(${item.id})">
-              🗑️ حذف
-            </button>
-          </td>
-        </tr>
-      `;
-    }).join('');
-  },
-
-  // تحديد حالة المخزون
-  getStockStatus(ingredient) {
-    if (ingredient.current_stock <= 0) return 'critical';
-    if (ingredient.current_stock <= ingredient.min_stock) return 'low';
-    return 'normal';
-  },
-
-  // عرض حالة المخزون
-  getStockStatusBadge(status) {
-    const badges = {
-      'normal': '<span class="stock-status stock-normal">✅ عادي</span>',
-      'low': '<span class="stock-status stock-low">⚠️ منخفض</span>',
-      'critical': '<span class="stock-status stock-critical">🔴 حرج</span>'
-    };
-    return badges[status] || '';
-  },
-
-  // فلترة المكونات
-  filterIngredients() {
-    const search = document.getElementById('searchIngredient').value.toLowerCase();
-    const status = document.getElementById('filterStockStatus').value;
-
-    let filtered = this.allIngredients;
-
-    if (search) {
-      filtered = filtered.filter(item => 
-        item.name.toLowerCase().includes(search)
-      );
-    }
-
-    if (status !== 'all') {
-      filtered = filtered.filter(item => 
-        this.getStockStatus(item) === status
-      );
-    }
-
-    this.displayIngredients(filtered);
   },
 
   // تحميل أصناف المنيو
@@ -132,38 +53,151 @@ const InventoryManager = {
       if (error) throw error;
       
       this.allMenuItems = data;
-      
-      const select = document.getElementById('menuItemSelect');
-      if (select) {
-        select.innerHTML = `
-          <option value="">-- اختر صنف من المنيو --</option>
-          ${data.map(item => `
-            <option value="${item.id}">${item.name_ar}</option>
-          `).join('')}
-        `;
-      }
+      this.displayMenuItems();
       
     } catch (error) {
       console.error('Error loading menu items:', error);
+      throw error;
     }
   },
 
-  // تحميل وصفة صنف
-  async loadRecipesForItem() {
-    const select = document.getElementById('menuItemSelect');
-    const menuItemId = select.value;
+  // تحميل المكونات
+  async loadIngredients() {
+    try {
+      const { data, error } = await supabase
+        .from('ingredients')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      
+      this.allIngredients = data;
+      this.displayInventoryPanel();
+      
+    } catch (error) {
+      console.error('Error loading ingredients:', error);
+      throw error;
+    }
+  },
 
-    if (!menuItemId) {
-      document.getElementById('recipeContent').innerHTML = `
-        <div class="empty-state">
-          <h3>اختر صنفاً من المنيو لعرض وصفته</h3>
-        </div>
-      `;
-      return;
+  // تحميل جميع الوصفات
+  async loadAllRecipes() {
+    try {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select(`
+          *,
+          ingredient:ingredient_id(*),
+          menu_item:menu_item_id(*)
+        `);
+      
+      if (error) throw error;
+      
+      this.allRecipes = data;
+      
+    } catch (error) {
+      console.error('Error loading recipes:', error);
+      throw error;
+    }
+  },
+
+  // عرض أصناف المنيو
+  displayMenuItems() {
+    const container = document.getElementById('menuItemsList');
+    let filtered = this.allMenuItems;
+
+    // تطبيق الفلتر
+    if (this.currentFilter === 'has-recipe') {
+      filtered = filtered.filter(item => 
+        this.allRecipes.some(r => r.menu_item_id === item.id)
+      );
+    } else if (this.currentFilter === 'no-recipe') {
+      filtered = filtered.filter(item => 
+        !this.allRecipes.some(r => r.menu_item_id === item.id)
+      );
     }
 
-    this.currentMenuItem = this.allMenuItems.find(item => item.id == menuItemId);
+    // البحث
+    const searchTerm = document.getElementById('searchMenuItem')?.value?.toLowerCase() || '';
+    if (searchTerm) {
+      filtered = filtered.filter(item => 
+        item.name_ar.toLowerCase().includes(searchTerm) ||
+        item.name.toLowerCase().includes(searchTerm)
+      );
+    }
 
+    container.innerHTML = filtered.map(item => {
+      const hasRecipe = this.allRecipes.some(r => r.menu_item_id === item.id);
+      const isSelected = this.selectedMenuItem?.id === item.id;
+      
+      return `
+        <div class="menu-item-card ${hasRecipe ? 'has-recipe' : 'no-recipe'} ${isSelected ? 'selected' : ''}" 
+             onclick="RecipeManager.selectMenuItem(${item.id})">
+          <div class="menu-item-name">${item.name_ar}</div>
+          <div class="menu-item-meta">
+            <span class="menu-item-badge">${Utils.formatCurrency(item.price)}</span>
+            <span class="menu-item-badge">${item.category}</span>
+            ${hasRecipe ? '<span class="menu-item-badge" style="background: #d4edda; color: #155724;">✓ Recipe</span>' : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // تحديث عدادات الفلاتر
+    document.getElementById('filterCountAll').textContent = this.allMenuItems.length;
+    document.getElementById('filterCountHas').textContent = 
+      this.allMenuItems.filter(item => this.allRecipes.some(r => r.menu_item_id === item.id)).length;
+    document.getElementById('filterCountNo').textContent = 
+      this.allMenuItems.filter(item => !this.allRecipes.some(r => r.menu_item_id === item.id)).length;
+  },
+
+  // تعيين الفلتر
+  setFilter(filter) {
+    this.currentFilter = filter;
+    
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    this.displayMenuItems();
+  },
+
+  // فلترة البحث
+  filterMenuItems() {
+    this.displayMenuItems();
+  },
+
+  // اختيار صنف
+  async selectMenuItem(itemId) {
+    this.selectedMenuItem = this.allMenuItems.find(item => item.id === itemId);
+    if (!this.selectedMenuItem) return;
+
+    // تحديث العرض
+    this.displayMenuItems();
+    
+    // إخفاء placeholder وإظهار المحتوى
+    document.getElementById('editorPlaceholder').style.display = 'none';
+    document.getElementById('editorContent').style.display = 'block';
+
+    // تحميل Recipe الخاص بالصنف
+    await this.loadRecipeForItem(itemId);
+    
+    // عرض معلومات الصنف
+    this.displayItemInfo();
+    
+    // عرض Recipe
+    this.displayRecipe();
+    
+    // حساب التكاليف
+    this.calculateCosts();
+    
+    // معاينة المطبخ
+    this.updateKitchenPreview();
+  },
+
+  // تحميل Recipe لصنف معين
+  async loadRecipeForItem(itemId) {
     try {
       const { data, error } = await supabase
         .from('recipes')
@@ -171,140 +205,230 @@ const InventoryManager = {
           *,
           ingredient:ingredient_id(*)
         `)
-        .eq('menu_item_id', menuItemId);
+        .eq('menu_item_id', itemId);
       
       if (error) throw error;
       
-      this.allRecipes = data;
-      this.displayRecipes(data);
+      this.currentRecipe = data || [];
       
     } catch (error) {
-      console.error('Error loading recipes:', error);
+      console.error('Error loading recipe:', error);
       Utils.showNotification('خطأ في تحميل الوصفة', 'error');
     }
   },
 
-  // عرض الوصفات
-  displayRecipes(recipes) {
-    const container = document.getElementById('recipeContent');
+  // عرض معلومات الصنف
+  displayItemInfo() {
+    const item = this.selectedMenuItem;
+    
+    document.getElementById('recipeItemImage').src = item.image_url || 'https://via.placeholder.com/100';
+    document.getElementById('recipeItemName').textContent = item.name_ar;
+    document.getElementById('recipeItemPrice').textContent = Utils.formatCurrency(item.price);
+    document.getElementById('recipeItemCategory').textContent = item.category;
+    
+    const statusBadge = document.getElementById('recipeStatus');
+    if (this.currentRecipe.length > 0) {
+      statusBadge.innerHTML = `✅ Recipe كاملة (${this.currentRecipe.length} مكونات)`;
+      statusBadge.style.background = 'rgba(76, 175, 80, 0.2)';
+      statusBadge.style.color = '#155724';
+    } else {
+      statusBadge.innerHTML = '⚠️ لا توجد وصفة';
+      statusBadge.style.background = 'rgba(255, 152, 0, 0.2)';
+      statusBadge.style.color = '#856404';
+    }
+  },
 
-    if (recipes.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <h3>لا توجد وصفة لهذا الصنف</h3>
-          <button class="btn btn-primary" onclick="InventoryManager.openAddRecipeModal()">
-            ➕ إضافة مكونات للوصفة
-          </button>
-        </div>
-      `;
+  // عرض Recipe
+  displayRecipe() {
+    if (this.currentRecipe.length === 0) {
+      document.getElementById('emptyRecipeState').style.display = 'block';
+      document.getElementById('ingredientsTable').style.display = 'none';
       return;
     }
 
-    container.innerHTML = `
-      <div class="recipe-card">
-        <div class="recipe-header">
-          <h3>📋 وصفة: ${this.currentMenuItem.name_ar}</h3>
-          <button class="btn btn-primary" onclick="InventoryManager.openAddRecipeModal()">
-            ➕ إضافة مكون
-          </button>
-        </div>
-        
-        <div class="recipe-ingredients">
-          ${recipes.map(recipe => {
-            const ingredient = recipe.ingredient;
-            const isLow = ingredient.current_stock < (recipe.quantity_needed * 5);
-            
-            return `
-              <div class="ingredient-item">
-                <div class="ingredient-info">
-                  <div class="ingredient-name">${ingredient.name}</div>
-                  <div class="ingredient-quantity">
-                    الكمية المطلوبة: <strong>${recipe.quantity_needed} ${ingredient.unit}</strong>
-                  </div>
-                  <div class="ingredient-stock ${isLow ? 'stock-low' : ''}">
-                    المخزون الحالي: ${ingredient.current_stock.toFixed(2)} ${ingredient.unit}
-                    ${isLow ? ' ⚠️' : ' ✅'}
-                  </div>
-                </div>
-                <div class="ingredient-actions">
-                  <button class="action-btn btn-edit" onclick="InventoryManager.editRecipeItem(${recipe.id})">
-                    ✏️
-                  </button>
-                  <button class="action-btn btn-delete" onclick="InventoryManager.deleteRecipeItem(${recipe.id})">
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
+    document.getElementById('emptyRecipeState').style.display = 'none';
+    document.getElementById('ingredientsTable').style.display = 'block';
+
+    const tbody = document.getElementById('ingredientsBody');
+    
+    tbody.innerHTML = this.currentRecipe.map(recipe => {
+      const ingredient = recipe.ingredient;
+      const cost = (recipe.quantity_needed * ingredient.cost_per_unit).toFixed(2);
+      const stockStatus = this.getStockStatus(ingredient, recipe.quantity_needed);
+      
+      return `
+        <tr>
+          <td class="ingredient-name-cell">${ingredient.name}</td>
+          <td><strong>${recipe.quantity_needed.toFixed(3)} ${ingredient.unit}</strong></td>
+          <td>${ingredient.current_stock.toFixed(2)} ${ingredient.unit}</td>
+          <td><strong>${Utils.formatCurrency(cost)}</strong></td>
+          <td>${this.getStockBadge(stockStatus)}</td>
+          <td>
+            <button class="action-btn btn-edit" onclick="RecipeManager.openEditIngredientModal(${recipe.id})">
+              ✏️
+            </button>
+            <button class="action-btn btn-delete" onclick="RecipeManager.deleteIngredient(${recipe.id})">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
   },
 
-  // تحديث الإحصائيات
-  async updateStats() {
-    try {
-      // عدد المكونات
-      const { data: ingredients } = await supabase
-        .from('ingredients')
-        .select('id, current_stock, min_stock, cost_per_unit');
+  // حالة المخزون
+  getStockStatus(ingredient, quantityNeeded) {
+    const availableServings = ingredient.current_stock / quantityNeeded;
+    
+    if (availableServings >= 20) return 'ok';
+    if (availableServings >= 5) return 'low';
+    return 'critical';
+  },
 
-      document.getElementById('totalIngredients').textContent = ingredients?.length || 0;
+  getStockBadge(status) {
+    const badges = {
+      'ok': '<span class="stock-badge stock-ok">✅ متوفر</span>',
+      'low': '<span class="stock-badge stock-low">⚠️ منخفض</span>',
+      'critical': '<span class="stock-badge stock-critical">🔴 حرج</span>'
+    };
+    return badges[status];
+  },
 
-      // المكونات المنخفضة
-      const lowStock = ingredients?.filter(i => i.current_stock <= i.min_stock).length || 0;
-      document.getElementById('lowStockCount').textContent = lowStock;
-
-      // قيمة المخزون
-      const totalValue = ingredients?.reduce((sum, i) => sum + (i.current_stock * i.cost_per_unit), 0) || 0;
-      document.getElementById('totalValue').textContent = Utils.formatCurrency(totalValue);
-
-      // عدد الوصفات
-      const { data: recipes } = await supabase
-        .from('recipes')
-        .select('menu_item_id');
-
-      const uniqueMenuItems = [...new Set(recipes?.map(r => r.menu_item_id))].length;
-      document.getElementById('totalRecipes').textContent = uniqueMenuItems;
-
-    } catch (error) {
-      console.error('Error updating stats:', error);
+  // حساب التكاليف
+  calculateCosts() {
+    if (this.currentRecipe.length === 0) {
+      document.getElementById('costIngredients').textContent = '0.00 جنيه';
+      document.getElementById('suggestedPrice').textContent = '0.00 جنيه';
+      document.getElementById('currentPrice').textContent = '0.00 جنيه';
+      document.getElementById('totalCost').textContent = '0.00 جنيه';
+      return;
     }
+
+    const totalCost = this.currentRecipe.reduce((sum, recipe) => {
+      return sum + (recipe.quantity_needed * recipe.ingredient.cost_per_unit);
+    }, 0);
+
+    const profitMargin = parseFloat(document.getElementById('profitMargin')?.value || 200);
+    const suggestedPrice = totalCost * (1 + profitMargin / 100);
+
+    document.getElementById('costIngredients').textContent = Utils.formatCurrency(totalCost);
+    document.getElementById('suggestedPrice').textContent = Utils.formatCurrency(suggestedPrice);
+    document.getElementById('currentPrice').textContent = Utils.formatCurrency(this.selectedMenuItem.price);
+    document.getElementById('totalCost').textContent = Utils.formatCurrency(totalCost);
   },
 
-  // إضافة مكون جديد
+  // فتح modal إضافة مكون
   openAddIngredientModal() {
-    document.getElementById('addIngredientModal').classList.add('active');
+    if (!this.selectedMenuItem) {
+      Utils.showNotification('يرجى اختيار صنف أولاً', 'error');
+      return;
+    }
+
+    // ملء قائمة المكونات
+    const select = document.getElementById('ingredientSelect');
+    select.innerHTML = `
+      <option value="">-- اختر المكون --</option>
+      ${this.allIngredients.map(ing => `
+        <option value="${ing.id}" 
+                data-unit="${ing.unit}" 
+                data-stock="${ing.current_stock}"
+                data-cost="${ing.cost_per_unit}">
+          ${ing.name}
+        </option>
+      `).join('')}
+    `;
+
+    document.getElementById('ingredientDetails').style.display = 'none';
     document.getElementById('addIngredientForm').reset();
+    document.getElementById('addIngredientModal').classList.add('active');
   },
 
   closeAddIngredientModal() {
     document.getElementById('addIngredientModal').classList.remove('active');
   },
 
-  async saveIngredient(e) {
+  // عند اختيار مكون
+  ingredientSelected() {
+    const select = document.getElementById('ingredientSelect');
+    const option = select.selectedOptions[0];
+    
+    if (!option || !option.value) {
+      document.getElementById('ingredientDetails').style.display = 'none';
+      return;
+    }
+
+    const unit = option.getAttribute('data-unit');
+    const stock = parseFloat(option.getAttribute('data-stock'));
+    const cost = parseFloat(option.getAttribute('data-cost'));
+    
+    document.getElementById('detailUnit').textContent = unit;
+    document.getElementById('detailStock').textContent = `${stock.toFixed(2)} ${unit}`;
+    document.getElementById('detailCost').textContent = Utils.formatCurrency(cost);
+    
+    const status = stock > 20 ? '✅ متوفر' : stock > 5 ? '⚠️ منخفض' : '🔴 حرج';
+    document.getElementById('detailStatus').textContent = status;
+    
+    document.getElementById('quantityUnit').textContent = unit;
+    document.getElementById('ingredientDetails').style.display = 'block';
+  },
+
+  // حساب تكلفة المكون
+  calculateIngredientCost() {
+    const select = document.getElementById('ingredientSelect');
+    const option = select.selectedOptions[0];
+    
+    if (!option || !option.value) return;
+
+    const quantity = parseFloat(document.getElementById('ingredientQuantity').value) || 0;
+    const cost = parseFloat(option.getAttribute('data-cost'));
+    const stock = parseFloat(option.getAttribute('data-stock'));
+    
+    const totalCost = quantity * cost;
+    const servings = Math.floor(stock / quantity);
+    
+    document.getElementById('previewCost').textContent = Utils.formatCurrency(totalCost);
+    document.getElementById('previewServings').textContent = `${servings} قطعة`;
+  },
+
+  // حفظ مكون جديد
+  async saveNewIngredient(e) {
     e.preventDefault();
 
-    const ingredientData = {
-      name: document.getElementById('ingredientName').value,
-      unit: document.getElementById('ingredientUnit').value,
-      current_stock: parseFloat(document.getElementById('ingredientStock').value),
-      min_stock: parseFloat(document.getElementById('ingredientMinStock').value),
-      cost_per_unit: parseFloat(document.getElementById('ingredientCost').value),
-      supplier: document.getElementById('ingredientSupplier').value || null
-    };
+    const ingredientId = document.getElementById('ingredientSelect').value;
+    const quantity = parseFloat(document.getElementById('ingredientQuantity').value);
+
+    if (!ingredientId || !quantity) {
+      Utils.showNotification('يرجى ملء جميع الحقول', 'error');
+      return;
+    }
+
+    // التحقق من عدم التكرار
+    const exists = this.currentRecipe.some(r => r.ingredient_id == ingredientId);
+    if (exists) {
+      Utils.showNotification('هذا المكون موجود بالفعل في الوصفة', 'warning');
+      return;
+    }
 
     try {
       const { error } = await supabase
-        .from('ingredients')
-        .insert([ingredientData]);
+        .from('recipes')
+        .insert([{
+          menu_item_id: this.selectedMenuItem.id,
+          ingredient_id: ingredientId,
+          quantity_needed: quantity
+        }]);
 
       if (error) throw error;
 
-      Utils.showNotification('تم إضافة المكون بنجاح ✅', 'success');
+      Utils.showNotification('تم إضافة المكون للوصفة ✅', 'success');
       this.closeAddIngredientModal();
-      await this.loadAllData();
+      
+      // إعادة تحميل
+      await this.loadRecipeForItem(this.selectedMenuItem.id);
+      this.displayRecipe();
+      this.calculateCosts();
+      this.updateKitchenPreview();
+      this.updateDashboardStats();
 
     } catch (error) {
       console.error('Error saving ingredient:', error);
@@ -312,184 +436,54 @@ const InventoryManager = {
     }
   },
 
-  // تحديث المخزون
-  openUpdateStockModal(ingredientId) {
-    const ingredient = this.allIngredients.find(i => i.id === ingredientId);
-    if (!ingredient) return;
+  // فتح modal تعديل
+  openEditIngredientModal(recipeId) {
+    const recipe = this.currentRecipe.find(r => r.id === recipeId);
+    if (!recipe) return;
 
-    document.getElementById('updateIngredientId').value = ingredient.id;
-    document.getElementById('updateIngredientName').value = ingredient.name;
-    document.getElementById('updateCurrentStock').value = `${ingredient.current_stock} ${ingredient.unit}`;
-    document.getElementById('updateQuantity').value = '';
-    document.getElementById('updateNewStock').value = '';
-    document.getElementById('updateNotes').value = '';
+    document.getElementById('editRecipeId').value = recipe.id;
+    document.getElementById('editIngredientName').value = recipe.ingredient.name;
+    document.getElementById('editIngredientQuantity').value = recipe.quantity_needed;
+    document.getElementById('editQuantityUnit').textContent = recipe.ingredient.unit;
 
-    document.getElementById('updateStockModal').classList.add('active');
+    document.getElementById('editIngredientModal').classList.add('active');
   },
 
-  closeUpdateStockModal() {
-    document.getElementById('updateStockModal').classList.remove('active');
+  closeEditIngredientModal() {
+    document.getElementById('editIngredientModal').classList.remove('active');
   },
 
-  updateStockTypeChanged() {
-    const type = document.getElementById('updateType').value;
-    const label = document.getElementById('updateQuantityLabel');
-
-    if (type === 'add') {
-      label.textContent = 'الكمية المضافة *';
-    } else if (type === 'deduct') {
-      label.textContent = 'الكمية المخصومة *';
-    } else {
-      label.textContent = 'الكمية الجديدة *';
-    }
-
-    this.calculateNewStock();
-  },
-
-  calculateNewStock() {
-    const ingredientId = document.getElementById('updateIngredientId').value;
-    const ingredient = this.allIngredients.find(i => i.id == ingredientId);
-    if (!ingredient) return;
-
-    const type = document.getElementById('updateType').value;
-    const quantity = parseFloat(document.getElementById('updateQuantity').value) || 0;
-    let newStock = ingredient.current_stock;
-
-    if (type === 'add') {
-      newStock = ingredient.current_stock + quantity;
-    } else if (type === 'deduct') {
-      newStock = ingredient.current_stock - quantity;
-    } else if (type === 'set') {
-      newStock = quantity;
-    }
-
-    document.getElementById('updateNewStock').value = `${newStock.toFixed(2)} ${ingredient.unit}`;
-  },
-
-  async saveStockUpdate(e) {
+  // حفظ التعديل
+  async saveEditIngredient(e) {
     e.preventDefault();
 
-    const ingredientId = document.getElementById('updateIngredientId').value;
-    const type = document.getElementById('updateType').value;
-    const quantity = parseFloat(document.getElementById('updateQuantity').value);
-    const notes = document.getElementById('updateNotes').value;
-
-    const ingredient = this.allIngredients.find(i => i.id == ingredientId);
-    if (!ingredient) return;
-
-    let newStock = ingredient.current_stock;
-    if (type === 'add') {
-      newStock = ingredient.current_stock + quantity;
-    } else if (type === 'deduct') {
-      newStock = ingredient.current_stock - quantity;
-    } else if (type === 'set') {
-      newStock = quantity;
-    }
+    const recipeId = document.getElementById('editRecipeId').value;
+    const quantity = parseFloat(document.getElementById('editIngredientQuantity').value);
 
     try {
       const { error } = await supabase
-        .from('ingredients')
-        .update({ current_stock: newStock })
-        .eq('id', ingredientId);
+        .from('recipes')
+        .update({ quantity_needed: quantity })
+        .eq('id', recipeId);
 
       if (error) throw error;
 
-      // تسجيل الحركة
-      await supabase
-        .from('inventory_transactions')
-        .insert([{
-          ingredient_id: ingredientId,
-          quantity_used: type === 'deduct' ? quantity : -quantity,
-          transaction_type: type,
-          notes: notes
-        }]);
-
-      Utils.showNotification('تم تحديث المخزون بنجاح ✅', 'success');
-      this.closeUpdateStockModal();
-      await this.loadAllData();
+      Utils.showNotification('تم تحديث المكون ✅', 'success');
+      this.closeEditIngredientModal();
+      
+      await this.loadRecipeForItem(this.selectedMenuItem.id);
+      this.displayRecipe();
+      this.calculateCosts();
+      this.updateKitchenPreview();
 
     } catch (error) {
-      console.error('Error updating stock:', error);
+      console.error('Error updating ingredient:', error);
       Utils.showNotification('حدث خطأ أثناء التحديث', 'error');
     }
   },
 
   // حذف مكون
-  async deleteIngredient(ingredientId) {
-    if (!confirm('هل أنت متأكد من حذف هذا المكون؟')) return;
-
-    try {
-      const { error } = await supabase
-        .from('ingredients')
-        .delete()
-        .eq('id', ingredientId);
-
-      if (error) throw error;
-
-      Utils.showNotification('تم حذف المكون بنجاح', 'success');
-      await this.loadAllData();
-
-    } catch (error) {
-      console.error('Error deleting ingredient:', error);
-      Utils.showNotification('حدث خطأ أثناء الحذف', 'error');
-    }
-  },
-
-  // إضافة وصفة
-  openAddRecipeModal() {
-    if (!this.currentMenuItem) {
-      Utils.showNotification('يرجى اختيار صنف أولاً', 'error');
-      return;
-    }
-
-    document.getElementById('recipeMenuItem').value = this.currentMenuItem.name_ar;
-    
-    const select = document.getElementById('recipeIngredient');
-    select.innerHTML = `
-      <option value="">-- اختر المكون --</option>
-      ${this.allIngredients.map(ing => `
-        <option value="${ing.id}" data-unit="${ing.unit}">${ing.name}</option>
-      `).join('')}
-    `;
-
-    document.getElementById('addRecipeModal').classList.add('active');
-  },
-
-  closeAddRecipeModal() {
-    document.getElementById('addRecipeModal').classList.remove('active');
-  },
-
-  async saveRecipe(e) {
-    e.preventDefault();
-
-    const ingredientId = document.getElementById('recipeIngredient').value;
-    const quantity = parseFloat(document.getElementById('recipeQuantity').value);
-
-    const recipeData = {
-      menu_item_id: this.currentMenuItem.id,
-      ingredient_id: ingredientId,
-      quantity_needed: quantity
-    };
-
-    try {
-      const { error } = await supabase
-        .from('recipes')
-        .insert([recipeData]);
-
-      if (error) throw error;
-
-      Utils.showNotification('تم إضافة المكون للوصفة ✅', 'success');
-      this.closeAddRecipeModal();
-      await this.loadRecipesForItem();
-
-    } catch (error) {
-      console.error('Error saving recipe:', error);
-      Utils.showNotification('حدث خطأ أثناء الحفظ', 'error');
-    }
-  },
-
-  // حذف مكون من الوصفة
-  async deleteRecipeItem(recipeId) {
+  async deleteIngredient(recipeId) {
     if (!confirm('هل أنت متأكد من حذف هذا المكون من الوصفة؟')) return;
 
     try {
@@ -501,169 +495,228 @@ const InventoryManager = {
       if (error) throw error;
 
       Utils.showNotification('تم حذف المكون من الوصفة', 'success');
-      await this.loadRecipesForItem();
+      
+      await this.loadRecipeForItem(this.selectedMenuItem.id);
+      this.displayRecipe();
+      this.calculateCosts();
+      this.updateKitchenPreview();
+      this.updateDashboardStats();
 
     } catch (error) {
-      console.error('Error deleting recipe item:', error);
+      console.error('Error deleting ingredient:', error);
       Utils.showNotification('حدث خطأ أثناء الحذف', 'error');
     }
   },
 
-  // تحميل حركة المخزون
-  async loadTransactions() {
-    const dateFrom = document.getElementById('transactionDateFrom').value;
-    const dateTo = document.getElementById('transactionDateTo').value;
+  // مسح Recipe كامل
+  async clearAllRecipe() {
+    if (!this.selectedMenuItem) return;
+    
+    if (!confirm(`هل أنت متأكد من حذف جميع مكونات وصفة "${this.selectedMenuItem.name_ar}"؟`)) return;
 
     try {
-      let query = supabase
-        .from('inventory_transactions')
-        .select(`
-          *,
-          ingredient:ingredient_id(name, unit),
-          order:order_id(order_number)
-        `)
-        .order('transaction_date', { ascending: false })
-        .limit(100);
-
-      if (dateFrom) {
-        query = query.gte('transaction_date', dateFrom);
-      }
-
-      if (dateTo) {
-        query = query.lte('transaction_date', dateTo + 'T23:59:59');
-      }
-
-      const { data, error } = await query;
+      const { error } = await supabase
+        .from('recipes')
+        .delete()
+        .eq('menu_item_id', this.selectedMenuItem.id);
 
       if (error) throw error;
 
-      this.displayTransactions(data);
+      Utils.showNotification('تم مسح الوصفة بالكامل', 'success');
+      
+      this.currentRecipe = [];
+      this.displayRecipe();
+      this.calculateCosts();
+      this.updateDashboardStats();
 
     } catch (error) {
-      console.error('Error loading transactions:', error);
-      Utils.showNotification('خطأ في تحميل الحركات', 'error');
+      console.error('Error clearing recipe:', error);
+      Utils.showNotification('حدث خطأ', 'error');
     }
   },
 
-  displayTransactions(transactions) {
-    const tbody = document.getElementById('transactionsBody');
+  // معاينة المطبخ
+  updateKitchenPreview() {
+    const preview = document.getElementById('kitchenPreview');
+    
+    if (this.currentRecipe.length === 0) {
+      preview.innerHTML = '<p style="color: #999;">لا توجد مكونات لعرضها</p>';
+      return;
+    }
 
-    tbody.innerHTML = transactions.map(t => `
-      <tr>
-        <td>${Utils.formatDate(t.transaction_date)}</td>
-        <td>${t.ingredient?.name || '-'}</td>
-        <td>${t.quantity_used.toFixed(2)} ${t.ingredient?.unit || ''}</td>
-        <td>${t.order?.order_number ? `#${t.order.order_number}` : '-'}</td>
-        <td>${this.getTransactionType(t.transaction_type)}</td>
-      </tr>
-    `).join('');
+    preview.innerHTML = `
+      <div style="background: white; padding: 15px; border-radius: 8px;">
+        <h4 style="margin: 0 0 10px 0;">${this.selectedMenuItem.name_ar}</h4>
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px;">
+          <strong style="font-size: 13px; color: #495057;">المكونات المطلوبة:</strong>
+          ${this.currentRecipe.map(recipe => {
+            const ingredient = recipe.ingredient;
+            const isLow = ingredient.current_stock < (recipe.quantity_needed * 5);
+            
+            return `
+              <div style="display: flex; justify-content: space-between; margin: 8px 0; padding: 8px; background: white; border-radius: 4px; border-right: 3px solid ${isLow ? '#dc3545' : '#28a745'};">
+                <span style="font-size: 13px;">${ingredient.name}</span>
+                <span style="font-weight: 600; font-size: 13px;">${recipe.quantity_needed.toFixed(2)} ${ingredient.unit}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
   },
 
-  getTransactionType(type) {
-    const types = {
-      'deduct': '📉 خصم',
-      'add': '📈 إضافة',
-      'adjust': '⚙️ تعديل'
-    };
-    return types[type] || type;
+  // عرض panel المخزون
+  displayInventoryPanel() {
+    const list = document.getElementById('inventoryList');
+    
+    // تصنيف المكونات
+    const available = this.allIngredients.filter(i => i.current_stock > i.min_stock);
+    const low = this.allIngredients.filter(i => i.current_stock <= i.min_stock && i.current_stock > 0);
+    const critical = this.allIngredients.filter(i => i.current_stock <= 0);
+
+    document.getElementById('quickStatsAvailable').textContent = available.length;
+    document.getElementById('quickStatsLow').textContent = low.length;
+    document.getElementById('quickStatsCritical').textContent = critical.length;
+
+    // عرض القائمة
+    const allItems = [...critical, ...low, ...available.slice(0, 10)];
+    
+    list.innerHTML = allItems.map(ing => {
+      let status = 'normal';
+      if (ing.current_stock <= 0) status = 'critical';
+      else if (ing.current_stock <= ing.min_stock) status = 'low';
+      
+      return `
+        <div class="inventory-item ${status}">
+          <div class="inventory-item-name">${ing.name}</div>
+          <div class="inventory-item-stock">
+            ${ing.current_stock.toFixed(2)} ${ing.unit}
+            ${status === 'critical' ? ' 🔴' : status === 'low' ? ' ⚠️' : ' ✅'}
+          </div>
+        </div>
+      `;
+    }).join('');
   },
 
-  // تصدير Excel
-  exportInventory() {
-    const data = this.allIngredients.map(item => ({
-      'المكون': item.name,
-      'الكمية الحالية': item.current_stock,
-      'الوحدة': item.unit,
-      'الحد الأدنى': item.min_stock,
-      'التكلفة/الوحدة': item.cost_per_unit,
-      'القيمة الإجمالية': item.current_stock * item.cost_per_unit,
-      'الحالة': this.getStockStatus(item)
-    }));
+  // تحديث إحصائيات Dashboard
+  async updateDashboardStats() {
+    // أصناف لها recipes
+    const itemsWithRecipes = [...new Set(this.allRecipes.map(r => r.menu_item_id))].length;
+    document.getElementById('statsRecipedItems').textContent = itemsWithRecipes;
+    document.getElementById('statsTotalItems').textContent = this.allMenuItems.length;
 
-    Utils.exportToExcel(data, 'المخزون');
-    Utils.showNotification('تم تصدير البيانات بنجاح', 'success');
+    // recipes كاملة (لها 3 مكونات على الأقل)
+    const completeRecipes = this.allMenuItems.filter(item => {
+      const recipeCount = this.allRecipes.filter(r => r.menu_item_id === item.id).length;
+      return recipeCount >= 3;
+    }).length;
+    document.getElementById('statsCompleteRecipes').textContent = completeRecipes;
+
+    // مكونات منخفضة
+    const lowStock = this.allIngredients.filter(i => i.current_stock <= i.min_stock).length;
+    document.getElementById('statsLowStock').textContent = lowStock;
+
+    // إجمالي المكونات
+    document.getElementById('statsTotalIngredients').textContent = this.allIngredients.length;
   },
 
-  exportRecipes() {
-    if (!this.allRecipes.length) {
+  // تصدير Recipe الحالية
+  exportCurrentRecipe() {
+    if (!this.selectedMenuItem || this.currentRecipe.length === 0) {
       Utils.showNotification('لا توجد وصفة لتصديرها', 'warning');
       return;
     }
 
-    const data = this.allRecipes.map(recipe => ({
-      'الصنف': this.currentMenuItem.name_ar,
+    const data = this.currentRecipe.map(recipe => ({
+      'الصنف': this.selectedMenuItem.name_ar,
       'المكون': recipe.ingredient.name,
       'الكمية المطلوبة': recipe.quantity_needed,
       'الوحدة': recipe.ingredient.unit,
+      'التكلفة': (recipe.quantity_needed * recipe.ingredient.cost_per_unit).toFixed(2),
       'المخزون الحالي': recipe.ingredient.current_stock
     }));
 
-    Utils.exportToExcel(data, `وصفة_${this.currentMenuItem.name_ar}`);
+    Utils.exportToExcel(data, `Recipe_${this.selectedMenuItem.name_ar}`);
     Utils.showNotification('تم تصدير الوصفة بنجاح', 'success');
+  },
+
+  // تحديث المخزون
+  async refreshInventory() {
+    await this.loadIngredients();
+    this.displayInventoryPanel();
+    Utils.showNotification('تم تحديث المخزون', 'success');
   },
 
   // مستمعي الأحداث
   setupEventListeners() {
     // إضافة مكون
     document.getElementById('addIngredientForm').addEventListener('submit', (e) => {
-      this.saveIngredient(e);
+      this.saveNewIngredient(e);
     });
 
-    // تحديث المخزون
-    document.getElementById('updateStockForm').addEventListener('submit', (e) => {
-      this.saveStockUpdate(e);
+    document.getElementById('ingredientQuantity').addEventListener('input', () => {
+      this.calculateIngredientCost();
     });
 
-    document.getElementById('updateQuantity').addEventListener('input', () => {
-      this.calculateNewStock();
-    });
-
-    document.getElementById('updateType').addEventListener('change', () => {
-      this.updateStockTypeChanged();
-    });
-
-    // إضافة وصفة
-    document.getElementById('addRecipeForm').addEventListener('submit', (e) => {
-      this.saveRecipe(e);
-    });
-
-    document.getElementById('recipeIngredient').addEventListener('change', (e) => {
-      const option = e.target.selectedOptions[0];
-      const unit = option.getAttribute('data-unit');
-      document.getElementById('recipeUnit').value = unit || '';
+    // تعديل مكون
+    document.getElementById('editIngredientForm').addEventListener('submit', (e) => {
+      this.saveEditIngredient(e);
     });
   },
 
-  // Realtime
+  // Realtime subscriptions
   setupRealtimeSubscriptions() {
+    // تحديثات الوصفات
+    Realtime.subscribeToTable('recipes', () => {
+      this.loadAllRecipes().then(() => {
+        if (this.selectedMenuItem) {
+          this.loadRecipeForItem(this.selectedMenuItem.id);
+          this.displayRecipe();
+          this.calculateCosts();
+        }
+        this.displayMenuItems();
+        this.updateDashboardStats();
+      });
+    });
+
+    // تحديثات المخزون
     Realtime.subscribeToInventory(() => {
-      this.loadIngredients();
-      this.updateStats();
+      this.loadIngredients().then(() => {
+        this.displayInventoryPanel();
+        if (this.selectedMenuItem) {
+          this.displayRecipe();
+        }
+      });
+    });
+
+    // تحديثات المنيو
+    Realtime.subscribeToTable('menu_items', () => {
+      this.loadMenuItems();
     });
   }
 };
 
-// تهيئة عند تحميل الصفحة
-if (typeof window !== 'undefined') {
-  window.InventoryManager = InventoryManager;
-}
-
-// Auto-Protection للدوال
+// Auto-Protection
 if (typeof protectAsync !== 'undefined') {
-  if (InventoryManager.saveIngredient) {
-    const original = InventoryManager.saveIngredient.bind(InventoryManager);
-    InventoryManager.saveIngredient = protectAsync(original, 'save-ingredient', true);
+  if (RecipeManager.saveNewIngredient) {
+    const original = RecipeManager.saveNewIngredient.bind(RecipeManager);
+    RecipeManager.saveNewIngredient = protectAsync(original, 'save-ingredient', true);
   }
 
-  if (InventoryManager.saveStockUpdate) {
-    const original = InventoryManager.saveStockUpdate.bind(InventoryManager);
-    InventoryManager.saveStockUpdate = protectAsync(original, 'update-stock', true);
+  if (RecipeManager.saveEditIngredient) {
+    const original = RecipeManager.saveEditIngredient.bind(RecipeManager);
+    RecipeManager.saveEditIngredient = protectAsync(original, 'edit-ingredient', true);
   }
 
-  if (InventoryManager.saveRecipe) {
-    const original = InventoryManager.saveRecipe.bind(InventoryManager);
-    InventoryManager.saveRecipe = protectAsync(original, 'save-recipe', true);
+  if (RecipeManager.deleteIngredient) {
+    const original = RecipeManager.deleteIngredient.bind(RecipeManager);
+    RecipeManager.deleteIngredient = protectAsync(original, 'delete-ingredient', true);
   }
 }
 
-console.log('✅ Inventory Manager loaded');
+// تهيئة
+if (typeof window !== 'undefined') {
+  window.RecipeManager = RecipeManager;
+}
+
+console.log('✅ Advanced Recipe Manager loaded');
