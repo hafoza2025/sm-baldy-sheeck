@@ -525,3 +525,38 @@ const AdminDashboard = {
 if (typeof window !== 'undefined') {
     window.AdminDashboard = AdminDashboard;
 }
+
+
+// ===============================
+// Auto-Protection للدوال
+// ===============================
+
+// حماية إضافة مستخدم
+if (typeof AdminDashboard !== 'undefined' && AdminDashboard.createUser) {
+  const originalCreateUser = AdminDashboard.createUser.bind(AdminDashboard);
+  AdminDashboard.createUser = protectAsync(originalCreateUser, 'create-user', true);
+}
+
+// حماية تفعيل/تعطيل مستخدم
+if (typeof AdminDashboard !== 'undefined' && AdminDashboard.toggleUserStatus) {
+  const originalToggleUser = AdminDashboard.toggleUserStatus.bind(AdminDashboard);
+  AdminDashboard.toggleUserStatus = protectAsync(originalToggleUser, 'toggle-user', true);
+}
+
+// حماية تحميل البيانات
+if (typeof AdminDashboard !== 'undefined' && AdminDashboard.loadStats) {
+  const originalLoadStats = AdminDashboard.loadStats.bind(AdminDashboard);
+  AdminDashboard.loadStats = protectAsync(originalLoadStats, 'load-stats', false);
+}
+
+if (typeof AdminDashboard !== 'undefined' && AdminDashboard.loadOrders) {
+  const originalLoadOrders = AdminDashboard.loadOrders.bind(AdminDashboard);
+  AdminDashboard.loadOrders = protectAsync(originalLoadOrders, 'load-orders', false);
+}
+
+if (typeof AdminDashboard !== 'undefined' && AdminDashboard.loadUsers) {
+  const originalLoadUsers = AdminDashboard.loadUsers.bind(AdminDashboard);
+  AdminDashboard.loadUsers = protectAsync(originalLoadUsers, 'load-users', false);
+}
+
+console.log('✅ Admin functions protected');
