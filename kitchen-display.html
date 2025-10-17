@@ -31,9 +31,10 @@
         </button>
     </div>
 
-
-    <div class="orders-container" id="ordersContainer"></div>
-
+    <div class="orders-container" id="ordersContainer">
+        <!-- الطلبات تُعرض هنا ديناميكياً مع أزرار طباعة Recipe -->
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config/keys.js"></script>
     <script src="js/config.js"></script>
@@ -44,422 +45,374 @@
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             KitchenDisplay.init();
+            console.log('✅ Kitchen Display with Recipe Printing ready');
         });
     </script>
+
     <!-- ===================================
      زر Refresh + مؤشر الاتصال
      =================================== -->
+    <style>
+      /* زر Refresh العائم */
+      .refresh-widget {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 9998;
+      }
 
-<!-- الأنماط -->
-<style>
-  /* زر Refresh العائم */
-  .refresh-widget {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    z-index: 9998;
-  }
+      .refresh-btn-main {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        font-size: 26px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
 
-  .refresh-btn-main {
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    border-radius: 50%;
-    color: white;
-    font-size: 26px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
+      .refresh-btn-main:hover {
+        transform: scale(1.1) rotate(15deg);
+        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.7);
+      }
 
-  .refresh-btn-main:hover {
-    transform: scale(1.1) rotate(15deg);
-    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.7);
-  }
+      .refresh-btn-main:active {
+        transform: scale(0.95);
+      }
 
-  .refresh-btn-main:active {
-    transform: scale(0.95);
-  }
+      .refresh-btn-main.refreshing {
+        animation: rotate360 1s linear infinite;
+        pointer-events: none;
+        opacity: 0.7;
+      }
 
-  .refresh-btn-main.refreshing {
-    animation: rotate360 1s linear infinite;
-    pointer-events: none;
-    opacity: 0.7;
-  }
+      @keyframes rotate360 {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
 
-  @keyframes rotate360 {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
+      .refresh-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #f44336;
+        color: white;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        font-size: 11px;
+        font-weight: bold;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        animation: pulse-badge 2s infinite;
+      }
 
-  /* عداد التحديثات */
-  .refresh-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #f44336;
-    color: white;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    font-size: 11px;
-    font-weight: bold;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid white;
-    animation: pulse-badge 2s infinite;
-  }
+      .refresh-badge.show {
+        display: flex;
+      }
 
-  .refresh-badge.show {
-    display: flex;
-  }
+      @keyframes pulse-badge {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+      }
 
-  @keyframes pulse-badge {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-  }
+      .connection-status {
+        background: white;
+        padding: 10px 15px;
+        border-radius: 25px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
 
-  /* مؤشر الاتصال */
-  .connection-status {
-    background: white;
-    padding: 10px 15px;
-    border-radius: 25px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-  }
+      .connection-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        animation: pulse-dot 2s infinite;
+      }
 
-  .connection-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    animation: pulse-dot 2s infinite;
-  }
+      .connection-status.connected .connection-dot {
+        background: #4caf50;
+      }
 
-  .connection-status.connected .connection-dot {
-    background: #4caf50;
-  }
+      .connection-status.disconnected .connection-dot {
+        background: #f44336;
+        animation: blink 1s infinite;
+      }
 
-  .connection-status.disconnected .connection-dot {
-    background: #f44336;
-    animation: blink 1s infinite;
-  }
+      .connection-status.checking .connection-dot {
+        background: #ff9800;
+      }
 
-  .connection-status.checking .connection-dot {
-    background: #ff9800;
-  }
-
-  @keyframes pulse-dot {
-    0%, 100% { 
-      box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
-    }
-    50% { 
-      box-shadow: 0 0 0 6px rgba(76, 175, 80, 0);
-    }
-  }
-
-  @keyframes blink {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0.3; }
-  }
-
-  /* Toast للإشعارات */
-  .refresh-toast {
-    position: fixed;
-    bottom: 110px;
-    right: 30px;
-    background: white;
-    padding: 15px 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    z-index: 9997;
-    transform: translateX(150%);
-    transition: transform 0.3s ease;
-    border-right: 4px solid #667eea;
-  }
-
-  .refresh-toast.show {
-    transform: translateX(0);
-  }
-
-  .refresh-toast.success {
-    border-right-color: #4caf50;
-  }
-
-  .refresh-toast.error {
-    border-right-color: #f44336;
-  }
-
-  /* وقت آخر تحديث */
-  .last-refresh-time {
-    position: fixed;
-    bottom: 110px;
-    right: 105px;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 11px;
-    color: #666;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-  }
-
-  .refresh-btn-main:hover + .last-refresh-time {
-    opacity: 1;
-  }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .refresh-widget {
-      bottom: 20px;
-      right: 20px;
-    }
-
-    .refresh-btn-main {
-      width: 50px;
-      height: 50px;
-      font-size: 22px;
-    }
-
-    .connection-status {
-      font-size: 11px;
-      padding: 8px 12px;
-    }
-
-    .refresh-toast {
-      bottom: 90px;
-      right: 20px;
-      left: 20px;
-    }
-  }
-</style>
-
-<!-- الـ HTML -->
-<div class="refresh-widget">
-  <button class="refresh-btn-main" id="refreshBtn" onclick="refreshData()" title="تحديث البيانات">
-    🔄
-    <span class="refresh-badge" id="refreshBadge">0</span>
-  </button>
-  <div class="last-refresh-time" id="lastRefreshTime">آخر تحديث: منذ لحظات</div>
-  
-  <div class="connection-status checking" id="connectionStatus">
-    <span class="connection-dot"></span>
-    <span id="connectionText">جاري الفحص...</span>
-  </div>
-</div>
-
-<div class="refresh-toast" id="refreshToast">
-  تم التحديث بنجاح ✅
-</div>
-
-<!-- JavaScript -->
-<script>
-// ===================================
-// نظام Refresh والاتصال الذكي
-// ===================================
-
-let isRefreshing = false;
-let lastRefreshTime = null;
-let pendingUpdates = 0;
-let connectionCheckInterval = null;
-
-// فحص الاتصال بقاعدة البيانات
-async function checkConnection() {
-  const statusElement = document.getElementById('connectionStatus');
-  const textElement = document.getElementById('connectionText');
-  
-  try {
-    // محاولة قراءة بسيطة من Supabase
-    const { error } = await supabase
-      .from('orders')
-      .select('id')
-      .limit(1);
-    
-    if (error) throw error;
-    
-    // متصل
-    statusElement.className = 'connection-status connected';
-    textElement.textContent = 'متصل';
-    return true;
-    
-  } catch (error) {
-    // غير متصل
-    statusElement.className = 'connection-status disconnected';
-    textElement.textContent = 'غير متصل';
-    console.error('Connection error:', error);
-    return false;
-  }
-}
-
-// تحديث البيانات
-async function refreshData() {
-  if (isRefreshing) {
-    showToast('جاري التحديث...', 'success');
-    return;
-  }
-  
-  isRefreshing = true;
-  const btn = document.getElementById('refreshBtn');
-  const badge = document.getElementById('refreshBadge');
-  
-  btn.classList.add('refreshing');
-  showToast('جاري تحديث البيانات...', 'success');
-  
-  try {
-    // تحديث بيانات الصفحة الحالية
-    
-    // للـ Staff
-    if (typeof StaffTablet !== 'undefined') {
-      if (StaffTablet.loadMenu) await StaffTablet.loadMenu();
-      if (StaffTablet.loadTables) await StaffTablet.loadTables();
-    }
-    
-    // للـ Cashier
-    if (typeof CashierSystem !== 'undefined') {
-      if (CashierSystem.loadOpenOrders) await CashierSystem.loadOpenOrders();
-      if (CashierSystem.loadMenu) await CashierSystem.loadMenu();
-    }
-    
-    // للـ Kitchen
-    if (typeof KitchenDisplay !== 'undefined') {
-      if (KitchenDisplay.loadOrders) await KitchenDisplay.loadOrders();
-    }
-    
-    // للـ Admin
-    if (typeof AdminDashboard !== 'undefined') {
-      if (AdminDashboard.loadAllData) await AdminDashboard.loadAllData();
-    }
-    
-    // نجح التحديث
-    lastRefreshTime = Date.now();
-    pendingUpdates = 0;
-    badge.textContent = '0';
-    badge.classList.remove('show');
-    
-    updateLastRefreshTime();
-    showToast('تم التحديث بنجاح ✅', 'success');
-    
-    // فحص الاتصال
-    await checkConnection();
-    
-  } catch (error) {
-    console.error('Refresh error:', error);
-    showToast('حدث خطأ أثناء التحديث ❌', 'error');
-  } finally {
-    isRefreshing = false;
-    btn.classList.remove('refreshing');
-  }
-}
-
-// عرض Toast
-function showToast(message, type = 'success') {
-  const toast = document.getElementById('refreshToast');
-  toast.textContent = message;
-  toast.className = `refresh-toast ${type} show`;
-  
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 3000);
-}
-
-// تحديث وقت آخر تحديث
-function updateLastRefreshTime() {
-  if (!lastRefreshTime) return;
-  
-  const timeElement = document.getElementById('lastRefreshTime');
-  const now = Date.now();
-  const diff = Math.floor((now - lastRefreshTime) / 1000);
-  
-  let timeText = '';
-  if (diff < 60) {
-    timeText = 'منذ لحظات';
-  } else if (diff < 3600) {
-    timeText = `منذ ${Math.floor(diff / 60)} دقيقة`;
-  } else {
-    timeText = `منذ ${Math.floor(diff / 3600)} ساعة`;
-  }
-  
-  timeElement.textContent = `آخر تحديث: ${timeText}`;
-}
-
-// زيادة عداد التحديثات المعلقة
-function incrementPendingUpdates() {
-  pendingUpdates++;
-  const badge = document.getElementById('refreshBadge');
-  badge.textContent = pendingUpdates > 99 ? '99+' : pendingUpdates;
-  badge.classList.add('show');
-}
-
-// اختصارات لوحة المفاتيح
-document.addEventListener('keydown', (e) => {
-  // F5 أو Ctrl+R
-  if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.metaKey && e.key === 'r')) {
-    e.preventDefault();
-    refreshData();
-  }
-});
-
-// تهيئة عند تحميل الصفحة
-window.addEventListener('DOMContentLoaded', async () => {
-  // فحص الاتصال الأولي
-  await checkConnection();
-  
-  // فحص الاتصال كل 30 ثانية
-  connectionCheckInterval = setInterval(checkConnection, 30000);
-  
-  // Refresh تلقائي كل دقيقتين
-  setInterval(() => {
-    refreshData();
-  }, 2 * 60 * 1000);
-  
-  // تحديث وقت آخر تحديث كل دقيقة
-  setInterval(updateLastRefreshTime, 60000);
-  
-  // أول تحديث
-  lastRefreshTime = Date.now();
-});
-
-// تنظيف عند الخروج
-window.addEventListener('beforeunload', () => {
-  if (connectionCheckInterval) {
-    clearInterval(connectionCheckInterval);
-  }
-});
-
-// إضافة للـ Realtime لزيادة العداد
-if (typeof Realtime !== 'undefined') {
-  const originalSubscribe = Realtime.subscribeToOrders;
-  if (originalSubscribe) {
-    Realtime.subscribeToOrders = function(callback) {
-      return originalSubscribe.call(this, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          incrementPendingUpdates();
+      @keyframes pulse-dot {
+        0%, 100% { 
+          box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
         }
-        callback(payload);
-      });
-    };
-  }
-}
+        50% { 
+          box-shadow: 0 0 0 6px rgba(76, 175, 80, 0);
+        }
+      }
 
-console.log('✅ Refresh system initialized');
+      @keyframes blink {
+        0%, 50%, 100% { opacity: 1; }
+        25%, 75% { opacity: 0.3; }
+      }
+
+      .refresh-toast {
+        position: fixed;
+        bottom: 110px;
+        right: 30px;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        z-index: 9997;
+        transform: translateX(150%);
+        transition: transform 0.3s ease;
+        border-right: 4px solid #667eea;
+      }
+
+      .refresh-toast.show {
+        transform: translateX(0);
+      }
+
+      .refresh-toast.success {
+        border-right-color: #4caf50;
+      }
+
+      .refresh-toast.error {
+        border-right-color: #f44336;
+      }
+
+      .last-refresh-time {
+        position: fixed;
+        bottom: 110px;
+        right: 105px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 11px;
+        color: #666;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+
+      .refresh-btn-main:hover + .last-refresh-time {
+        opacity: 1;
+      }
+
+      @media (max-width: 768px) {
+        .refresh-widget {
+          bottom: 20px;
+          right: 20px;
+        }
+
+        .refresh-btn-main {
+          width: 50px;
+          height: 50px;
+          font-size: 22px;
+        }
+
+        .connection-status {
+          font-size: 11px;
+          padding: 8px 12px;
+        }
+
+        .refresh-toast {
+          bottom: 90px;
+          right: 20px;
+          left: 20px;
+        }
+      }
+    </style>
+
+    <div class="refresh-widget">
+      <button class="refresh-btn-main" id="refreshBtn" onclick="refreshData()" title="تحديث البيانات">
+        🔄
+        <span class="refresh-badge" id="refreshBadge">0</span>
+      </button>
+      <div class="last-refresh-time" id="lastRefreshTime">آخر تحديث: منذ لحظات</div>
+      
+      <div class="connection-status checking" id="connectionStatus">
+        <span class="connection-dot"></span>
+        <span id="connectionText">جاري الفحص...</span>
+      </div>
+    </div>
+
+    <div class="refresh-toast" id="refreshToast">
+      تم التحديث بنجاح ✅
+    </div>
+
+    <script>
+    let isRefreshing = false;
+    let lastRefreshTime = null;
+    let pendingUpdates = 0;
+    let connectionCheckInterval = null;
+
+    async function checkConnection() {
+      const statusElement = document.getElementById('connectionStatus');
+      const textElement = document.getElementById('connectionText');
+      
+      try {
+        const { error } = await supabase
+          .from('orders')
+          .select('id')
+          .limit(1);
+        
+        if (error) throw error;
+        
+        statusElement.className = 'connection-status connected';
+        textElement.textContent = 'متصل';
+        return true;
+        
+      } catch (error) {
+        statusElement.className = 'connection-status disconnected';
+        textElement.textContent = 'غير متصل';
+        console.error('Connection error:', error);
+        return false;
+      }
+    }
+
+    async function refreshData() {
+      if (isRefreshing) {
+        showToast('جاري التحديث...', 'success');
+        return;
+      }
+      
+      isRefreshing = true;
+      const btn = document.getElementById('refreshBtn');
+      const badge = document.getElementById('refreshBadge');
+      
+      btn.classList.add('refreshing');
+      showToast('جاري تحديث البيانات...', 'success');
+      
+      try {
+        if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadOrders) {
+          await KitchenDisplay.loadOrders();
+        }
+        
+        lastRefreshTime = Date.now();
+        pendingUpdates = 0;
+        badge.textContent = '0';
+        badge.classList.remove('show');
+        
+        updateLastRefreshTime();
+        showToast('تم التحديث بنجاح ✅', 'success');
+        await checkConnection();
+        
+      } catch (error) {
+        console.error('Refresh error:', error);
+        showToast('حدث خطأ أثناء التحديث ❌', 'error');
+      } finally {
+        isRefreshing = false;
+        btn.classList.remove('refreshing');
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('refreshToast');
+      toast.textContent = message;
+      toast.className = `refresh-toast ${type} show`;
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    function updateLastRefreshTime() {
+      if (!lastRefreshTime) return;
+      
+      const timeElement = document.getElementById('lastRefreshTime');
+      const now = Date.now();
+      const diff = Math.floor((now - lastRefreshTime) / 1000);
+      
+      let timeText = '';
+      if (diff < 60) {
+        timeText = 'منذ لحظات';
+      } else if (diff < 3600) {
+        timeText = `منذ ${Math.floor(diff / 60)} دقيقة`;
+      } else {
+        timeText = `منذ ${Math.floor(diff / 3600)} ساعة`;
+      }
+      
+      timeElement.textContent = `آخر تحديث: ${timeText}`;
+    }
+
+    function incrementPendingUpdates() {
+      pendingUpdates++;
+      const badge = document.getElementById('refreshBadge');
+      badge.textContent = pendingUpdates > 99 ? '99+' : pendingUpdates;
+      badge.classList.add('show');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'F5' || (e.ctrlKey && e.key === 'r') || (e.metaKey && e.key === 'r')) {
+        e.preventDefault();
+        refreshData();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await checkConnection();
+      connectionCheckInterval = setInterval(checkConnection, 30000);
+      setInterval(() => { refreshData(); }, 2 * 60 * 1000);
+      setInterval(updateLastRefreshTime, 60000);
+      lastRefreshTime = Date.now();
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (connectionCheckInterval) {
+        clearInterval(connectionCheckInterval);
+      }
+    });
+
+    if (typeof Realtime !== 'undefined') {
+      const originalSubscribe = Realtime.subscribeToOrders;
+      if (originalSubscribe) {
+        Realtime.subscribeToOrders = function(callback) {
+          return originalSubscribe.call(this, (payload) => {
+            if (payload.eventType === 'INSERT') {
+              incrementPendingUpdates();
+            }
+            callback(payload);
+          });
+        };
+      }
+    }
+
+    console.log('✅ Refresh system initialized');
+    </script>
+    <!-- قبل إغلاق </body> -->
+
+<script>
+  // التأكد من تحميل Utils
+  window.addEventListener('DOMContentLoaded', () => {
+    KitchenDisplay.init();
+    
+    // إضافة مؤشر للـ Recipes
+    console.log('✅ Kitchen Display with Recipe Printing initialized');
+  });
 </script>
 
+
 </body>
-
-
 </html>
