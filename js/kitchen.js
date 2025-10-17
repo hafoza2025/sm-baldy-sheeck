@@ -1,5 +1,5 @@
 // js/kitchen.js
-// وظائف شاشة المطبخ مع عرض Recipes وطباعتها - نسخة بسيطة بدون ماليات
+// وظائف شاشة المطبخ مع عرض Recipes وطباعتها - للطابعة الحرارية
 
 const KitchenDisplay = {
   currentUser: null,
@@ -207,7 +207,7 @@ const KitchenDisplay = {
   },
 
   // ===================================
-  // طباعة Recipe - نسخة بسيطة بدون ماليات 🖨️
+  // طباعة Recipe - للطابعة الحرارية 🖨️
   // ===================================
   async printRecipe(orderItemId, menuItemId, quantity, itemName) {
     try {
@@ -280,8 +280,8 @@ const KitchenDisplay = {
       const d = new Date(date);
       return d.toLocaleDateString('ar-EG', { 
         year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+        month: '2-digit', 
+        day: '2-digit' 
       });
     };
 
@@ -289,8 +289,7 @@ const KitchenDisplay = {
       const d = new Date(date);
       return d.toLocaleTimeString('ar-EG', { 
         hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true
+        minute: '2-digit'
       });
     };
 
@@ -312,262 +311,211 @@ const KitchenDisplay = {
             box-sizing: border-box;
           }
 
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+
           body {
-            font-family: 'Cairo', Arial, sans-serif;
-            padding: 20mm;
-            background: #FAF3E0;
-            color: #333;
-          }
-
-          .recipe-container {
+            font-family: 'Cairo', 'Arial', sans-serif;
+            width: 80mm;
+            padding: 5mm;
             background: white;
-            border: 4px solid #D4B896;
-            padding: 20mm;
-            max-width: 210mm;
-            margin: 0 auto;
-            position: relative;
+            color: #000;
+            font-size: 11px;
+            line-height: 1.4;
           }
 
-          .recipe-container::before {
-            content: '';
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 40px;
-            height: 40px;
-            border-top: 4px solid #D4AF37;
-            border-right: 4px solid #D4AF37;
+          .receipt {
+            width: 100%;
           }
 
-          .recipe-container::after {
-            content: '';
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            width: 40px;
-            height: 40px;
-            border-bottom: 4px solid #D4AF37;
-            border-left: 4px solid #D4AF37;
-          }
-
-          .recipe-header {
+          /* الرأس */
+          .header {
             text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #D4B896;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 5mm;
+            margin-bottom: 5mm;
           }
 
-          .recipe-header h1 {
-            font-size: 32px;
-            color: #D4AF37;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+          .header h1 {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 2mm;
           }
 
-          .recipe-header .subtitle {
-            font-size: 18px;
-            color: #8B7355;
+          .header .subtitle {
+            font-size: 12px;
             font-weight: bold;
           }
 
+          /* معلومات الصنف */
           .item-info {
-            background: #F5E6D3;
-            padding: 15px;
-            border: 2px solid #D4B896;
-            margin-bottom: 25px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 3mm;
+            margin-bottom: 3mm;
           }
 
-          .item-info h2 {
-            font-size: 28px;
-            color: #8B7355;
-            margin-bottom: 10px;
+          .item-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2mm;
+            text-align: center;
           }
 
-          .info-row {
+          .info-line {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px dashed #D4B896;
+            margin-bottom: 1mm;
+            font-size: 10px;
           }
 
-          .info-row:last-child {
+          .label {
+            font-weight: bold;
+          }
+
+          /* عنوان المكونات */
+          .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            margin: 3mm 0;
+            padding: 2mm 0;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+          }
+
+          /* المكونات */
+          .ingredient {
+            border-bottom: 1px dotted #ccc;
+            padding: 2mm 0;
+            font-size: 10px;
+          }
+
+          .ingredient:last-child {
             border-bottom: none;
           }
 
-          .info-label {
+          .ing-name {
             font-weight: bold;
-            color: #8B7355;
+            margin-bottom: 1mm;
           }
 
-          .info-value {
+          .ing-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
             color: #333;
-            font-weight: bold;
           }
 
-          .ingredients-section {
-            margin-bottom: 25px;
-          }
+          .stock-ok { color: #2E7D32; font-weight: bold; }
+          .stock-low { color: #E65100; font-weight: bold; }
+          .stock-critical { color: #C62828; font-weight: bold; }
 
-          .ingredients-section h3 {
-            font-size: 22px;
-            color: #8B7355;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #D4B896;
-          }
-
-          .ingredients-table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 2px solid #D4B896;
-          }
-
-          .ingredients-table thead {
-            background: #E8D7C1;
-          }
-
-          .ingredients-table th,
-          .ingredients-table td {
-            padding: 12px;
-            text-align: right;
-            border: 1px solid #D4B896;
-          }
-
-          .ingredients-table th {
-            font-weight: bold;
-            color: #8B7355;
-            text-transform: uppercase;
-            font-size: 14px;
-          }
-
-          .ingredients-table tbody tr:nth-child(even) {
-            background: #FAF3E0;
-          }
-
-          .stock-ok {
-            color: #2E7D32;
-            font-weight: bold;
-          }
-
-          .stock-low {
-            color: #E65100;
-            font-weight: bold;
-          }
-
-          .stock-critical {
-            color: #C62828;
-            font-weight: bold;
-          }
-
-          .no-recipe-notice {
-            background: #FFF3CD;
-            padding: 20px;
-            border: 3px solid #F57C00;
-            border-radius: 8px;
+          /* إشعار بدون recipe */
+          .no-recipe {
             text-align: center;
-            color: #856404;
-            font-size: 16px;
-            font-weight: bold;
+            padding: 5mm;
+            border: 1px dashed #000;
+            margin: 3mm 0;
+            font-size: 11px;
           }
 
-          .recipe-footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #D4B896;
+          /* التذييل */
+          .footer {
+            border-top: 2px dashed #000;
+            padding-top: 3mm;
+            margin-top: 5mm;
             text-align: center;
-            font-size: 12px;
-            color: #8B7355;
+            font-size: 9px;
           }
 
+          /* الطباعة */
           @media print {
             body {
-              padding: 0;
-              background: white;
+              width: 80mm;
             }
-
-            .recipe-container {
-              border: none;
-              box-shadow: none;
-            }
-
-            @page {
-              margin: 15mm;
+            
+            .no-print {
+              display: none;
             }
           }
         </style>
       </head>
       <body>
-        <div class="recipe-container">
-          <div class="recipe-header">
-            <h1>🍳 Recipe - الوصفة</h1>
-            <div class="subtitle">مطبخ المعبد المقدس</div>
+        <div class="receipt">
+          
+          <!-- الرأس -->
+          <div class="header">
+            <h1>${restaurantName}</h1>
+            <div class="subtitle">🍳 Recipe - الوصفة</div>
           </div>
 
+          <!-- معلومات الصنف -->
           <div class="item-info">
-            <h2>${menuItem.name_ar}</h2>
-            <div class="info-row">
-              <span class="info-label">الفئة:</span>
-              <span class="info-value">${menuItem.category || 'غير محدد'}</span>
+            <div class="item-name">${menuItem.name_ar}</div>
+            
+            <div class="info-line">
+              <span class="label">الفئة:</span>
+              <span>${menuItem.category || 'غير محدد'}</span>
             </div>
-            <div class="info-row">
-              <span class="info-label">الكمية المطلوبة:</span>
-              <span class="info-value">× ${quantity}</span>
+            
+            <div class="info-line">
+              <span class="label">الكمية:</span>
+              <span>× ${quantity}</span>
             </div>
-            <div class="info-row">
-              <span class="info-label">التاريخ والوقت:</span>
-              <span class="info-value">${formatDate(now)} - ${formatTime(now)}</span>
+            
+            <div class="info-line">
+              <span class="label">التاريخ:</span>
+              <span>${formatDate(now)}</span>
+            </div>
+            
+            <div class="info-line">
+              <span class="label">الوقت:</span>
+              <span>${formatTime(now)}</span>
             </div>
           </div>
 
           ${recipes && recipes.length > 0 ? `
-            <div class="ingredients-section">
-              <h3>📋 المكونات المطلوبة</h3>
-              <table class="ingredients-table">
-                <thead>
-                  <tr>
-                    <th>المكون</th>
-                    <th>الكمية لوحدة واحدة</th>
-                    <th>الكمية الإجمالية</th>
-                    <th>الوحدة</th>
-                    <th>المخزون الحالي</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${recipes.map(recipe => {
-                    const totalNeeded = recipe.quantity_needed * quantity;
-                    const stock = recipe.ingredient.current_stock;
-                    const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
-                    
-                    return `
-                      <tr>
-                        <td><strong>${recipe.ingredient.name}</strong></td>
-                        <td>${recipe.quantity_needed.toFixed(2)}</td>
-                        <td><strong>${totalNeeded.toFixed(2)}</strong></td>
-                        <td>${recipe.ingredient.unit}</td>
-                        <td class="${stockStatus}">${stock.toFixed(2)}</td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
+            <!-- عنوان المكونات -->
+            <div class="section-title">
+              📋 المكونات المطلوبة
             </div>
+
+            <!-- قائمة المكونات -->
+            ${recipes.map(recipe => {
+              const totalNeeded = recipe.quantity_needed * quantity;
+              const stock = recipe.ingredient.current_stock;
+              const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
+              
+              return `
+                <div class="ingredient">
+                  <div class="ing-name">${recipe.ingredient.name}</div>
+                  <div class="ing-details">
+                    <span>الكمية: ${totalNeeded.toFixed(2)} ${recipe.ingredient.unit}</span>
+                    <span class="${stockStatus}">المخزون: ${stock.toFixed(2)}</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
           ` : `
-            <div class="no-recipe-notice">
+            <div class="no-recipe">
               ⚠️ لا توجد وصفة محددة لهذا الصنف
             </div>
           `}
 
-          <div class="recipe-footer">
-            <p>تمت الطباعة من نظام إدارة المطعم - ${restaurantName}</p>
+          <!-- التذييل -->
+          <div class="footer">
+            <div>تمت الطباعة من نظام المطعم</div>
           </div>
+
         </div>
 
         <script>
           window.onload = function() {
             setTimeout(function() {
               window.print();
-            }, 500);
+            }, 300);
           };
         </script>
       </body>
@@ -575,7 +523,7 @@ const KitchenDisplay = {
     `;
 
     // فتح نافذة جديدة للطباعة
-    const printWindow = window.open('', '_blank', 'width=900,height=800');
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
     
     if (printWindow) {
       printWindow.document.write(printHTML);
@@ -792,4 +740,4 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem &&
   KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
 }
 
-console.log('✅ Kitchen Display with Simple Recipe Printing initialized');
+console.log('✅ Kitchen Display with Thermal Printer Recipe initialized');
