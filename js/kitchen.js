@@ -340,3 +340,55 @@ const KitchenDisplay = {
 if (typeof window !== 'undefined') {
   window.KitchenDisplay = KitchenDisplay;
 }
+
+
+// ===============================
+// Auto-Protection للدوال
+// ===============================
+
+// حماية تحديث حالة الطلب
+if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.updateOrderStatus) {
+  const originalUpdateStatus = KitchenDisplay.updateOrderStatus.bind(KitchenDisplay);
+  KitchenDisplay.updateOrderStatus = async function(orderId, newStatus) {
+    const operationId = `update-${orderId}-${newStatus}`;
+    
+    if (Loading.isOperationActive(operationId)) {
+      Utils.showNotification('جاري تحديث الطلب...', 'warning');
+      return;
+    }
+
+    if (!Loading.startOperation(operationId)) return;
+    
+    const statusNames = {
+      'preparing': 'قيد التحضير',
+      'ready': 'جاهز',
+      'completed': 'مكتمل'
+    };
+    
+    Loading.show(`جاري التحديث إلى: ${statusNames[newStatus]}`, '');
+
+    try {
+      await originalUpdateStatus.call(this, orderId, newStatus);
+      Loading.success(`تم التحديث إلى: ${statusNames[newStatus]} ✅`);
+    } catch (error) {
+      Loading.error('حدث خطأ أثناء تحديث الحالة');
+      throw error;
+    } finally {
+      Loading.endOperation(operationId);
+    }
+  };
+}
+
+// حماية تحميل الطلبات
+if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadOrders) {
+  const originalLoadOrders = KitchenDisplay.loadOrders.bind(KitchenDisplay);
+  KitchenDisplay.loadOrders = protectAsync(originalLoadOrders, 'load-orders', false);
+}
+
+// حماية تحميل Recipe
+if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem) {
+  const originalLoadRecipe = KitchenDisplay.loadRecipeForItem.bind(KitchenDisplay);
+  KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
+}
+
+console.log('✅ Kitchen functions protected');
