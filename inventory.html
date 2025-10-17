@@ -3,333 +3,371 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>المخزون والوصفات - نظام المطعم</title>
+  <title>🍳 إدارة Recipes المتقدمة - نظام المطعم</title>
   <link rel="stylesheet" href="css/global.css">
-  <link rel="stylesheet" href="css/inventory.css">
+  <link rel="stylesheet" href="css/recipes-advanced.css">
 </head>
 <body>
+  <!-- Header -->
   <div class="header">
     <div>
-      <h1>📦 المخزون والوصفات</h1>
+      <h1>🍳 إدارة Recipes المتقدمة</h1>
       <span class="live-indicator"></span>
-      <span style="font-size: 14px;">مباشر</span>
+      <span style="font-size: 14px;">متزامن مباشرة</span>
     </div>
     <div class="user-info">
-      <span id="userName">مرحباً، Admin</span>
+      <button class="btn btn-primary" onclick="window.location.href='admin-dashboard.html'" style="margin-left: 15px;">
+        🔙 العودة للوحة التحكم
+      </button>
+      <span id="adminName">مرحباً، Admin</span>
       <button class="btn-logout" onclick="Auth.logout()">تسجيل خروج</button>
     </div>
   </div>
 
   <div class="container">
-    <!-- الإحصائيات -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h3>إجمالي المكونات</h3>
-        <div class="value" id="totalIngredients">0</div>
+    <!-- Dashboard Statistics -->
+    <div class="stats-dashboard">
+      <div class="stat-card primary">
+        <div class="stat-icon">📋</div>
+        <div class="stat-content">
+          <h3>أصناف لها Recipes</h3>
+          <div class="stat-value" id="statsRecipedItems">0</div>
+          <small>من إجمالي <span id="statsTotalItems">0</span> صنف</small>
+        </div>
       </div>
+
+      <div class="stat-card success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+          <h3>Recipes كاملة</h3>
+          <div class="stat-value" id="statsCompleteRecipes">0</div>
+          <small>جاهزة للتحضير</small>
+        </div>
+      </div>
+
       <div class="stat-card warning">
-        <h3>مكونات منخفضة</h3>
-        <div class="value" id="lowStockCount">0</div>
-      </div>
-      <div class="stat-card">
-        <h3>أصناف لها وصفات</h3>
-        <div class="value" id="totalRecipes">0</div>
-      </div>
-      <div class="stat-card">
-        <h3>قيمة المخزون</h3>
-        <div class="value" id="totalValue">0 جنيه</div>
-      </div>
-    </div>
-
-    <!-- التبويبات -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('inventory')">
-        📦 المخزون
-      </button>
-      <button class="tab-btn" onclick="switchTab('recipes')">
-        📋 الوصفات
-      </button>
-      <button class="tab-btn" onclick="switchTab('transactions')">
-        📊 حركة المخزون
-      </button>
-    </div>
-
-    <!-- تبويب المخزون -->
-    <div id="inventory" class="tab-content active">
-      <div class="action-buttons">
-        <button class="btn btn-primary" onclick="openAddIngredientModal()">
-          ➕ إضافة مكون جديد
-        </button>
-        <button class="btn btn-export" onclick="exportInventory()">
-          📊 تصدير Excel
-        </button>
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-content">
+          <h3>مكونات منخفضة</h3>
+          <div class="stat-value" id="statsLowStock">0</div>
+          <small>تحتاج إعادة تموين</small>
+        </div>
       </div>
 
-      <!-- فلاتر -->
-      <div class="filters">
-        <input type="text" id="searchIngredient" placeholder="🔍 ابحث عن مكون..." 
-               onkeyup="filterIngredients()">
-        <select id="filterStockStatus" onchange="filterIngredients()">
-          <option value="all">جميع الحالات</option>
-          <option value="normal">عادي</option>
-          <option value="low">منخفض</option>
-          <option value="critical">حرج</option>
-        </select>
-      </div>
-
-      <table id="inventoryTable">
-        <thead>
-          <tr>
-            <th>المكون</th>
-            <th>الكمية الحالية</th>
-            <th>الوحدة</th>
-            <th>الحد الأدنى</th>
-            <th>التكلفة/الوحدة</th>
-            <th>القيمة الإجمالية</th>
-            <th>الحالة</th>
-            <th>الإجراءات</th>
-          </tr>
-        </thead>
-        <tbody id="inventoryBody"></tbody>
-      </table>
-    </div>
-
-    <!-- تبويب الوصفات -->
-    <div id="recipes" class="tab-content">
-      <div class="action-buttons">
-        <button class="btn btn-primary" onclick="openAddRecipeModal()">
-          ➕ إضافة وصفة جديدة
-        </button>
-        <button class="btn btn-export" onclick="exportRecipes()">
-          📊 تصدير Excel
-        </button>
-      </div>
-
-      <!-- اختيار الصنف -->
-      <div class="filters">
-        <select id="menuItemSelect" onchange="loadRecipesForItem()">
-          <option value="">-- اختر صنف من المنيو --</option>
-        </select>
-      </div>
-
-      <div id="recipeContent">
-        <div class="empty-state">
-          <h3>اختر صنفاً من المنيو لعرض وصفته</h3>
+      <div class="stat-card info">
+        <div class="stat-icon">🧪</div>
+        <div class="stat-content">
+          <h3>إجمالي المكونات</h3>
+          <div class="stat-value" id="statsTotalIngredients">0</div>
+          <small>مكون مختلف</small>
         </div>
       </div>
     </div>
 
-    <!-- تبويب حركة المخزون -->
-    <div id="transactions" class="tab-content">
-      <div class="filters">
-        <input type="date" id="transactionDateFrom">
-        <input type="date" id="transactionDateTo">
-        <button class="btn btn-primary" onclick="loadTransactions()">
-          🔍 بحث
-        </button>
-        <button class="btn btn-export" onclick="exportTransactions()">
-          📊 تصدير Excel
-        </button>
+    <!-- Main Layout -->
+    <div class="recipes-layout">
+      <!-- Sidebar: Menu Items -->
+      <div class="menu-sidebar">
+        <div class="sidebar-header">
+          <h2>📋 قائمة الأصناف</h2>
+          <button class="btn btn-sm btn-primary" onclick="RecipeManager.openBulkImport()">
+            📥 استيراد جماعي
+          </button>
+        </div>
+
+        <!-- Search & Filter -->
+        <div class="search-box">
+          <input type="text" id="searchMenuItem" placeholder="🔍 ابحث عن صنف..." 
+                 onkeyup="RecipeManager.filterMenuItems()">
+        </div>
+
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all" onclick="RecipeManager.setFilter('all')">
+            الكل (<span id="filterCountAll">0</span>)
+          </button>
+          <button class="filter-tab" data-filter="has-recipe" onclick="RecipeManager.setFilter('has-recipe')">
+            لها Recipe (<span id="filterCountHas">0</span>)
+          </button>
+          <button class="filter-tab" data-filter="no-recipe" onclick="RecipeManager.setFilter('no-recipe')">
+            بدون Recipe (<span id="filterCountNo">0</span>)
+          </button>
+        </div>
+
+        <!-- Menu Items List -->
+        <div class="menu-items-list" id="menuItemsList">
+          <!-- يتم ملؤها ديناميكياً -->
+        </div>
       </div>
 
-      <table id="transactionsTable">
-        <thead>
-          <tr>
-            <th>التاريخ</th>
-            <th>المكون</th>
-            <th>الكمية المستخدمة</th>
-            <th>رقم الطلب</th>
-            <th>النوع</th>
-          </tr>
-        </thead>
-        <tbody id="transactionsBody"></tbody>
-      </table>
+      <!-- Main Content: Recipe Editor -->
+      <div class="recipe-editor">
+        <div class="editor-header">
+          <div id="editorPlaceholder" class="editor-placeholder">
+            <div class="placeholder-icon">🍽️</div>
+            <h3>اختر صنفاً من القائمة</h3>
+            <p>لبدء إدارة Recipe الخاصة به</p>
+          </div>
+
+          <div id="editorContent" class="editor-content" style="display: none;">
+            <!-- Recipe Header -->
+            <div class="recipe-header-card">
+              <div class="recipe-item-info">
+                <img id="recipeItemImage" src="" alt="" class="recipe-item-image">
+                <div>
+                  <h2 id="recipeItemName">اسم الصنف</h2>
+                  <div class="recipe-meta">
+                    <span class="meta-badge">💰 <span id="recipeItemPrice">0</span> جنيه</span>
+                    <span class="meta-badge">📁 <span id="recipeItemCategory">فئة</span></span>
+                    <span class="meta-badge" id="recipeStatus">
+                      ⚠️ لا توجد وصفة
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="recipe-actions">
+                <button class="btn btn-success" onclick="RecipeManager.openAddIngredientModal()">
+                  ➕ إضافة مكون
+                </button>
+                <button class="btn btn-export" onclick="RecipeManager.exportCurrentRecipe()">
+                  📊 تصدير
+                </button>
+                <button class="btn btn-danger" onclick="RecipeManager.clearAllRecipe()">
+                  🗑️ مسح الكل
+                </button>
+              </div>
+            </div>
+
+            <!-- Recipe Cost Calculator -->
+            <div class="cost-calculator">
+              <h3>💰 حاسبة التكلفة</h3>
+              <div class="cost-grid">
+                <div class="cost-item">
+                  <label>تكلفة المكونات:</label>
+                  <strong id="costIngredients">0.00 جنيه</strong>
+                </div>
+                <div class="cost-item">
+                  <label>هامش الربح:</label>
+                  <input type="number" id="profitMargin" value="200" min="0" step="10" 
+                         onchange="RecipeManager.calculateCosts()" style="width: 80px;">
+                  <span>%</span>
+                </div>
+                <div class="cost-item success">
+                  <label>السعر المقترح:</label>
+                  <strong id="suggestedPrice">0.00 جنيه</strong>
+                </div>
+                <div class="cost-item">
+                  <label>السعر الحالي:</label>
+                  <strong id="currentPrice">0.00 جنيه</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ingredients Table -->
+            <div class="ingredients-section">
+              <h3>🧪 مكونات Recipe</h3>
+              
+              <div id="emptyRecipeState" class="empty-state">
+                <p>لا توجد مكونات في هذه الوصفة</p>
+                <button class="btn btn-primary" onclick="RecipeManager.openAddIngredientModal()">
+                  ➕ ابدأ بإضافة المكونات
+                </button>
+              </div>
+
+              <div id="ingredientsTable" style="display: none;">
+                <table class="ingredients-table">
+                  <thead>
+                    <tr>
+                      <th width="35%">المكون</th>
+                      <th width="15%">الكمية المطلوبة</th>
+                      <th width="15%">المخزون الحالي</th>
+                      <th width="15%">التكلفة</th>
+                      <th width="10%">الحالة</th>
+                      <th width="10%">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ingredientsBody">
+                    <!-- يتم ملؤها ديناميكياً -->
+                  </tbody>
+                  <tfoot>
+                    <tr class="total-row">
+                      <td colspan="3"><strong>الإجمالي:</strong></td>
+                      <td><strong id="totalCost">0.00 جنيه</strong></td>
+                      <td colspan="2"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <!-- Recipe Instructions -->
+            <div class="instructions-section">
+              <h3>📝 ملاحظات التحضير</h3>
+              <textarea id="recipeInstructions" rows="4" 
+                        placeholder="أضف ملاحظات أو تعليمات التحضير (اختياري)..."
+                        onchange="RecipeManager.saveInstructions()"></textarea>
+            </div>
+
+            <!-- Kitchen Preview -->
+            <div class="kitchen-preview">
+              <h3>👨‍🍳 معاينة المطبخ</h3>
+              <div class="preview-card">
+                <p>هذا ما سيراه الطاقم في شاشة المطبخ:</p>
+                <div class="kitchen-card-preview" id="kitchenPreview">
+                  <!-- يتم ملؤها ديناميكياً -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Inventory Status -->
+      <div class="inventory-panel">
+        <div class="panel-header">
+          <h2>📦 حالة المخزون</h2>
+          <button class="btn btn-sm btn-refresh" onclick="RecipeManager.refreshInventory()">
+            🔄
+          </button>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="quick-stats">
+          <div class="quick-stat green">
+            <div class="stat-label">متوفر</div>
+            <div class="stat-number" id="quickStatsAvailable">0</div>
+          </div>
+          <div class="quick-stat orange">
+            <div class="stat-label">منخفض</div>
+            <div class="stat-number" id="quickStatsLow">0</div>
+          </div>
+          <div class="quick-stat red">
+            <div class="stat-label">حرج</div>
+            <div class="stat-number" id="quickStatsCritical">0</div>
+          </div>
+        </div>
+
+        <!-- Inventory List -->
+        <div class="inventory-list" id="inventoryList">
+          <!-- يتم ملؤها ديناميكياً -->
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Modal: إضافة مكون -->
+  <!-- Modal: Add Ingredient to Recipe -->
   <div id="addIngredientModal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-large">
       <div class="modal-header">
-        <h2>إضافة مكون جديد</h2>
-        <span class="close-modal" onclick="closeAddIngredientModal()">×</span>
+        <h2>➕ إضافة مكون للـ Recipe</h2>
+        <span class="close-modal" onclick="RecipeManager.closeAddIngredientModal()">×</span>
       </div>
       
       <form id="addIngredientForm">
-        <div class="form-group">
-          <label>اسم المكون *</label>
-          <input type="text" id="ingredientName" required>
+        <div class="ingredient-selector">
+          <div class="form-group">
+            <label>اختر المكون *</label>
+            <select id="ingredientSelect" required onchange="RecipeManager.ingredientSelected()">
+              <option value="">-- اختر المكون --</option>
+            </select>
+          </div>
+
+          <div id="ingredientDetails" class="ingredient-details" style="display: none;">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>الوحدة:</label>
+                <span id="detailUnit">-</span>
+              </div>
+              <div class="detail-item">
+                <label>المخزون الحالي:</label>
+                <span id="detailStock">-</span>
+              </div>
+              <div class="detail-item">
+                <label>التكلفة/الوحدة:</label>
+                <span id="detailCost">-</span>
+              </div>
+              <div class="detail-item">
+                <label>الحالة:</label>
+                <span id="detailStatus">-</span>
+              </div>
+            </div>
+          </div>
         </div>
-        
+
         <div class="form-group">
-          <label>الوحدة *</label>
-          <select id="ingredientUnit" required>
-            <option value="">-- اختر --</option>
-            <option value="كجم">كيلوجرام (كجم)</option>
-            <option value="جرام">جرام</option>
-            <option value="لتر">لتر</option>
-            <option value="مل">مليلتر (مل)</option>
-            <option value="قطعة">قطعة</option>
-            <option value="رغيف">رغيف</option>
-            <option value="علبة">علبة</option>
-            <option value="كيس">كيس</option>
-          </select>
+          <label>الكمية المطلوبة (لقطعة واحدة) *</label>
+          <div class="quantity-input-group">
+            <input type="number" id="ingredientQuantity" step="0.001" min="0.001" required 
+                   onchange="RecipeManager.calculateIngredientCost()">
+            <span class="unit-label" id="quantityUnit">وحدة</span>
+          </div>
+          <small class="help-text">الكمية المطلوبة لتحضير وحدة واحدة من الصنف</small>
         </div>
-        
-        <div class="form-group">
-          <label>الكمية الحالية *</label>
-          <input type="number" id="ingredientStock" step="0.01" required>
+
+        <div class="cost-preview">
+          <div class="cost-preview-item">
+            <label>تكلفة هذا المكون:</label>
+            <strong id="previewCost">0.00 جنيه</strong>
+          </div>
+          <div class="cost-preview-item">
+            <label>يكفي لعدد:</label>
+            <strong id="previewServings">0 قطعة</strong>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label>الحد الأدنى *</label>
-          <input type="number" id="ingredientMinStock" step="0.01" required>
-        </div>
-        
-        <div class="form-group">
-          <label>التكلفة لكل وحدة *</label>
-          <input type="number" id="ingredientCost" step="0.01" required>
-        </div>
-        
-        <div class="form-group">
-          <label>المورد</label>
-          <input type="text" id="ingredientSupplier">
-        </div>
-        
-        <button type="submit" class="btn btn-success" style="width: 100%;">
-          ✅ حفظ المكون
+
+        <button type="submit" class="btn btn-success btn-block">
+          ✅ إضافة المكون للـ Recipe
         </button>
       </form>
     </div>
   </div>
 
-  <!-- Modal: تعديل المخزون -->
-  <div id="updateStockModal" class="modal">
+  <!-- Modal: Edit Ingredient -->
+  <div id="editIngredientModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>تحديث المخزون</h2>
-        <span class="close-modal" onclick="closeUpdateStockModal()">×</span>
+        <h2>✏️ تعديل المكون</h2>
+        <span class="close-modal" onclick="RecipeManager.closeEditIngredientModal()">×</span>
       </div>
       
-      <form id="updateStockForm">
-        <input type="hidden" id="updateIngredientId">
+      <form id="editIngredientForm">
+        <input type="hidden" id="editRecipeId">
         
         <div class="form-group">
           <label>المكون</label>
-          <input type="text" id="updateIngredientName" readonly>
+          <input type="text" id="editIngredientName" readonly>
         </div>
-        
-        <div class="form-group">
-          <label>الكمية الحالية</label>
-          <input type="text" id="updateCurrentStock" readonly>
-        </div>
-        
-        <div class="form-group">
-          <label>نوع العملية *</label>
-          <select id="updateType" required onchange="updateStockTypeChanged()">
-            <option value="add">إضافة للمخزون</option>
-            <option value="deduct">خصم من المخزون</option>
-            <option value="set">تعيين الكمية</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label id="updateQuantityLabel">الكمية *</label>
-          <input type="number" id="updateQuantity" step="0.01" required>
-        </div>
-        
-        <div class="form-group">
-          <label>الكمية الجديدة</label>
-          <input type="text" id="updateNewStock" readonly>
-        </div>
-        
-        <div class="form-group">
-          <label>ملاحظات</label>
-          <textarea id="updateNotes" rows="3"></textarea>
-        </div>
-        
-        <button type="submit" class="btn btn-success" style="width: 100%;">
-          ✅ تحديث المخزون
-        </button>
-      </form>
-    </div>
-  </div>
 
-  <!-- Modal: إضافة وصفة -->
-  <div id="addRecipeModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>إضافة مكون للوصفة</h2>
-        <span class="close-modal" onclick="closeAddRecipeModal()">×</span>
-      </div>
-      
-      <form id="addRecipeForm">
-        <div class="form-group">
-          <label>الصنف</label>
-          <input type="text" id="recipeMenuItem" readonly>
-        </div>
-        
-        <div class="form-group">
-          <label>المكون *</label>
-          <select id="recipeIngredient" required>
-            <option value="">-- اختر المكون --</option>
-          </select>
-        </div>
-        
         <div class="form-group">
           <label>الكمية المطلوبة *</label>
-          <input type="number" id="recipeQuantity" step="0.001" required>
+          <div class="quantity-input-group">
+            <input type="number" id="editIngredientQuantity" step="0.001" min="0.001" required>
+            <span class="unit-label" id="editQuantityUnit">وحدة</span>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label>الوحدة</label>
-          <input type="text" id="recipeUnit" readonly>
-        </div>
-        
-        <button type="submit" class="btn btn-success" style="width: 100%;">
-          ✅ إضافة للوصفة
+
+        <button type="submit" class="btn btn-success btn-block">
+          ✅ حفظ التعديلات
         </button>
       </form>
     </div>
   </div>
 
-  <!-- السكريبتات -->
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config/keys.js"></script>
   <script src="js/config.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/realtime.js"></script>
-  <script src="js/inventory.js"></script>
+  <script src="js/recipes-advanced.js"></script>
   
   <script>
     window.addEventListener('DOMContentLoaded', () => {
-      InventoryManager.init();
+      RecipeManager.init();
     });
-    // التبديل بين التبويبات
-function switchTab(tabName) {
-  // إزالة active من كل التبويبات
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  document.querySelectorAll('.tab-content').forEach(content => {
-    content.classList.remove('active');
-  });
-  
-  // إضافة active للتبويب المختار
-  event.target.classList.add('active');
-  document.getElementById(tabName).classList.add('active');
-  
-  // تحميل البيانات حسب التبويب
-  if (tabName === 'transactions') {
-    InventoryManager.loadTransactions();
-  }
-}
-
   </script>
 
   <!-- زر Refresh + مؤشر الاتصال -->
-  <!-- الصق الكود الكامل من الرد السابق هنا -->
-  
+  <!-- الصق الكود من الرد السابق هنا -->
 </body>
 </html>
