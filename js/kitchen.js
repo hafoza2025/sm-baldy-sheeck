@@ -48,7 +48,9 @@ const KitchenDisplay = {
 
     } catch (error) {
       console.error('Error loading orders:', error);
-      Utils.showNotification('خطأ في تحميل الطلبات', 'error');
+      if (typeof Utils !== 'undefined' && Utils.showNotification) {
+        Utils.showNotification('خطأ في تحميل الطلبات', 'error');
+      }
     }
   },
 
@@ -88,7 +90,7 @@ const KitchenDisplay = {
 
     const container = document.getElementById('ordersContainer');
     container.innerHTML = filtered.map(order => {
-      const timeDiff = Utils.getTimeDifference(order.created_at);
+      const timeDiff = this.getTimeDifference(order.created_at);
       const isUrgent = timeDiff > 15;
 
       return `
@@ -205,11 +207,14 @@ const KitchenDisplay = {
   },
 
   // ===================================
-  // طباعة Recipe - الدالة الجديدة 🖨️
+  // طباعة Recipe - محدّث بدون أخطاء 🖨️
   // ===================================
   async printRecipe(orderItemId, menuItemId, quantity, itemName) {
     try {
-      Loading.show('جاري تحميل Recipe...', 'يرجى الانتظار');
+      // إظهار Loading
+      if (typeof Loading !== 'undefined' && Loading.show) {
+        Loading.show('جاري تحميل Recipe...', 'يرجى الانتظار');
+      }
 
       // جلب معلومات الصنف
       const { data: menuItem, error: menuError } = await supabase
@@ -236,22 +241,66 @@ const KitchenDisplay = {
 
       if (recipeError) throw recipeError;
 
-      Loading.hide();
+      // إخفاء Loading
+      if (typeof Loading !== 'undefined' && Loading.hide) {
+        Loading.hide();
+      }
 
       // إنشاء صفحة الطباعة
       this.generateRecipePrintPage(menuItem, recipes, quantity);
 
     } catch (error) {
       console.error('Error printing recipe:', error);
-      Loading.error('حدث خطأ في تحميل Recipe');
+      
+      // إخفاء Loading في حالة الخطأ
+      if (typeof Loading !== 'undefined' && Loading.hide) {
+        Loading.hide();
+      }
+      
+      // إظهار رسالة خطأ
+      if (typeof Utils !== 'undefined' && Utils.showNotification) {
+        Utils.showNotification('حدث خطأ في تحميل Recipe: ' + error.message, 'error');
+      } else {
+        alert('حدث خطأ في تحميل Recipe: ' + error.message);
+      }
     }
   },
 
   generateRecipePrintPage(menuItem, recipes, quantity) {
     const now = new Date();
+    
+    // حساب التكلفة الإجمالية
     const totalCost = recipes.reduce((sum, r) => 
       sum + (r.quantity_needed * quantity * r.ingredient.cost_per_unit), 0
     );
+
+    // دوال مساعدة للتنسيق
+    const formatCurrency = (amount) => {
+      return `${amount.toFixed(2)} جنيه`;
+    };
+
+    const formatDate = (date) => {
+      const d = new Date(date);
+      return d.toLocaleDateString('ar-EG', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    };
+
+    const formatTime = (date) => {
+      const d = new Date(date);
+      return d.toLocaleTimeString('ar-EG', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true
+      });
+    };
+
+    // اسم المطعم
+    const restaurantName = (typeof SYSTEM_CONFIG !== 'undefined' && SYSTEM_CONFIG.restaurantName) 
+      ? SYSTEM_CONFIG.restaurantName 
+      : 'مطعم الفرعون';
 
     const printHTML = `
       <!DOCTYPE html>
@@ -480,7 +529,7 @@ const KitchenDisplay = {
             <h2>${menuItem.name_ar}</h2>
             <div class="info-row">
               <span class="info-label">الفئة:</span>
-              <span class="info-value">${menuItem.category}</span>
+              <span class="info-value">${menuItem.category || 'غير محدد'}</span>
             </div>
             <div class="info-row">
               <span class="info-label">الكمية المطلوبة:</span>
@@ -488,11 +537,11 @@ const KitchenDisplay = {
             </div>
             <div class="info-row">
               <span class="info-label">سعر البيع:</span>
-              <span class="info-value">${this.formatCurrency(menuItem.price)}</span>
+              <span class="info-value">${formatCurrency(menuItem.price)}</span>
             </div>
             <div class="info-row">
               <span class="info-label">التاريخ والوقت:</span>
-              <span class="info-value">${this.formatDate(now)} - ${this.formatTime(now)}</span>
+              <span class="info-value">${formatDate(now)} - ${formatTime(now)}</span>
             </div>
           </div>
 
@@ -512,7 +561,7 @@ const KitchenDisplay = {
               <tbody>
                 ${recipes.map(recipe => {
                   const totalNeeded = recipe.quantity_needed * quantity;
-                  const totalCost = totalNeeded * recipe.ingredient.cost_per_unit;
+                  const totalItemCost = totalNeeded * recipe.ingredient.cost_per_unit;
                   const stock = recipe.ingredient.current_stock;
                   const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
                   
@@ -523,7 +572,7 @@ const KitchenDisplay = {
                       <td><strong>${totalNeeded.toFixed(2)}</strong></td>
                       <td>${recipe.ingredient.unit}</td>
                       <td class="${stockStatus}">${stock.toFixed(2)}</td>
-                      <td>${this.formatCurrency(totalCost)}</td>
+                      <td>${formatCurrency(totalItemCost)}</td>
                     </tr>
                   `;
                 }).join('')}
@@ -535,29 +584,28 @@ const KitchenDisplay = {
             <h3>💰 ملخص التكلفة</h3>
             <div class="cost-row">
               <span>تكلفة المكونات الإجمالية:</span>
-              <span>${this.formatCurrency(totalCost)}</span>
+              <span>${formatCurrency(totalCost)}</span>
             </div>
             <div class="cost-row">
               <span>سعر البيع (× ${quantity}):</span>
-              <span>${this.formatCurrency(menuItem.price * quantity)}</span>
+              <span>${formatCurrency(menuItem.price * quantity)}</span>
             </div>
             <div class="cost-row total">
               <span>صافي الربح:</span>
-              <span>${this.formatCurrency((menuItem.price * quantity) - totalCost)}</span>
+              <span>${formatCurrency((menuItem.price * quantity) - totalCost)}</span>
             </div>
           </div>
 
           <div class="recipe-footer">
             <p>⚠️ تأكد من توفر جميع المكونات قبل البدء في التحضير</p>
-            <p>تمت الطباعة من نظام إدارة المطعم - ${SYSTEM_CONFIG.restaurantName}</p>
+            <p>تمت الطباعة من نظام إدارة المطعم - ${restaurantName}</p>
           </div>
         </div>
 
         <script>
           window.onload = function() {
-            window.print();
             setTimeout(function() {
-              window.close();
+              window.print();
             }, 500);
           };
         </script>
@@ -565,22 +613,24 @@ const KitchenDisplay = {
       </html>
     `;
 
+    // فتح نافذة جديدة للطباعة
     const printWindow = window.open('', '_blank', 'width=900,height=800');
-    printWindow.document.write(printHTML);
-    printWindow.document.close();
+    
+    if (printWindow) {
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+    } else {
+      alert('⚠️ لم نتمكن من فتح نافذة الطباعة. تأكد من السماح بالنوافذ المنبثقة.');
+    }
   },
 
-  // دوال مساعدة للطباعة
-  formatCurrency(amount) {
-    return `${amount.toFixed(2)} جنيه`;
-  },
-
-  formatDate(date) {
-    return new Date(date).toLocaleDateString('ar-EG');
-  },
-
-  formatTime(date) {
-    return new Date(date).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  // دالة مساعدة للوقت
+  getTimeDifference(createdAt) {
+    const now = new Date();
+    const created = new Date(createdAt);
+    const diffMs = now - created;
+    const diffMins = Math.floor(diffMs / 60000);
+    return diffMins;
   },
 
   // تحديث حالة الطلب
@@ -606,7 +656,9 @@ const KitchenDisplay = {
         'completed': 'مكتمل'
       };
 
-      Utils.showNotification(`تم تحديث الطلب إلى: ${statusNames[newStatus]}`, 'success');
+      if (typeof Utils !== 'undefined' && Utils.showNotification) {
+        Utils.showNotification(`تم تحديث الطلب إلى: ${statusNames[newStatus]}`, 'success');
+      }
 
       if (newStatus === 'ready') {
         this.playNotificationSound();
@@ -616,7 +668,9 @@ const KitchenDisplay = {
 
     } catch (error) {
       console.error('Error updating order status:', error);
-      Utils.showNotification('حدث خطأ أثناء تحديث الحالة', 'error');
+      if (typeof Utils !== 'undefined' && Utils.showNotification) {
+        Utils.showNotification('حدث خطأ أثناء تحديث الحالة', 'error');
+      }
     }
   },
 
@@ -628,13 +682,17 @@ const KitchenDisplay = {
         .eq('id', orderId)
         .single();
 
-      Utils.sendTelegramNotification(
-        `✅ <b>طلب جاهز!</b>\n` +
-        `رقم الطلب: #${order.order_number}\n` +
-        `الطاولة: ${order.table_number}`
-      );
+      if (typeof Utils !== 'undefined' && Utils.sendTelegramNotification) {
+        Utils.sendTelegramNotification(
+          `✅ <b>طلب جاهز!</b>\n` +
+          `رقم الطلب: #${order.order_number}\n` +
+          `الطاولة: ${order.table_number}`
+        );
+      }
 
-      Utils.showNotification('تم إرسال الإشعار', 'success');
+      if (typeof Utils !== 'undefined' && Utils.showNotification) {
+        Utils.showNotification('تم إرسال الإشعار', 'success');
+      }
 
     } catch (error) {
       console.error('Error notifying waiter:', error);
@@ -665,7 +723,7 @@ const KitchenDisplay = {
     setInterval(() => {
       document.querySelectorAll('.timer').forEach(timer => {
         const time = timer.getAttribute('data-time');
-        const diff = Utils.getTimeDifference(time);
+        const diff = this.getTimeDifference(time);
         timer.textContent = `${diff} دقيقة`;
 
         if (diff > 15) {
@@ -677,13 +735,15 @@ const KitchenDisplay = {
   },
 
   setupRealtimeSubscriptions() {
-    Realtime.subscribeToOrders((payload) => {
-      if (payload.eventType === 'INSERT') {
-        this.showNewOrderNotification();
-        this.playNotificationSound();
-      }
-      this.loadOrders();
-    });
+    if (typeof Realtime !== 'undefined' && Realtime.subscribeToOrders) {
+      Realtime.subscribeToOrders((payload) => {
+        if (payload.eventType === 'INSERT') {
+          this.showNewOrderNotification();
+          this.playNotificationSound();
+        }
+        this.loadOrders();
+      });
+    }
   },
 
   showNewOrderNotification() {
@@ -724,12 +784,14 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.updateOrderStatus) {
   KitchenDisplay.updateOrderStatus = async function(orderId, newStatus) {
     const operationId = `update-${orderId}-${newStatus}`;
     
-    if (Loading.isOperationActive(operationId)) {
-      Utils.showNotification('جاري تحديث الطلب...', 'warning');
+    if (typeof Loading !== 'undefined' && Loading.isOperationActive && Loading.isOperationActive(operationId)) {
+      if (typeof Utils !== 'undefined' && Utils.showNotification) {
+        Utils.showNotification('جاري تحديث الطلب...', 'warning');
+      }
       return;
     }
 
-    if (!Loading.startOperation(operationId)) return;
+    if (typeof Loading !== 'undefined' && Loading.startOperation && !Loading.startOperation(operationId)) return;
     
     const statusNames = {
       'preparing': 'قيد التحضير',
@@ -737,28 +799,36 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.updateOrderStatus) {
       'completed': 'مكتمل'
     };
     
-    Loading.show(`جاري التحديث إلى: ${statusNames[newStatus]}`, '');
+    if (typeof Loading !== 'undefined' && Loading.show) {
+      Loading.show(`جاري التحديث إلى: ${statusNames[newStatus]}`, '');
+    }
 
     try {
       await originalUpdateStatus.call(this, orderId, newStatus);
-      Loading.success(`تم التحديث إلى: ${statusNames[newStatus]} ✅`);
+      if (typeof Loading !== 'undefined' && Loading.success) {
+        Loading.success(`تم التحديث إلى: ${statusNames[newStatus]} ✅`);
+      }
     } catch (error) {
-      Loading.error('حدث خطأ أثناء تحديث الحالة');
+      if (typeof Loading !== 'undefined' && Loading.error) {
+        Loading.error('حدث خطأ أثناء تحديث الحالة');
+      }
       throw error;
     } finally {
-      Loading.endOperation(operationId);
+      if (typeof Loading !== 'undefined' && Loading.endOperation) {
+        Loading.endOperation(operationId);
+      }
     }
   };
 }
 
-if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadOrders) {
+if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadOrders && typeof protectAsync !== 'undefined') {
   const originalLoadOrders = KitchenDisplay.loadOrders.bind(KitchenDisplay);
   KitchenDisplay.loadOrders = protectAsync(originalLoadOrders, 'load-orders', false);
 }
 
-if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem) {
+if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem && typeof protectAsync !== 'undefined') {
   const originalLoadRecipe = KitchenDisplay.loadRecipeForItem.bind(KitchenDisplay);
   KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
 }
 
-console.log('✅ Kitchen functions with Recipe Printing protected');
+console.log('✅ Kitchen Display with Recipe Printing initialized');
