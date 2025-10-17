@@ -1,5 +1,5 @@
 // js/kitchen.js
-// وظائف شاشة المطبخ مع عرض Recipes وطباعتها
+// وظائف شاشة المطبخ مع عرض Recipes وطباعتها - النسخة النهائية
 
 const KitchenDisplay = {
   currentUser: null,
@@ -26,7 +26,7 @@ const KitchenDisplay = {
           *,
           order_items(
             *,
-            menu_item:menu_item_id(name_ar, name, price, category)
+            menu_item:menu_item_id(name_ar, price, category)
           ),
           deliveries(customer_name, customer_address)
         `)
@@ -207,7 +207,7 @@ const KitchenDisplay = {
   },
 
   // ===================================
-  // طباعة Recipe - محدّث بدون أخطاء 🖨️
+  // طباعة Recipe - مصلح ونهائي 🖨️
   // ===================================
   async printRecipe(orderItemId, menuItemId, quantity, itemName) {
     try {
@@ -216,14 +216,17 @@ const KitchenDisplay = {
         Loading.show('جاري تحميل Recipe...', 'يرجى الانتظار');
       }
 
-      // جلب معلومات الصنف
+      // جلب معلومات الصنف (بدون name_en)
       const { data: menuItem, error: menuError } = await supabase
         .from('menu_items')
-        .select('name_ar, name_en, price, category')
+        .select('name_ar, price, category')
         .eq('id', menuItemId)
         .single();
 
-      if (menuError) throw menuError;
+      if (menuError) {
+        console.error('Menu Error:', menuError);
+        throw menuError;
+      }
 
       // جلب Recipe (المكونات المطلوبة)
       const { data: recipes, error: recipeError } = await supabase
@@ -239,7 +242,19 @@ const KitchenDisplay = {
         `)
         .eq('menu_item_id', menuItemId);
 
-      if (recipeError) throw recipeError;
+      if (recipeError) {
+        console.error('Recipe Error:', recipeError);
+        throw recipeError;
+      }
+
+      // التحقق من وجود recipes
+      if (!recipes || recipes.length === 0) {
+        if (typeof Loading !== 'undefined' && Loading.hide) {
+          Loading.hide();
+        }
+        alert('⚠️ لا توجد وصفة محددة لهذا الصنف');
+        return;
+      }
 
       // إخفاء Loading
       if (typeof Loading !== 'undefined' && Loading.hide) {
@@ -258,10 +273,11 @@ const KitchenDisplay = {
       }
       
       // إظهار رسالة خطأ
+      const errorMsg = error.message || 'حدث خطأ غير معروف';
       if (typeof Utils !== 'undefined' && Utils.showNotification) {
-        Utils.showNotification('حدث خطأ في تحميل Recipe: ' + error.message, 'error');
+        Utils.showNotification('حدث خطأ في تحميل Recipe: ' + errorMsg, 'error');
       } else {
-        alert('حدث خطأ في تحميل Recipe: ' + error.message);
+        alert('حدث خطأ في تحميل Recipe: ' + errorMsg);
       }
     }
   },
@@ -831,4 +847,4 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem &&
   KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
 }
 
-console.log('✅ Kitchen Display with Recipe Printing initialized');
+console.log('✅ Kitchen Display with Recipe Printing initialized (Fixed)');
