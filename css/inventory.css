@@ -1,5 +1,5 @@
 /* css/recipes-advanced.css */
-/* نظام Recipe المتقدم */
+/* نظام Recipe والمخزون المتقدم */
 
 .container {
   max-width: 100%;
@@ -365,26 +365,6 @@
   font-weight: bold;
 }
 
-/* Instructions */
-.instructions-section {
-  margin-bottom: 25px;
-}
-
-.instructions-section textarea {
-  width: 100%;
-  padding: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 14px;
-  resize: vertical;
-}
-
-.instructions-section textarea:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
 /* Kitchen Preview */
 .kitchen-preview {
   background: #e8ecff;
@@ -492,6 +472,112 @@
   color: #666;
 }
 
+/* ==================== Inventory Management Section ==================== */
+.inventory-management-section {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 3px solid #f0f0f0;
+}
+
+.section-header h2 {
+  font-size: 24px;
+  margin: 0;
+  color: #333;
+}
+
+.section-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.inventory-filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.inventory-filters input,
+.inventory-filters select {
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.inventory-filters input:focus,
+.inventory-filters select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.inventory-table-container {
+  overflow-x: auto;
+}
+
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.inventory-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.inventory-table th {
+  padding: 15px 12px;
+  text-align: right;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.inventory-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.inventory-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+/* View Switcher */
+.view-switcher {
+  display: flex;
+  gap: 10px;
+}
+
+.view-switcher button {
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid white;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 600;
+}
+
+.view-switcher button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.view-switcher button.active {
+  background: white;
+  color: #667eea;
+}
+
 /* ==================== Modal Styles ==================== */
 .modal-large {
   max-width: 700px;
@@ -537,6 +623,7 @@
   background: #f5f5f5;
   border-radius: 6px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .help-text {
@@ -562,6 +649,25 @@
   align-items: center;
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.cost-summary {
+  background: #e8ecff;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.cost-summary h4 {
+  margin: 0 0 10px 0;
+  color: #667eea;
+}
+
 /* ==================== Buttons ==================== */
 .btn-block {
   width: 100%;
@@ -576,6 +682,36 @@
 
 .btn-refresh {
   background: #2196f3;
+  color: white;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  margin: 0 3px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.action-btn:hover {
+  transform: scale(1.05);
+}
+
+.btn-edit {
+  background: #2196f3;
+  color: white;
+}
+
+.btn-update {
+  background: #4caf50;
+  color: white;
+}
+
+.btn-delete {
+  background: #f44336;
   color: white;
 }
 
@@ -616,5 +752,29 @@
 
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+
+  .section-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .inventory-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .view-switcher {
+    flex-direction: column;
+    width: 100%;
   }
 }
