@@ -1,5 +1,5 @@
 // js/kitchen.js
-// وظائف شاشة المطبخ مع عرض Recipes وطباعتها - النسخة النهائية
+// وظائف شاشة المطبخ مع عرض Recipes وطباعتها - نسخة بسيطة بدون ماليات
 
 const KitchenDisplay = {
   currentUser: null,
@@ -207,7 +207,7 @@ const KitchenDisplay = {
   },
 
   // ===================================
-  // طباعة Recipe - مصلح ونهائي 🖨️
+  // طباعة Recipe - نسخة بسيطة بدون ماليات 🖨️
   // ===================================
   async printRecipe(orderItemId, menuItemId, quantity, itemName) {
     try {
@@ -216,10 +216,10 @@ const KitchenDisplay = {
         Loading.show('جاري تحميل Recipe...', 'يرجى الانتظار');
       }
 
-      // جلب معلومات الصنف (بدون name_en)
+      // جلب معلومات الصنف
       const { data: menuItem, error: menuError } = await supabase
         .from('menu_items')
-        .select('name_ar, price, category')
+        .select('name_ar, category')
         .eq('id', menuItemId)
         .single();
 
@@ -236,8 +236,7 @@ const KitchenDisplay = {
           ingredient:ingredient_id (
             name,
             unit,
-            current_stock,
-            cost_per_unit
+            current_stock
           )
         `)
         .eq('menu_item_id', menuItemId);
@@ -247,22 +246,13 @@ const KitchenDisplay = {
         throw recipeError;
       }
 
-      // التحقق من وجود recipes
-      if (!recipes || recipes.length === 0) {
-        if (typeof Loading !== 'undefined' && Loading.hide) {
-          Loading.hide();
-        }
-        alert('⚠️ لا توجد وصفة محددة لهذا الصنف');
-        return;
-      }
-
       // إخفاء Loading
       if (typeof Loading !== 'undefined' && Loading.hide) {
         Loading.hide();
       }
 
-      // إنشاء صفحة الطباعة
-      this.generateRecipePrintPage(menuItem, recipes, quantity);
+      // إنشاء صفحة الطباعة (يطبع حتى لو لا توجد recipe)
+      this.generateRecipePrintPage(menuItem, recipes || [], quantity);
 
     } catch (error) {
       console.error('Error printing recipe:', error);
@@ -284,17 +274,8 @@ const KitchenDisplay = {
 
   generateRecipePrintPage(menuItem, recipes, quantity) {
     const now = new Date();
-    
-    // حساب التكلفة الإجمالية
-    const totalCost = recipes.reduce((sum, r) => 
-      sum + (r.quantity_needed * quantity * r.ingredient.cost_per_unit), 0
-    );
 
     // دوال مساعدة للتنسيق
-    const formatCurrency = (amount) => {
-      return `${amount.toFixed(2)} جنيه`;
-    };
-
     const formatDate = (date) => {
       const d = new Date(date);
       return d.toLocaleDateString('ar-EG', { 
@@ -479,33 +460,15 @@ const KitchenDisplay = {
             font-weight: bold;
           }
 
-          .cost-summary {
+          .no-recipe-notice {
             background: #FFF3CD;
-            padding: 15px;
+            padding: 20px;
             border: 3px solid #F57C00;
-            margin-top: 20px;
-          }
-
-          .cost-summary h3 {
-            font-size: 20px;
-            color: #E65100;
-            margin-bottom: 12px;
-          }
-
-          .cost-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
+            border-radius: 8px;
+            text-align: center;
+            color: #856404;
             font-size: 16px;
-          }
-
-          .cost-row.total {
-            border-top: 2px solid #F57C00;
-            margin-top: 10px;
-            padding-top: 12px;
-            font-size: 20px;
             font-weight: bold;
-            color: #E65100;
           }
 
           .recipe-footer {
@@ -552,68 +515,50 @@ const KitchenDisplay = {
               <span class="info-value">× ${quantity}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">سعر البيع:</span>
-              <span class="info-value">${formatCurrency(menuItem.price)}</span>
-            </div>
-            <div class="info-row">
               <span class="info-label">التاريخ والوقت:</span>
               <span class="info-value">${formatDate(now)} - ${formatTime(now)}</span>
             </div>
           </div>
 
-          <div class="ingredients-section">
-            <h3>📋 المكونات المطلوبة</h3>
-            <table class="ingredients-table">
-              <thead>
-                <tr>
-                  <th>المكون</th>
-                  <th>الكمية لوحدة واحدة</th>
-                  <th>الكمية الإجمالية</th>
-                  <th>الوحدة</th>
-                  <th>المخزون الحالي</th>
-                  <th>التكلفة</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${recipes.map(recipe => {
-                  const totalNeeded = recipe.quantity_needed * quantity;
-                  const totalItemCost = totalNeeded * recipe.ingredient.cost_per_unit;
-                  const stock = recipe.ingredient.current_stock;
-                  const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
-                  
-                  return `
-                    <tr>
-                      <td><strong>${recipe.ingredient.name}</strong></td>
-                      <td>${recipe.quantity_needed.toFixed(2)}</td>
-                      <td><strong>${totalNeeded.toFixed(2)}</strong></td>
-                      <td>${recipe.ingredient.unit}</td>
-                      <td class="${stockStatus}">${stock.toFixed(2)}</td>
-                      <td>${formatCurrency(totalItemCost)}</td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="cost-summary">
-            <h3>💰 ملخص التكلفة</h3>
-            <div class="cost-row">
-              <span>تكلفة المكونات الإجمالية:</span>
-              <span>${formatCurrency(totalCost)}</span>
+          ${recipes && recipes.length > 0 ? `
+            <div class="ingredients-section">
+              <h3>📋 المكونات المطلوبة</h3>
+              <table class="ingredients-table">
+                <thead>
+                  <tr>
+                    <th>المكون</th>
+                    <th>الكمية لوحدة واحدة</th>
+                    <th>الكمية الإجمالية</th>
+                    <th>الوحدة</th>
+                    <th>المخزون الحالي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${recipes.map(recipe => {
+                    const totalNeeded = recipe.quantity_needed * quantity;
+                    const stock = recipe.ingredient.current_stock;
+                    const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
+                    
+                    return `
+                      <tr>
+                        <td><strong>${recipe.ingredient.name}</strong></td>
+                        <td>${recipe.quantity_needed.toFixed(2)}</td>
+                        <td><strong>${totalNeeded.toFixed(2)}</strong></td>
+                        <td>${recipe.ingredient.unit}</td>
+                        <td class="${stockStatus}">${stock.toFixed(2)}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
             </div>
-            <div class="cost-row">
-              <span>سعر البيع (× ${quantity}):</span>
-              <span>${formatCurrency(menuItem.price * quantity)}</span>
+          ` : `
+            <div class="no-recipe-notice">
+              ⚠️ لا توجد وصفة محددة لهذا الصنف
             </div>
-            <div class="cost-row total">
-              <span>صافي الربح:</span>
-              <span>${formatCurrency((menuItem.price * quantity) - totalCost)}</span>
-            </div>
-          </div>
+          `}
 
           <div class="recipe-footer">
-            <p>⚠️ تأكد من توفر جميع المكونات قبل البدء في التحضير</p>
             <p>تمت الطباعة من نظام إدارة المطعم - ${restaurantName}</p>
           </div>
         </div>
@@ -847,4 +792,4 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem &&
   KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
 }
 
-console.log('✅ Kitchen Display with Recipe Printing initialized (Fixed)');
+console.log('✅ Kitchen Display with Simple Recipe Printing initialized');
