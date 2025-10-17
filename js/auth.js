@@ -16,7 +16,7 @@ const Auth = {
     // تسجيل الخروج
     logout() {
         localStorage.removeItem('currentUser');
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
     },
 
     // التحقق من الصلاحيات
@@ -117,4 +117,5 @@ Auth.checkRecipeAccess = function() {
   
   return user;
 };
+
 
