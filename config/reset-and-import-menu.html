@@ -73,16 +73,6 @@
       transform: translateY(-2px);
     }
 
-    .btn-success {
-      background: #4caf50;
-      color: white;
-    }
-
-    .btn-success:hover {
-      background: #388e3c;
-      transform: translateY(-2px);
-    }
-
     .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
@@ -179,156 +169,195 @@
   <div class="log" id="log"></div>
 </div>
 
+<!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config/keys.js"></script>
 
 <script>
+// بيانات Supabase (ضع مفاتيحك هنا)
+const SUPABASE_URL = 'https://cwyfwvfmjdqnqmgwnjis.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3eWZ3dmZtamRxbnFtZ3duamlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg5OTYyNTgsImV4cCI6MjA0NDU3MjI1OH0.VH5TQdhBPNWzpYX6WLc_t3RiKDR8Iw2lJvMPu2DWkLk';
+
 // تهيئة Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabase;
+
+// انتظار تحميل المكتبة
+window.addEventListener('DOMContentLoaded', () => {
+  if (typeof window.supabase !== 'undefined') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase initialized');
+  } else {
+    console.error('❌ Supabase library not loaded');
+  }
+});
 
 // بيانات المنيو الجديد من ملف Excel
-const newMenuItems = [
-  // الشوربات والمقبلات
-  { name_ar: 'شوربة خضار', category: 'شوربات', price: 50 },
-  { name_ar: 'شوربة لسان', category: 'شوربات', price: 55 },
-  { name_ar: 'شوربة كوارع', category: 'شوربات', price: 170 },
-  { name_ar: 'شوربة حمام', category: 'شوربات', price: 80 },
-  { name_ar: 'شوربة كريمة', category: 'شوربات', price: 80 },
+// دالة لتوليد صورة افتراضية حسب الفئة
+function getDefaultImage(category) {
+  const images = {
+    'شوربات': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400',
+    'مقبلات': 'https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=400',
+    'فتة': 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400',
+    'موزات': 'https://images.unsplash.com/photo-1574484284002-952d92456975?w=400',
+    'أطباق رئيسية': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400',
+    'دجاج': 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=400',
+    'مكرونات': 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400',
+    'طواجن': 'https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=400',
+    'أرز': 'https://images.unsplash.com/photo-1596560548464-f010549b84d7?w=400',
+    'محاشى': 'https://images.unsplash.com/photo-1609501676725-7186f017a4b7?w=400',
+    'أرز متبل': 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400',
+    'سندوتشات': 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
+    'مشاوي': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400'
+  };
   
-  { name_ar: 'طحينة', category: 'مقبلات', price: 25 },
-  { name_ar: 'بابا غنوج', category: 'مقبلات', price: 25 },
-  { name_ar: 'بلدى خضراء', category: 'مقبلات', price: 25 },
-  { name_ar: 'مخلل', category: 'مقبلات', price: 25 },
-  { name_ar: 'بنجر', category: 'مقبلات', price: 25 },
-  { name_ar: 'ثومية', category: 'مقبلات', price: 30 },
-  { name_ar: 'كلوسلو', category: 'مقبلات', price: 30 },
-  { name_ar: 'حمص', category: 'مقبلات', price: 25 },
-  { name_ar: 'بطاطس', category: 'مقبلات', price: 25 },
+  return images[category] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400';
+}
 
-  // الفتة والموزات
-  { name_ar: 'فتة كوارع', category: 'فتة', price: 330 },
-  { name_ar: 'فتة موزة ضانى', category: 'فتة', price: 490 },
-  { name_ar: 'فتة موزة بتلو', category: 'فتة', price: 500 },
-  { name_ar: 'فتة سادة', category: 'فتة', price: 80 },
+// بيانات المنيو الجديد مع الصور
+const newMenuItems = [
+  // الشوربات
+  { name_ar: 'شوربة خضار', category: 'شوربات', price: 50, image_url: getDefaultImage('شوربات') },
+  { name_ar: 'شوربة لسان', category: 'شوربات', price: 55, image_url: getDefaultImage('شوربات') },
+  { name_ar: 'شوربة كوارع', category: 'شوربات', price: 170, image_url: getDefaultImage('شوربات') },
+  { name_ar: 'شوربة حمام', category: 'شوربات', price: 80, image_url: getDefaultImage('شوربات') },
+  { name_ar: 'شوربة كريمة', category: 'شوربات', price: 80, image_url: getDefaultImage('شوربات') },
   
-  { name_ar: 'ورقة للحمة', category: 'أطباق رئيسية', price: 365 },
-  { name_ar: 'بورمة', category: 'أطباق رئيسية', price: 300 },
-  { name_ar: 'موزة ضانى خلطة', category: 'موزات', price: 530 },
-  { name_ar: 'موزة بتلو خلطة', category: 'موزات', price: 500 },
-  { name_ar: 'مزاليكيا', category: 'أطباق رئيسية', price: 350 },
-  { name_ar: 'كتف بتلو', category: 'أطباق رئيسية', price: 700 },
-  { name_ar: 'كتف ضانى', category: 'أطباق رئيسية', price: 750 },
+  // المقبلات
+  { name_ar: 'طحينة', category: 'مقبلات', price: 25, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'بابا غنوج', category: 'مقبلات', price: 25, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'بلدى خضراء', category: 'مقبلات', price: 25, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'مخلل', category: 'مقبلات', price: 25, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'بنجر', category: 'مقبلات', price: 25, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'ثومية', category: 'مقبلات', price: 30, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'كلوسلو', category: 'مقبلات', price: 30, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'حمص', category: 'مقبلات', price: 25, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'بطاطس', category: 'مقبلات', price: 25, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'سمبوسك جبنة', category: 'مقبلات', price: 100, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'سمبوسك للحمة', category: 'مقبلات', price: 120, image_url: getDefaultImage('مقبلات') },
+  { name_ar: 'بوم فريت', category: 'مقبلات', price: 50, image_url: getDefaultImage('مقبلات') },
+
+  // الفتة
+  { name_ar: 'فتة كوارع', category: 'فتة', price: 330, image_url: getDefaultImage('فتة') },
+  { name_ar: 'فتة موزة ضانى', category: 'فتة', price: 490, image_url: getDefaultImage('فتة') },
+  { name_ar: 'فتة موزة بتلو', category: 'فتة', price: 500, image_url: getDefaultImage('فتة') },
+  { name_ar: 'فتة سادة', category: 'فتة', price: 80, image_url: getDefaultImage('فتة') },
+  
+  // الموزات
+  { name_ar: 'موزة ضانى خلطة', category: 'موزات', price: 530, image_url: getDefaultImage('موزات') },
+  { name_ar: 'موزة بتلو خلطة', category: 'موزات', price: 500, image_url: getDefaultImage('موزات') },
+
+  // أطباق رئيسية
+  { name_ar: 'ورقة للحمة', category: 'أطباق رئيسية', price: 365, image_url: getDefaultImage('أطباق رئيسية') },
+  { name_ar: 'بورمة', category: 'أطباق رئيسية', price: 300, image_url: getDefaultImage('أطباق رئيسية') },
+  { name_ar: 'مزاليكيا', category: 'أطباق رئيسية', price: 350, image_url: getDefaultImage('أطباق رئيسية') },
+  { name_ar: 'كتف بتلو', category: 'أطباق رئيسية', price: 700, image_url: getDefaultImage('أطباق رئيسية') },
+  { name_ar: 'كتف ضانى', category: 'أطباق رئيسية', price: 750, image_url: getDefaultImage('أطباق رئيسية') },
+  { name_ar: 'رقاق للحمة', category: 'أطباق رئيسية', price: 220, image_url: getDefaultImage('أطباق رئيسية') },
+  { name_ar: 'كبدة دبس رومان', category: 'أطباق رئيسية', price: 120, image_url: getDefaultImage('أطباق رئيسية') },
+  { name_ar: 'سجق شرقى', category: 'أطباق رئيسية', price: 220, image_url: getDefaultImage('أطباق رئيسية') },
 
   // الدجاج
-  { name_ar: 'فراخ بانية بالمكرونة', category: 'دجاج', price: 280 },
-  { name_ar: 'مكرونة فرن', category: 'مكرونات', price: 180 },
-  { name_ar: 'رقاق للحمة', category: 'أطباق رئيسية', price: 220 },
-  
-  { name_ar: 'كبدة دبس رومان', category: 'أطباق رئيسية', price: 120 },
-  { name_ar: 'سجق شرقى', category: 'أطباق رئيسية', price: 220 },
+  { name_ar: 'فراخ بانية بالمكرونة', category: 'دجاج', price: 280, image_url: getDefaultImage('دجاج') },
+  { name_ar: 'فرخة مشوية', category: 'دجاج', price: 370, image_url: getDefaultImage('دجاج') },
+  { name_ar: 'نص فرخة مشوية', category: 'دجاج', price: 230, image_url: getDefaultImage('دجاج') },
+  { name_ar: 'فرخة محشية', category: 'دجاج', price: 420, image_url: getDefaultImage('دجاج') },
+  { name_ar: 'نص فرخة الترك', category: 'دجاج', price: 230, image_url: getDefaultImage('دجاج') },
+  { name_ar: 'فرد حمام محشى', category: 'دجاج', price: 220, image_url: getDefaultImage('دجاج') },
+  { name_ar: 'نص بطة', category: 'دجاج', price: 425, image_url: getDefaultImage('دجاج') },
+  { name_ar: 'نص فرخة تندورى', category: 'دجاج', price: 240, image_url: getDefaultImage('دجاج') },
+  { name_ar: 'فرخة تندورى', category: 'دجاج', price: 450, image_url: getDefaultImage('دجاج') },
+
+  // المكرونات
+  { name_ar: 'مكرونة فرن', category: 'مكرونات', price: 180, image_url: getDefaultImage('مكرونات') },
 
   // الطواجن
-  { name_ar: 'طاجن خضار مشكل باللحمة', category: 'طواجن', price: 220 },
-  { name_ar: 'طاجن ورق عنب بالكوارع', category: 'طواجن', price: 320 },
-  { name_ar: 'طاجن ورق عنب بالريش', category: 'طواجن', price: 350 },
-  { name_ar: 'طاجن عكاوى', category: 'طواجن', price: 320 },
-  { name_ar: 'طاجن كوارع', category: 'طواجن', price: 320 },
-  { name_ar: 'طاجن بامية', category: 'طواجن', price: 80 },
-  { name_ar: 'طاجن ملوخية سادة', category: 'طواجن', price: 70 },
-  { name_ar: 'طاجن ملوخية باللحمة', category: 'طواجن', price: 150 },
-  { name_ar: 'طاجن لسان باللحمة', category: 'طواجن', price: 200 },
-  { name_ar: 'طاجن ريش بتلو / ضانى', category: 'طواجن', price: 380 },
-  { name_ar: 'طاجن للحمة بالبصل', category: 'طواجن', price: 220 },
+  { name_ar: 'طاجن خضار مشكل باللحمة', category: 'طواجن', price: 220, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن ورق عنب بالكوارع', category: 'طواجن', price: 320, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن ورق عنب بالريش', category: 'طواجن', price: 350, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن عكاوى', category: 'طواجن', price: 320, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن كوارع', category: 'طواجن', price: 320, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن بامية', category: 'طواجن', price: 80, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن ملوخية سادة', category: 'طواجن', price: 70, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن ملوخية باللحمة', category: 'طواجن', price: 150, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن لسان باللحمة', category: 'طواجن', price: 200, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن ريش بتلو / ضانى', category: 'طواجن', price: 380, image_url: getDefaultImage('طواجن') },
+  { name_ar: 'طاجن للحمة بالبصل', category: 'طواجن', price: 220, image_url: getDefaultImage('طواجن') },
 
   // الأرز
-  { name_ar: 'ارز معمر سادة', category: 'أرز', price: 80 },
-  { name_ar: 'ارز معمر باللحمة', category: 'أرز', price: 180 },
-  { name_ar: 'ارز بسمتى', category: 'أرز', price: 70 },
-  { name_ar: 'ارز بالشعرية', category: 'أرز', price: 70 },
-
-  // الفراخ والحمام
-  { name_ar: 'فرخة مشوية', category: 'دجاج', price: 370 },
-  { name_ar: 'نص فرخة مشوية', category: 'دجاج', price: 230 },
-  { name_ar: 'فرخة محشية', category: 'دجاج', price: 420 },
-  { name_ar: 'نص فرخة الترك', category: 'دجاج', price: 230 },
-  { name_ar: 'فرد حمام محشى', category: 'دجاج', price: 220 },
-  { name_ar: 'نص بطة', category: 'دجاج', price: 425 },
-  { name_ar: 'نص فرخة تندورى', category: 'دجاج', price: 240 },
-  { name_ar: 'فرخة تندورى', category: 'دجاج', price: 450 },
+  { name_ar: 'ارز معمر سادة', category: 'أرز', price: 80, image_url: getDefaultImage('أرز') },
+  { name_ar: 'ارز معمر باللحمة', category: 'أرز', price: 180, image_url: getDefaultImage('أرز') },
+  { name_ar: 'ارز بسمتى', category: 'أرز', price: 70, image_url: getDefaultImage('أرز') },
+  { name_ar: 'ارز بالشعرية', category: 'أرز', price: 70, image_url: getDefaultImage('أرز') },
 
   // المحاشى
-  { name_ar: 'ممبار', category: 'محاشى', price: 150 },
-  { name_ar: 'محاشى مشكل', category: 'محاشى', price: 120 },
-  { name_ar: 'ورق عنب', category: 'محاشى', price: 120 },
-  { name_ar: 'محشى كرنب', category: 'محاشى', price: 110 },
-  
-  { name_ar: 'سمبوسك جبنة', category: 'مقبلات', price: 100 },
-  { name_ar: 'سمبوسك للحمة', category: 'مقبلات', price: 120 },
-  { name_ar: 'بوم فريت', category: 'مقبلات', price: 50 },
+  { name_ar: 'ممبار', category: 'محاشى', price: 150, image_url: getDefaultImage('محاشى') },
+  { name_ar: 'محاشى مشكل', category: 'محاشى', price: 120, image_url: getDefaultImage('محاشى') },
+  { name_ar: 'ورق عنب', category: 'محاشى', price: 120, image_url: getDefaultImage('محاشى') },
+  { name_ar: 'محشى كرنب', category: 'محاشى', price: 110, image_url: getDefaultImage('محاشى') },
 
   // الأرز المتبل
-  { name_ar: 'كبسة دجاج', category: 'أرز متبل', price: 310 },
-  { name_ar: 'بريانى للحمة', category: 'أرز متبل', price: 480 },
-  { name_ar: 'بريانى دجاج', category: 'أرز متبل', price: 310 },
-  { name_ar: 'مندى فراخ', category: 'أرز متبل', price: 310 },
-  { name_ar: 'مندى للحمة', category: 'أرز متبل', price: 480 },
+  { name_ar: 'كبسة دجاج', category: 'أرز متبل', price: 310, image_url: getDefaultImage('أرز متبل') },
+  { name_ar: 'بريانى للحمة', category: 'أرز متبل', price: 480, image_url: getDefaultImage('أرز متبل') },
+  { name_ar: 'بريانى دجاج', category: 'أرز متبل', price: 310, image_url: getDefaultImage('أرز متبل') },
+  { name_ar: 'مندى فراخ', category: 'أرز متبل', price: 310, image_url: getDefaultImage('أرز متبل') },
+  { name_ar: 'مندى للحمة', category: 'أرز متبل', price: 480, image_url: getDefaultImage('أرز متبل') },
 
   // السندوتشات
-  { name_ar: 'سندوتش كفتة', category: 'سندوتشات', price: 100 },
-  { name_ar: 'سندوتش طرب', category: 'سندوتشات', price: 120 },
-  { name_ar: 'سندوتش للحمة', category: 'سندوتشات', price: 120 },
-  { name_ar: 'سندوتش شيش', category: 'سندوتشات', price: 90 },
-  { name_ar: 'سندوتش سجق مشوى', category: 'سندوتشات', price: 90 },
+  { name_ar: 'سندوتش كفتة', category: 'سندوتشات', price: 100, image_url: getDefaultImage('سندوتشات') },
+  { name_ar: 'سندوتش طرب', category: 'سندوتشات', price: 120, image_url: getDefaultImage('سندوتشات') },
+  { name_ar: 'سندوتش للحمة', category: 'سندوتشات', price: 120, image_url: getDefaultImage('سندوتشات') },
+  { name_ar: 'سندوتش شيش', category: 'سندوتشات', price: 90, image_url: getDefaultImage('سندوتشات') },
+  { name_ar: 'سندوتش سجق مشوى', category: 'سندوتشات', price: 90, image_url: getDefaultImage('سندوتشات') },
 
   // المشاوي (ثلث)
-  { name_ar: 'مشكل للحمة وكفتة (ثلث)', category: 'مشاوي', price: 400 },
-  { name_ar: 'مشكل كباب وكفتة (ثلث)', category: 'مشاوي', price: 430 },
-  { name_ar: 'كفتة (ثلث)', category: 'مشاوي', price: 350 },
-  { name_ar: 'كباب بتلو (ثلث)', category: 'مشاوي', price: 450 },
-  { name_ar: 'كباب ضانى (ثلث)', category: 'مشاوي', price: 450 },
-  { name_ar: 'ريش ضانى (ثلث)', category: 'مشاوي', price: 450 },
-  { name_ar: 'ريش بتلو (ثلث)', category: 'مشاوي', price: 450 },
-  { name_ar: 'طرب (ثلث)', category: 'مشاوي', price: 380 },
-  { name_ar: 'روزبيف (ثلث)', category: 'مشاوي', price: 400 },
-  { name_ar: 'فلتو (ثلث)', category: 'مشاوي', price: 400 },
-  { name_ar: 'كبدة مشوية (ثلث)', category: 'مشاوي', price: 370 },
-  { name_ar: 'كلاوىى (ثلث)', category: 'مشاوي', price: 290 },
-  { name_ar: 'شيش طاووك (ثلث)', category: 'مشاوي', price: 250 },
-  { name_ar: 'سجق مشوى (ثلث)', category: 'مشاوي', price: 270 },
-  { name_ar: 'كفة فراخ (ثلث)', category: 'مشاوي', price: 220 },
+  { name_ar: 'مشكل للحمة وكفتة (ثلث)', category: 'مشاوي', price: 400, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'مشكل كباب وكفتة (ثلث)', category: 'مشاوي', price: 430, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كفتة (ثلث)', category: 'مشاوي', price: 350, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كباب بتلو (ثلث)', category: 'مشاوي', price: 450, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كباب ضانى (ثلث)', category: 'مشاوي', price: 450, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'ريش ضانى (ثلث)', category: 'مشاوي', price: 450, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'ريش بتلو (ثلث)', category: 'مشاوي', price: 450, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'طرب (ثلث)', category: 'مشاوي', price: 380, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'روزبيف (ثلث)', category: 'مشاوي', price: 400, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'فلتو (ثلث)', category: 'مشاوي', price: 400, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كبدة مشوية (ثلث)', category: 'مشاوي', price: 370, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كلاوىى (ثلث)', category: 'مشاوي', price: 290, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'شيش طاووك (ثلث)', category: 'مشاوي', price: 250, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'سجق مشوى (ثلث)', category: 'مشاوي', price: 270, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كفة فراخ (ثلث)', category: 'مشاوي', price: 220, image_url: getDefaultImage('مشاوي') },
 
   // المشاوي (نص)
-  { name_ar: 'مشكل للحمة وكفتة (نص)', category: 'مشاوي', price: 600 },
-  { name_ar: 'مشكل كباب وكفتة (نص)', category: 'مشاوي', price: 645 },
-  { name_ar: 'كفتة (نص)', category: 'مشاوي', price: 525 },
-  { name_ar: 'كباب بتلو (نص)', category: 'مشاوي', price: 740 },
-  { name_ar: 'كباب ضانى (نص)', category: 'مشاوي', price: 740 },
-  { name_ar: 'ريش ضانى (نص)', category: 'مشاوي', price: 740 },
-  { name_ar: 'ريش بتلو (نص)', category: 'مشاوي', price: 740 },
-  { name_ar: 'طرب (نص)', category: 'مشاوي', price: 600 },
-  { name_ar: 'روزبيف (نص)', category: 'مشاوي', price: 600 },
-  { name_ar: 'فلتو (نص)', category: 'مشاوي', price: 600 },
-  { name_ar: 'كبدة مشوية (نص)', category: 'مشاوي', price: 500 },
-  { name_ar: 'كلاوىى (نص)', category: 'مشاوي', price: 480 },
-  { name_ar: 'شيش طاووك (نص)', category: 'مشاوي', price: 300 },
-  { name_ar: 'مشكل ميكس للحوم (نص)', category: 'مشاوي', price: 700 },
+  { name_ar: 'مشكل للحمة وكفتة (نص)', category: 'مشاوي', price: 600, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'مشكل كباب وكفتة (نص)', category: 'مشاوي', price: 645, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كفتة (نص)', category: 'مشاوي', price: 525, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كباب بتلو (نص)', category: 'مشاوي', price: 740, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كباب ضانى (نص)', category: 'مشاوي', price: 740, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'ريش ضانى (نص)', category: 'مشاوي', price: 740, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'ريش بتلو (نص)', category: 'مشاوي', price: 740, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'طرب (نص)', category: 'مشاوي', price: 600, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'روزبيف (نص)', category: 'مشاوي', price: 600, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'فلتو (نص)', category: 'مشاوي', price: 600, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كبدة مشوية (نص)', category: 'مشاوي', price: 500, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كلاوىى (نص)', category: 'مشاوي', price: 480, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'شيش طاووك (نص)', category: 'مشاوي', price: 300, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'مشكل ميكس للحوم (نص)', category: 'مشاوي', price: 700, image_url: getDefaultImage('مشاوي') },
 
   // المشاوي (كيلو)
-  { name_ar: 'مشكل للحمة وكفتة (كيلو)', category: 'مشاوي', price: 1200 },
-  { name_ar: 'مشكل كباب وكفتة (كيلو)', category: 'مشاوي', price: 1290 },
-  { name_ar: 'كفتة (كيلو)', category: 'مشاوي', price: 1050 },
-  { name_ar: 'كباب بتلو (كيلو)', category: 'مشاوي', price: 1350 },
-  { name_ar: 'كباب ضانى (كيلو)', category: 'مشاوي', price: 1350 },
-  { name_ar: 'ريش ضانى (كيلو)', category: 'مشاوي', price: 1350 },
-  { name_ar: 'ريش بتلو (كيلو)', category: 'مشاوي', price: 1350 },
-  { name_ar: 'طرب (كيلو)', category: 'مشاوي', price: 1200 },
-  { name_ar: 'روزبيف (كيلو)', category: 'مشاوي', price: 1200 },
-  { name_ar: 'فلتو (كيلو)', category: 'مشاوي', price: 1200 },
-  { name_ar: 'كبدة مشوية (كيلو)', category: 'مشاوي', price: 1000 },
-  { name_ar: 'كلاوىى (كيلو)', category: 'مشاوي', price: 960 },
-  { name_ar: 'شيش طاووك (كيلو)', category: 'مشاوي', price: 600 },
-  { name_ar: 'مشكل ميكس للحوم (كيلو)', category: 'مشاوي', price: 1400 }
+  { name_ar: 'مشكل للحمة وكفتة (كيلو)', category: 'مشاوي', price: 1200, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'مشكل كباب وكفتة (كيلو)', category: 'مشاوي', price: 1290, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كفتة (كيلو)', category: 'مشاوي', price: 1050, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كباب بتلو (كيلو)', category: 'مشاوي', price: 1350, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كباب ضانى (كيلو)', category: 'مشاوي', price: 1350, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'ريش ضانى (كيلو)', category: 'مشاوي', price: 1350, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'ريش بتلو (كيلو)', category: 'مشاوي', price: 1350, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'طرب (كيلو)', category: 'مشاوي', price: 1200, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'روزبيف (كيلو)', category: 'مشاوي', price: 1200, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'فلتو (كيلو)', category: 'مشاوي', price: 1200, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كبدة مشوية (كيلو)', category: 'مشاوي', price: 1000, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'كلاوىى (كيلو)', category: 'مشاوي', price: 960, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'شيش طاووك (كيلو)', category: 'مشاوي', price: 600, image_url: getDefaultImage('مشاوي') },
+  { name_ar: 'مشكل ميكس للحوم (كيلو)', category: 'مشاوي', price: 1400, image_url: getDefaultImage('مشاوي') }
 ];
+
 
 let currentStep = 0;
 const totalSteps = 5;
@@ -352,6 +381,11 @@ function updateProgress() {
 }
 
 async function startReset() {
+  if (!supabase) {
+    alert('❌ خطأ: لم يتم تهيئة Supabase بعد. يرجى الانتظار وإعادة المحاولة.');
+    return;
+  }
+
   if (!confirm('⚠️ هل أنت متأكد من حذف كل البيانات وإضافة المنيو الجديد؟\nهذه العملية لا يمكن التراجع عنها!')) {
     return;
   }
