@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔄 إعادة تعيين وإضافة المنيو</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Cairo', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 30px;
+      text-align: center;
+      font-size: 28px;
+    }
+
+    .warning-box {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+      color: #856404;
+    }
+
+    .warning-box h3 {
+      margin-bottom: 10px;
+      color: #bf360c;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 15px;
+      transition: all 0.3s;
+    }
+
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #d32f2f;
+      transform: translateY(-2px);
+    }
+
+    .btn-success {
+      background: #4caf50;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #388e3c;
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .progress {
+      background: #f0f0f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .progress.show {
+      display: block;
+    }
+
+    .progress-bar {
+      background: #667eea;
+      height: 30px;
+      border-radius: 5px;
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .log {
+      background: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 14px;
+      display: none;
+    }
+
+    .log.show {
+      display: block;
+    }
+
+    .log-item {
+      padding: 5px 0;
+      border-bottom: 1px dotted #e0e0e0;
+    }
+
+    .log-item:last-child {
+      border-bottom: none;
+    }
+
+    .log-item.success {
+      color: #4caf50;
+    }
+
+    .log-item.error {
+      color: #f44336;
+    }
+
+    .log-item.info {
+      color: #2196f3;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔄 إعادة تعيين وإضافة المنيو الجديد</h1>
+
+  <div class="warning-box">
+    <h3>⚠️ تحذير مهم!</h3>
+    <p>هذا السكريبت سيقوم بـ:</p>
+    <ul style="margin-top: 10px; margin-right: 20px;">
+      <li>حذف <strong>كل الطلبات</strong> (Orders)</li>
+      <li>حذف <strong>كل تفاصيل الطلبات</strong> (Order Items)</li>
+      <li>حذف <strong>كل المبيعات</strong> (Deliveries)</li>
+      <li>حذف <strong>كل أصناف المنيو القديمة</strong></li>
+      <li>إضافة <strong>المنيو الجديد</strong> من الملف</li>
+    </ul>
+    <p style="margin-top: 15px;"><strong>هذه العملية لا يمكن التراجع عنها!</strong></p>
+  </div>
+
+  <button class="btn btn-danger" id="startBtn" onclick="startReset()">
+    🗑️ بدء إعادة التعيين والإضافة
+  </button>
+
+  <div class="progress" id="progress">
+    <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+  </div>
+
+  <div class="log" id="log"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config/keys.js"></script>
+
+<script>
+// تهيئة Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// بيانات المنيو الجديد من ملف Excel
+const newMenuItems = [
+  // الشوربات والمقبلات
+  { name_ar: 'شوربة خضار', category: 'شوربات', price: 50 },
+  { name_ar: 'شوربة لسان', category: 'شوربات', price: 55 },
+  { name_ar: 'شوربة كوارع', category: 'شوربات', price: 170 },
+  { name_ar: 'شوربة حمام', category: 'شوربات', price: 80 },
+  { name_ar: 'شوربة كريمة', category: 'شوربات', price: 80 },
+  
+  { name_ar: 'طحينة', category: 'مقبلات', price: 25 },
+  { name_ar: 'بابا غنوج', category: 'مقبلات', price: 25 },
+  { name_ar: 'بلدى خضراء', category: 'مقبلات', price: 25 },
+  { name_ar: 'مخلل', category: 'مقبلات', price: 25 },
+  { name_ar: 'بنجر', category: 'مقبلات', price: 25 },
+  { name_ar: 'ثومية', category: 'مقبلات', price: 30 },
+  { name_ar: 'كلوسلو', category: 'مقبلات', price: 30 },
+  { name_ar: 'حمص', category: 'مقبلات', price: 25 },
+  { name_ar: 'بطاطس', category: 'مقبلات', price: 25 },
+
+  // الفتة والموزات
+  { name_ar: 'فتة كوارع', category: 'فتة', price: 330 },
+  { name_ar: 'فتة موزة ضانى', category: 'فتة', price: 490 },
+  { name_ar: 'فتة موزة بتلو', category: 'فتة', price: 500 },
+  { name_ar: 'فتة سادة', category: 'فتة', price: 80 },
+  
+  { name_ar: 'ورقة للحمة', category: 'أطباق رئيسية', price: 365 },
+  { name_ar: 'بورمة', category: 'أطباق رئيسية', price: 300 },
+  { name_ar: 'موزة ضانى خلطة', category: 'موزات', price: 530 },
+  { name_ar: 'موزة بتلو خلطة', category: 'موزات', price: 500 },
+  { name_ar: 'مزاليكيا', category: 'أطباق رئيسية', price: 350 },
+  { name_ar: 'كتف بتلو', category: 'أطباق رئيسية', price: 700 },
+  { name_ar: 'كتف ضانى', category: 'أطباق رئيسية', price: 750 },
+
+  // الدجاج
+  { name_ar: 'فراخ بانية بالمكرونة', category: 'دجاج', price: 280 },
+  { name_ar: 'مكرونة فرن', category: 'مكرونات', price: 180 },
+  { name_ar: 'رقاق للحمة', category: 'أطباق رئيسية', price: 220 },
+  
+  { name_ar: 'كبدة دبس رومان', category: 'أطباق رئيسية', price: 120 },
+  { name_ar: 'سجق شرقى', category: 'أطباق رئيسية', price: 220 },
+
+  // الطواجن
+  { name_ar: 'طاجن خضار مشكل باللحمة', category: 'طواجن', price: 220 },
+  { name_ar: 'طاجن ورق عنب بالكوارع', category: 'طواجن', price: 320 },
+  { name_ar: 'طاجن ورق عنب بالريش', category: 'طواجن', price: 350 },
+  { name_ar: 'طاجن عكاوى', category: 'طواجن', price: 320 },
+  { name_ar: 'طاجن كوارع', category: 'طواجن', price: 320 },
+  { name_ar: 'طاجن بامية', category: 'طواجن', price: 80 },
+  { name_ar: 'طاجن ملوخية سادة', category: 'طواجن', price: 70 },
+  { name_ar: 'طاجن ملوخية باللحمة', category: 'طواجن', price: 150 },
+  { name_ar: 'طاجن لسان باللحمة', category: 'طواجن', price: 200 },
+  { name_ar: 'طاجن ريش بتلو / ضانى', category: 'طواجن', price: 380 },
+  { name_ar: 'طاجن للحمة بالبصل', category: 'طواجن', price: 220 },
+
+  // الأرز
+  { name_ar: 'ارز معمر سادة', category: 'أرز', price: 80 },
+  { name_ar: 'ارز معمر باللحمة', category: 'أرز', price: 180 },
+  { name_ar: 'ارز بسمتى', category: 'أرز', price: 70 },
+  { name_ar: 'ارز بالشعرية', category: 'أرز', price: 70 },
+
+  // الفراخ والحمام
+  { name_ar: 'فرخة مشوية', category: 'دجاج', price: 370 },
+  { name_ar: 'نص فرخة مشوية', category: 'دجاج', price: 230 },
+  { name_ar: 'فرخة محشية', category: 'دجاج', price: 420 },
+  { name_ar: 'نص فرخة الترك', category: 'دجاج', price: 230 },
+  { name_ar: 'فرد حمام محشى', category: 'دجاج', price: 220 },
+  { name_ar: 'نص بطة', category: 'دجاج', price: 425 },
+  { name_ar: 'نص فرخة تندورى', category: 'دجاج', price: 240 },
+  { name_ar: 'فرخة تندورى', category: 'دجاج', price: 450 },
+
+  // المحاشى
+  { name_ar: 'ممبار', category: 'محاشى', price: 150 },
+  { name_ar: 'محاشى مشكل', category: 'محاشى', price: 120 },
+  { name_ar: 'ورق عنب', category: 'محاشى', price: 120 },
+  { name_ar: 'محشى كرنب', category: 'محاشى', price: 110 },
+  
+  { name_ar: 'سمبوسك جبنة', category: 'مقبلات', price: 100 },
+  { name_ar: 'سمبوسك للحمة', category: 'مقبلات', price: 120 },
+  { name_ar: 'بوم فريت', category: 'مقبلات', price: 50 },
+
+  // الأرز المتبل
+  { name_ar: 'كبسة دجاج', category: 'أرز متبل', price: 310 },
+  { name_ar: 'بريانى للحمة', category: 'أرز متبل', price: 480 },
+  { name_ar: 'بريانى دجاج', category: 'أرز متبل', price: 310 },
+  { name_ar: 'مندى فراخ', category: 'أرز متبل', price: 310 },
+  { name_ar: 'مندى للحمة', category: 'أرز متبل', price: 480 },
+
+  // السندوتشات
+  { name_ar: 'سندوتش كفتة', category: 'سندوتشات', price: 100 },
+  { name_ar: 'سندوتش طرب', category: 'سندوتشات', price: 120 },
+  { name_ar: 'سندوتش للحمة', category: 'سندوتشات', price: 120 },
+  { name_ar: 'سندوتش شيش', category: 'سندوتشات', price: 90 },
+  { name_ar: 'سندوتش سجق مشوى', category: 'سندوتشات', price: 90 },
+
+  // المشاوي (ثلث)
+  { name_ar: 'مشكل للحمة وكفتة (ثلث)', category: 'مشاوي', price: 400 },
+  { name_ar: 'مشكل كباب وكفتة (ثلث)', category: 'مشاوي', price: 430 },
+  { name_ar: 'كفتة (ثلث)', category: 'مشاوي', price: 350 },
+  { name_ar: 'كباب بتلو (ثلث)', category: 'مشاوي', price: 450 },
+  { name_ar: 'كباب ضانى (ثلث)', category: 'مشاوي', price: 450 },
+  { name_ar: 'ريش ضانى (ثلث)', category: 'مشاوي', price: 450 },
+  { name_ar: 'ريش بتلو (ثلث)', category: 'مشاوي', price: 450 },
+  { name_ar: 'طرب (ثلث)', category: 'مشاوي', price: 380 },
+  { name_ar: 'روزبيف (ثلث)', category: 'مشاوي', price: 400 },
+  { name_ar: 'فلتو (ثلث)', category: 'مشاوي', price: 400 },
+  { name_ar: 'كبدة مشوية (ثلث)', category: 'مشاوي', price: 370 },
+  { name_ar: 'كلاوىى (ثلث)', category: 'مشاوي', price: 290 },
+  { name_ar: 'شيش طاووك (ثلث)', category: 'مشاوي', price: 250 },
+  { name_ar: 'سجق مشوى (ثلث)', category: 'مشاوي', price: 270 },
+  { name_ar: 'كفة فراخ (ثلث)', category: 'مشاوي', price: 220 },
+
+  // المشاوي (نص)
+  { name_ar: 'مشكل للحمة وكفتة (نص)', category: 'مشاوي', price: 600 },
+  { name_ar: 'مشكل كباب وكفتة (نص)', category: 'مشاوي', price: 645 },
+  { name_ar: 'كفتة (نص)', category: 'مشاوي', price: 525 },
+  { name_ar: 'كباب بتلو (نص)', category: 'مشاوي', price: 740 },
+  { name_ar: 'كباب ضانى (نص)', category: 'مشاوي', price: 740 },
+  { name_ar: 'ريش ضانى (نص)', category: 'مشاوي', price: 740 },
+  { name_ar: 'ريش بتلو (نص)', category: 'مشاوي', price: 740 },
+  { name_ar: 'طرب (نص)', category: 'مشاوي', price: 600 },
+  { name_ar: 'روزبيف (نص)', category: 'مشاوي', price: 600 },
+  { name_ar: 'فلتو (نص)', category: 'مشاوي', price: 600 },
+  { name_ar: 'كبدة مشوية (نص)', category: 'مشاوي', price: 500 },
+  { name_ar: 'كلاوىى (نص)', category: 'مشاوي', price: 480 },
+  { name_ar: 'شيش طاووك (نص)', category: 'مشاوي', price: 300 },
+  { name_ar: 'مشكل ميكس للحوم (نص)', category: 'مشاوي', price: 700 },
+
+  // المشاوي (كيلو)
+  { name_ar: 'مشكل للحمة وكفتة (كيلو)', category: 'مشاوي', price: 1200 },
+  { name_ar: 'مشكل كباب وكفتة (كيلو)', category: 'مشاوي', price: 1290 },
+  { name_ar: 'كفتة (كيلو)', category: 'مشاوي', price: 1050 },
+  { name_ar: 'كباب بتلو (كيلو)', category: 'مشاوي', price: 1350 },
+  { name_ar: 'كباب ضانى (كيلو)', category: 'مشاوي', price: 1350 },
+  { name_ar: 'ريش ضانى (كيلو)', category: 'مشاوي', price: 1350 },
+  { name_ar: 'ريش بتلو (كيلو)', category: 'مشاوي', price: 1350 },
+  { name_ar: 'طرب (كيلو)', category: 'مشاوي', price: 1200 },
+  { name_ar: 'روزبيف (كيلو)', category: 'مشاوي', price: 1200 },
+  { name_ar: 'فلتو (كيلو)', category: 'مشاوي', price: 1200 },
+  { name_ar: 'كبدة مشوية (كيلو)', category: 'مشاوي', price: 1000 },
+  { name_ar: 'كلاوىى (كيلو)', category: 'مشاوي', price: 960 },
+  { name_ar: 'شيش طاووك (كيلو)', category: 'مشاوي', price: 600 },
+  { name_ar: 'مشكل ميكس للحوم (كيلو)', category: 'مشاوي', price: 1400 }
+];
+
+let currentStep = 0;
+const totalSteps = 5;
+
+function log(message, type = 'info') {
+  const logDiv = document.getElementById('log');
+  logDiv.classList.add('show');
+  const logItem = document.createElement('div');
+  logItem.className = `log-item ${type}`;
+  logItem.textContent = `${new Date().toLocaleTimeString('ar-EG')} - ${message}`;
+  logDiv.appendChild(logItem);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function updateProgress() {
+  currentStep++;
+  const percentage = Math.round((currentStep / totalSteps) * 100);
+  const progressBar = document.getElementById('progressBar');
+  progressBar.style.width = `${percentage}%`;
+  progressBar.textContent = `${percentage}%`;
+}
+
+async function startReset() {
+  if (!confirm('⚠️ هل أنت متأكد من حذف كل البيانات وإضافة المنيو الجديد؟\nهذه العملية لا يمكن التراجع عنها!')) {
+    return;
+  }
+
+  const startBtn = document.getElementById('startBtn');
+  startBtn.disabled = true;
+  document.getElementById('progress').classList.add('show');
+
+  try {
+    // الخطوة 1: حذف Order Items
+    log('⏳ جاري حذف Order Items...', 'info');
+    const { error: orderItemsError } = await supabase
+      .from('order_items')
+      .delete()
+      .neq('id', 0);
+
+    if (orderItemsError) throw orderItemsError;
+    log('✅ تم حذف Order Items بنجاح', 'success');
+    updateProgress();
+
+    // الخطوة 2: حذف Deliveries
+    log('⏳ جاري حذف Deliveries...', 'info');
+    const { error: deliveriesError } = await supabase
+      .from('deliveries')
+      .delete()
+      .neq('id', 0);
+
+    if (deliveriesError) throw deliveriesError;
+    log('✅ تم حذف Deliveries بنجاح', 'success');
+    updateProgress();
+
+    // الخطوة 3: حذف Orders
+    log('⏳ جاري حذف Orders...', 'info');
+    const { error: ordersError } = await supabase
+      .from('orders')
+      .delete()
+      .neq('id', 0);
+
+    if (ordersError) throw ordersError;
+    log('✅ تم حذف Orders بنجاح', 'success');
+    updateProgress();
+
+    // الخطوة 4: حذف Menu Items القديمة
+    log('⏳ جاري حذف Menu Items القديمة...', 'info');
+    const { error: menuDeleteError } = await supabase
+      .from('menu_items')
+      .delete()
+      .neq('id', 0);
+
+    if (menuDeleteError) throw menuDeleteError;
+    log('✅ تم حذف Menu Items القديمة بنجاح', 'success');
+    updateProgress();
+
+    // الخطوة 5: إضافة Menu Items الجديدة
+    log('⏳ جاري إضافة Menu Items الجديدة...', 'info');
+    const { data: insertedItems, error: menuInsertError } = await supabase
+      .from('menu_items')
+      .insert(newMenuItems)
+      .select();
+
+    if (menuInsertError) throw menuInsertError;
+    log(`✅ تم إضافة ${insertedItems.length} صنف جديد بنجاح`, 'success');
+    updateProgress();
+
+    // النهاية
+    log('🎉 تمت العملية بنجاح! تم حذف كل البيانات القديمة وإضافة المنيو الجديد', 'success');
+    alert('✅ تمت العملية بنجاح!\n\n' + 
+          `تم حذف كل البيانات القديمة\n` +
+          `تم إضافة ${insertedItems.length} صنف جديد`);
+
+  } catch (error) {
+    console.error('Error:', error);
+    log(`❌ حدث خطأ: ${error.message}`, 'error');
+    alert('❌ حدث خطأ أثناء العملية:\n' + error.message);
+  } finally {
+    startBtn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
