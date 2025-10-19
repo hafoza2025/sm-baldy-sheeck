@@ -125,7 +125,7 @@ const KitchenDisplay = {
                     <span class="item-quantity">× ${item.quantity}</span>
                   </div>
                   
-                  <!-- زر طباعة Recipe -->
+                  <!-- زر طباعة Recipe لصنف واحد -->
                   <button class="btn-print-recipe" onclick="KitchenDisplay.printRecipe(${item.id}, ${item.menu_item_id}, ${item.quantity}, '${item.menu_item.name_ar}')">
                     🖨️ طباعة Recipe
                   </button>
@@ -176,6 +176,11 @@ const KitchenDisplay = {
             `).join('')}
           </div>
 
+          <!-- زر طباعة كل Recipes للطلب -->
+          <button class="btn btn-warning" style="width: 100%; margin-bottom: 10px; padding: 12px; font-size: 15px; font-weight: bold;" onclick="KitchenDisplay.printAllRecipes(${order.id}, ${order.order_items.map(i => i.id).join(',')})">
+            🖨️📋 طباعة كل Recipes للطلب
+          </button>
+
           <div class="order-actions">
             ${order.status === 'new' ? `
               <button class="btn btn-info" onclick="KitchenDisplay.updateOrderStatus(${order.id}, 'preparing')">
@@ -207,16 +212,14 @@ const KitchenDisplay = {
   },
 
   // ===================================
-  // طباعة Recipe - للطابعة الحرارية 🖨️
+  // طباعة Recipe واحد - للطابعة الحرارية 🖨️
   // ===================================
   async printRecipe(orderItemId, menuItemId, quantity, itemName) {
     try {
-      // إظهار Loading
       if (typeof Loading !== 'undefined' && Loading.show) {
         Loading.show('جاري تحميل Recipe...', 'يرجى الانتظار');
       }
 
-      // جلب معلومات الصنف
       const { data: menuItem, error: menuError } = await supabase
         .from('menu_items')
         .select('name_ar, category')
@@ -228,7 +231,6 @@ const KitchenDisplay = {
         throw menuError;
       }
 
-      // جلب Recipe (المكونات المطلوبة)
       const { data: recipes, error: recipeError } = await supabase
         .from('recipes')
         .select(`
@@ -246,23 +248,19 @@ const KitchenDisplay = {
         throw recipeError;
       }
 
-      // إخفاء Loading
       if (typeof Loading !== 'undefined' && Loading.hide) {
         Loading.hide();
       }
 
-      // إنشاء صفحة الطباعة (يطبع حتى لو لا توجد recipe)
       this.generateRecipePrintPage(menuItem, recipes || [], quantity);
 
     } catch (error) {
       console.error('Error printing recipe:', error);
       
-      // إخفاء Loading في حالة الخطأ
       if (typeof Loading !== 'undefined' && Loading.hide) {
         Loading.hide();
       }
       
-      // إظهار رسالة خطأ
       const errorMsg = error.message || 'حدث خطأ غير معروف';
       if (typeof Utils !== 'undefined' && Utils.showNotification) {
         Utils.showNotification('حدث خطأ في تحميل Recipe: ' + errorMsg, 'error');
@@ -272,10 +270,80 @@ const KitchenDisplay = {
     }
   },
 
+  // ===================================
+  // طباعة كل Recipes للطلب دفعة واحدة 🖨️📋
+  // ===================================
+  async printAllRecipes(orderId, orderItemIds) {
+    try {
+      if (typeof Loading !== 'undefined' && Loading.show) {
+        Loading.show('جاري تحميل جميع Recipes...', 'يرجى الانتظار');
+      }
+
+      // جلب الطلب مع جميع الأصناف
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select(`
+          order_number,
+          order_items(
+            id,
+            quantity,
+            menu_item:menu_item_id(id, name_ar, category)
+          )
+        `)
+        .eq('id', orderId)
+        .single();
+
+      if (orderError) throw orderError;
+
+      const recipesToPrint = [];
+
+      // جلب Recipes لكل صنف
+      for (const item of order.order_items) {
+        const { data: recipes } = await supabase
+          .from('recipes')
+          .select(`
+            quantity_needed,
+            ingredient:ingredient_id (
+              name,
+              unit,
+              current_stock
+            )
+          `)
+          .eq('menu_item_id', item.menu_item.id);
+
+        recipesToPrint.push({
+          menuItem: item.menu_item,
+          recipes: recipes || [],
+          quantity: item.quantity
+        });
+      }
+
+      if (typeof Loading !== 'undefined' && Loading.hide) {
+        Loading.hide();
+      }
+
+      // طباعة كل الـ recipes
+      this.generateAllRecipesPrintPage(recipesToPrint, order.order_number);
+
+    } catch (error) {
+      console.error('Error printing all recipes:', error);
+      
+      if (typeof Loading !== 'undefined' && Loading.hide) {
+        Loading.hide();
+      }
+      
+      const errorMsg = error.message || 'حدث خطأ غير معروف';
+      if (typeof Utils !== 'undefined' && Utils.showNotification) {
+        Utils.showNotification('حدث خطأ في طباعة Recipes: ' + errorMsg, 'error');
+      } else {
+        alert('حدث خطأ في طباعة Recipes: ' + errorMsg);
+      }
+    }
+  },
+
   generateRecipePrintPage(menuItem, recipes, quantity) {
     const now = new Date();
 
-    // دوال مساعدة للتنسيق
     const formatDate = (date) => {
       const d = new Date(date);
       return d.toLocaleDateString('ar-EG', { 
@@ -293,7 +361,6 @@ const KitchenDisplay = {
       });
     };
 
-    // اسم المطعم
     const restaurantName = (typeof SYSTEM_CONFIG !== 'undefined' && SYSTEM_CONFIG.restaurantName) 
       ? SYSTEM_CONFIG.restaurantName 
       : 'مطعم الفرعون';
@@ -330,7 +397,6 @@ const KitchenDisplay = {
             width: 100%;
           }
 
-          /* الرأس */
           .header {
             text-align: center;
             border-bottom: 2px dashed #000;
@@ -349,7 +415,6 @@ const KitchenDisplay = {
             font-weight: bold;
           }
 
-          /* معلومات الصنف */
           .item-info {
             border-bottom: 1px dashed #000;
             padding-bottom: 3mm;
@@ -374,7 +439,6 @@ const KitchenDisplay = {
             font-weight: bold;
           }
 
-          /* عنوان المكونات */
           .section-title {
             font-size: 12px;
             font-weight: bold;
@@ -385,7 +449,6 @@ const KitchenDisplay = {
             border-bottom: 1px solid #000;
           }
 
-          /* المكونات */
           .ingredient {
             border-bottom: 1px dotted #ccc;
             padding: 2mm 0;
@@ -412,7 +475,6 @@ const KitchenDisplay = {
           .stock-low { color: #E65100; font-weight: bold; }
           .stock-critical { color: #C62828; font-weight: bold; }
 
-          /* إشعار بدون recipe */
           .no-recipe {
             text-align: center;
             padding: 5mm;
@@ -421,7 +483,6 @@ const KitchenDisplay = {
             font-size: 11px;
           }
 
-          /* التذييل */
           .footer {
             border-top: 2px dashed #000;
             padding-top: 3mm;
@@ -430,28 +491,20 @@ const KitchenDisplay = {
             font-size: 9px;
           }
 
-          /* الطباعة */
           @media print {
             body {
               width: 80mm;
-            }
-            
-            .no-print {
-              display: none;
             }
           }
         </style>
       </head>
       <body>
         <div class="receipt">
-          
-          <!-- الرأس -->
           <div class="header">
             <h1>${restaurantName}</h1>
             <div class="subtitle">🍳 Recipe - الوصفة</div>
           </div>
 
-          <!-- معلومات الصنف -->
           <div class="item-info">
             <div class="item-name">${menuItem.name_ar}</div>
             
@@ -477,12 +530,10 @@ const KitchenDisplay = {
           </div>
 
           ${recipes && recipes.length > 0 ? `
-            <!-- عنوان المكونات -->
             <div class="section-title">
               📋 المكونات المطلوبة
             </div>
 
-            <!-- قائمة المكونات -->
             ${recipes.map(recipe => {
               const totalNeeded = recipe.quantity_needed * quantity;
               const stock = recipe.ingredient.current_stock;
@@ -504,11 +555,9 @@ const KitchenDisplay = {
             </div>
           `}
 
-          <!-- التذييل -->
           <div class="footer">
             <div>تمت الطباعة من نظام المطعم</div>
           </div>
-
         </div>
 
         <script>
@@ -522,7 +571,255 @@ const KitchenDisplay = {
       </html>
     `;
 
-    // فتح نافذة جديدة للطباعة
+    const printWindow = window.open('', '_blank', 'width=300,height=600');
+    
+    if (printWindow) {
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+    } else {
+      alert('⚠️ لم نتمكن من فتح نافذة الطباعة. تأكد من السماح بالنوافذ المنبثقة.');
+    }
+  },
+
+  generateAllRecipesPrintPage(recipesToPrint, orderNumber) {
+    const now = new Date();
+
+    const formatDate = (date) => {
+      const d = new Date(date);
+      return d.toLocaleDateString('ar-EG', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+      });
+    };
+
+    const formatTime = (date) => {
+      const d = new Date(date);
+      return d.toLocaleTimeString('ar-EG', { 
+        hour: '2-digit', 
+        minute: '2-digit'
+      });
+    };
+
+    const restaurantName = (typeof SYSTEM_CONFIG !== 'undefined' && SYSTEM_CONFIG.restaurantName) 
+      ? SYSTEM_CONFIG.restaurantName 
+      : 'مطعم الفرعون';
+
+    // إنشاء HTML لكل الـ recipes
+    const allRecipesHTML = recipesToPrint.map((item, index) => `
+      ${index > 0 ? '<div style="page-break-before: always; margin-top: 10mm;"></div>' : ''}
+      
+      <div class="receipt">
+        <div class="header">
+          <h1>${restaurantName}</h1>
+          <div class="subtitle">🍳 Recipe - الوصفة</div>
+          <div style="font-size: 10px; margin-top: 2mm;">طلب #${orderNumber} - (${index + 1}/${recipesToPrint.length})</div>
+        </div>
+
+        <div class="item-info">
+          <div class="item-name">${item.menuItem.name_ar}</div>
+          
+          <div class="info-line">
+            <span class="label">الفئة:</span>
+            <span>${item.menuItem.category || 'غير محدد'}</span>
+          </div>
+          
+          <div class="info-line">
+            <span class="label">الكمية:</span>
+            <span>× ${item.quantity}</span>
+          </div>
+          
+          <div class="info-line">
+            <span class="label">التاريخ:</span>
+            <span>${formatDate(now)}</span>
+          </div>
+          
+          <div class="info-line">
+            <span class="label">الوقت:</span>
+            <span>${formatTime(now)}</span>
+          </div>
+        </div>
+
+        ${item.recipes && item.recipes.length > 0 ? `
+          <div class="section-title">
+            📋 المكونات المطلوبة
+          </div>
+
+          ${item.recipes.map(recipe => {
+            const totalNeeded = recipe.quantity_needed * item.quantity;
+            const stock = recipe.ingredient.current_stock;
+            const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
+            
+            return `
+              <div class="ingredient">
+                <div class="ing-name">${recipe.ingredient.name}</div>
+                <div class="ing-details">
+                  <span>الكمية: ${totalNeeded.toFixed(2)} ${recipe.ingredient.unit}</span>
+                  <span class="${stockStatus}">المخزون: ${stock.toFixed(2)}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        ` : `
+          <div class="no-recipe">
+            ⚠️ لا توجد وصفة محددة لهذا الصنف
+          </div>
+        `}
+
+        <div class="footer">
+          <div>تمت الطباعة من نظام المطعم</div>
+        </div>
+      </div>
+    `).join('');
+
+    const printHTML = `
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <title>All Recipes - Order #${orderNumber}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+
+          body {
+            font-family: 'Cairo', 'Arial', sans-serif;
+            width: 80mm;
+            padding: 5mm;
+            background: white;
+            color: #000;
+            font-size: 11px;
+            line-height: 1.4;
+          }
+
+          .receipt {
+            width: 100%;
+            margin-bottom: 5mm;
+          }
+
+          .header {
+            text-align: center;
+            border-bottom: 2px dashed #000;
+            padding-bottom: 5mm;
+            margin-bottom: 5mm;
+          }
+
+          .header h1 {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 2mm;
+          }
+
+          .header .subtitle {
+            font-size: 12px;
+            font-weight: bold;
+          }
+
+          .item-info {
+            border-bottom: 1px dashed #000;
+            padding-bottom: 3mm;
+            margin-bottom: 3mm;
+          }
+
+          .item-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 2mm;
+            text-align: center;
+          }
+
+          .info-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1mm;
+            font-size: 10px;
+          }
+
+          .label {
+            font-weight: bold;
+          }
+
+          .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            margin: 3mm 0;
+            padding: 2mm 0;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+          }
+
+          .ingredient {
+            border-bottom: 1px dotted #ccc;
+            padding: 2mm 0;
+            font-size: 10px;
+          }
+
+          .ingredient:last-child {
+            border-bottom: none;
+          }
+
+          .ing-name {
+            font-weight: bold;
+            margin-bottom: 1mm;
+          }
+
+          .ing-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #333;
+          }
+
+          .stock-ok { color: #2E7D32; font-weight: bold; }
+          .stock-low { color: #E65100; font-weight: bold; }
+          .stock-critical { color: #C62828; font-weight: bold; }
+
+          .no-recipe {
+            text-align: center;
+            padding: 5mm;
+            border: 1px dashed #000;
+            margin: 3mm 0;
+            font-size: 11px;
+          }
+
+          .footer {
+            border-top: 2px dashed #000;
+            padding-top: 3mm;
+            margin-top: 5mm;
+            text-align: center;
+            font-size: 9px;
+          }
+
+          @media print {
+            body {
+              width: 80mm;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        ${allRecipesHTML}
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 500);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
     const printWindow = window.open('', '_blank', 'width=300,height=600');
     
     if (printWindow) {
@@ -684,10 +981,7 @@ if (typeof window !== 'undefined') {
   window.KitchenDisplay = KitchenDisplay;
 }
 
-// ===============================
-// Auto-Protection للدوال
-// ===============================
-
+// Auto-Protection
 if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.updateOrderStatus) {
   const originalUpdateStatus = KitchenDisplay.updateOrderStatus.bind(KitchenDisplay);
   KitchenDisplay.updateOrderStatus = async function(orderId, newStatus) {
@@ -740,4 +1034,4 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem &&
   KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
 }
 
-console.log('✅ Kitchen Display with Thermal Printer Recipe initialized');
+console.log('✅ Kitchen Display with All Recipes Printing initialized');
