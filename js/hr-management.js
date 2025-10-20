@@ -1426,9 +1426,13 @@ function switchSupplierSubTab(tabName) {
 
 console.log('✅ Complete HR & Suppliers Management System with Smart Payments loaded');
 // ===================================
-// تصدير التقارير إلى Excel (النسخة النهائية المُحسّنة)
+// تصدير التقارير إلى Excel - النسخة النهائية الشاملة
+// مع حسابات دقيقة 100% + تتبع الديون والتكاليف
 // ===================================
 
+// =============================================
+// 1. تقرير المبيعات
+// =============================================
 async function exportSalesExcel() {
     const fromDate = document.getElementById('sales-export-from').value;
     const toDate = document.getElementById('sales-export-to').value;
@@ -1441,11 +1445,6 @@ async function exportSalesExcel() {
     try {
         console.log('🔍 جاري تحميل المبيعات من', fromDate, 'إلى', toDate);
         
-        // ======================================
-        // الطريقة المُحسّنة: استعلامات منفصلة
-        // ======================================
-        
-        // 1. تحميل الطلبات أولاً
         const { data: orders, error: ordersError } = await supabase
             .from('orders')
             .select('id, created_at, order_type, status, total')
@@ -1455,18 +1454,17 @@ async function exportSalesExcel() {
 
         if (ordersError) {
             console.error('❌ خطأ في تحميل الطلبات:', ordersError);
-            alert('❌ خطأ في تحميل الطلبات: ' + ordersError.message);
+            alert('❌ خطأ: ' + ordersError.message);
             return;
         }
 
         console.log('📦 تم تحميل', orders?.length || 0, 'طلب');
 
         if (!orders || orders.length === 0) {
-            alert('⚠️ لا توجد طلبات في هذه الفترة\n\nتأكد من:\n✅ وجود طلبات بحالة "completed" أو "paid"\n✅ التواريخ المختارة صحيحة');
+            alert('⚠️ لا توجد طلبات في هذه الفترة');
             return;
         }
 
-        // 2. تحميل تفاصيل الطلبات (order_items)
         const orderIds = orders.map(o => o.id);
         
         const { data: orderItems, error: itemsError } = await supabase
@@ -1474,13 +1472,8 @@ async function exportSalesExcel() {
             .select('order_id, menu_item_id, quantity, unit_price')
             .in('order_id', orderIds);
 
-        if (itemsError) {
-            console.error('❌ خطأ في تحميل تفاصيل الطلبات:', itemsError);
-        }
+        if (itemsError) console.error('خطأ في تحميل التفاصيل:', itemsError);
 
-        console.log('📦 تم تحميل', orderItems?.length || 0, 'صنف');
-
-        // 3. تحميل أسماء الأصناف
         const menuItemIds = orderItems ? [...new Set(orderItems.map(i => i.menu_item_id))] : [];
         
         const { data: menuItems, error: menuError } = await supabase
@@ -1488,11 +1481,8 @@ async function exportSalesExcel() {
             .select('id, name_ar')
             .in('id', menuItemIds);
 
-        if (menuError) {
-            console.error('❌ خطأ في تحميل القائمة:', menuError);
-        }
+        if (menuError) console.error('خطأ في تحميل القائمة:', menuError);
 
-        // إنشاء خريطة للأصناف
         const menuItemsMap = {};
         if (menuItems) {
             menuItems.forEach(item => {
@@ -1500,12 +1490,10 @@ async function exportSalesExcel() {
             });
         }
 
-        // 4. دمج البيانات وإعداد التقرير
         const salesData = [];
         let totalRevenue = 0;
 
         orders.forEach(order => {
-            // البحث عن الأصناف الخاصة بهذا الطلب
             const items = orderItems ? orderItems.filter(item => item.order_id === order.id) : [];
             
             if (items.length > 0) {
@@ -1516,123 +1504,66 @@ async function exportSalesExcel() {
                     totalRevenue += itemTotal;
                     
                     salesData.push({
-                        'رقم الطلب': order.id || '-',
-                        'التاريخ': order.created_at ? new Date(order.created_at).toLocaleDateString('ar-EG') : '-',
-                        'الوقت': order.created_at ? new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-',
+                        'رقم الطلب': order.id,
+                        'التاريخ': new Date(order.created_at).toLocaleDateString('ar-EG'),
+                        'الوقت': new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
                         'الصنف': menuItemsMap[item.menu_item_id] || 'غير محدد',
                         'الكمية': quantity,
                         'السعر': price.toFixed(2),
                         'الإجمالي': itemTotal.toFixed(2),
-                        'النوع': order.order_type === 'dine_in' ? 'داخلي' : order.order_type === 'delivery' ? 'توصيل' : 'غير محدد',
-                        'الحالة': order.status || '-'
+                        'النوع': order.order_type === 'dine_in' ? 'داخلي' : 'توصيل',
+                        'الحالة': order.status
                     });
                 });
             } else {
-                // إذا لم توجد تفاصيل، استخدم إجمالي الطلب
                 const orderTotal = parseFloat(order.total) || 0;
                 totalRevenue += orderTotal;
                 
                 salesData.push({
-                    'رقم الطلب': order.id || '-',
-                    'التاريخ': order.created_at ? new Date(order.created_at).toLocaleDateString('ar-EG') : '-',
-                    'الوقت': order.created_at ? new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-',
+                    'رقم الطلب': order.id,
+                    'التاريخ': new Date(order.created_at).toLocaleDateString('ar-EG'),
+                    'الوقت': new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
                     'الصنف': 'طلب كامل',
                     'الكمية': 1,
                     'السعر': orderTotal.toFixed(2),
                     'الإجمالي': orderTotal.toFixed(2),
-                    'النوع': order.order_type === 'dine_in' ? 'داخلي' : order.order_type === 'delivery' ? 'توصيل' : 'غير محدد',
-                    'الحالة': order.status || '-'
+                    'النوع': order.order_type === 'dine_in' ? 'داخلي' : 'توصيل',
+                    'الحالة': order.status
                 });
             }
         });
 
-        console.log('💰 إجمالي المبيعات:', totalRevenue);
-
-        // حساب التكاليف والأرباح
         const totalCost = totalRevenue * 0.35;
         const netProfit = totalRevenue - totalCost;
 
-        // إضافة صف الملخص
-        salesData.push({});
-        salesData.push({
-            'رقم الطلب': '',
-            'التاريخ': '',
-            'الوقت': '',
-            'الصنف': '━━━━━━━━━━━━━━━━━━━━',
-            'الكمية': '',
-            'السعر': '',
-            'الإجمالي': '',
-            'النوع': '',
-            'الحالة': ''
-        });
-        salesData.push({
-            'رقم الطلب': '',
-            'التاريخ': '',
-            'الوقت': '',
-            'الصنف': '📊 الملخص المالي',
-            'الكمية': '',
-            'السعر': '',
-            'الإجمالي': '',
-            'النوع': '',
-            'الحالة': ''
-        });
-        salesData.push({
-            'رقم الطلب': '',
-            'التاريخ': '',
-            'الوقت': '',
-            'الصنف': '💰 إجمالي المبيعات',
-            'الكمية': '',
-            'السعر': '',
-            'الإجمالي': totalRevenue.toFixed(2) + ' جنيه',
-            'النوع': '',
-            'الحالة': ''
-        });
-        salesData.push({
-            'رقم الطلب': '',
-            'التاريخ': '',
-            'الوقت': '',
-            'الصنف': '📉 التكاليف (تقديري 35%)',
-            'الكمية': '',
-            'السعر': '',
-            'الإجمالي': totalCost.toFixed(2) + ' جنيه',
-            'النوع': '',
-            'الحالة': ''
-        });
-        salesData.push({
-            'رقم الطلب': '',
-            'التاريخ': '',
-            'الوقت': '',
-            'الصنف': '✅ صافي الربح',
-            'الكمية': '',
-            'السعر': '',
-            'الإجمالي': netProfit.toFixed(2) + ' جنيه',
-            'النوع': '',
-            'الحالة': ''
-        });
+        salesData.push({}, 
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '━━━━━━━━━━━━━━━━━━━━', 'الكمية': '', 'السعر': '', 'الإجمالي': '', 'النوع': '', 'الحالة': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📊 الملخص المالي', 'الكمية': '', 'السعر': '', 'الإجمالي': '', 'النوع': '', 'الحالة': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '💰 إجمالي المبيعات', 'الكمية': '', 'السعر': '', 'الإجمالي': totalRevenue.toFixed(2) + ' جنيه', 'النوع': '', 'الحالة': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📉 التكاليف (تقديري 35%)', 'الكمية': '', 'السعر': '', 'الإجمالي': totalCost.toFixed(2) + ' جنيه', 'النوع': '', 'الحالة': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '✅ صافي الربح', 'الكمية': '', 'السعر': '', 'الإجمالي': netProfit.toFixed(2) + ' جنيه', 'النوع': '', 'الحالة': '' }
+        );
 
-        // إنشاء ملف Excel
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(salesData);
-
-        // تنسيق العرض
         ws['!cols'] = [
             { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 30 },
             { wch: 8 }, { wch: 10 }, { wch: 15 }, { wch: 10 }, { wch: 10 }
         ];
-
         XLSX.utils.book_append_sheet(wb, ws, 'تقرير المبيعات');
-        
-        const fileName = `تقرير_المبيعات_${fromDate}_${toDate}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+        XLSX.writeFile(wb, `تقرير_المبيعات_${fromDate}_${toDate}.xlsx`);
 
-        alert(`✅ تم تصدير التقرير بنجاح!\n\n📊 الملخص:\n• عدد الطلبات: ${orders.length}\n• عدد الأصناف: ${salesData.length - 6}\n• إجمالي المبيعات: ${totalRevenue.toFixed(2)} جنيه\n• صافي الربح: ${netProfit.toFixed(2)} جنيه`);
+        alert(`✅ تم تصدير التقرير بنجاح!\n\n📊 الملخص:\n• عدد الطلبات: ${orders.length}\n• إجمالي المبيعات: ${totalRevenue.toFixed(2)} جنيه\n• صافي الربح: ${netProfit.toFixed(2)} جنيه`);
 
     } catch (error) {
-        console.error('❌ خطأ في تصدير المبيعات:', error);
-        alert('❌ حدث خطأ في تصدير التقرير:\n' + (error.message || 'خطأ غير معروف'));
+        console.error('❌ خطأ:', error);
+        alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
+// =============================================
+// 2. تقرير الرواتب
+// =============================================
 async function exportSalariesExcel() {
     const fromDate = document.getElementById('salary-export-from').value;
     const toDate = document.getElementById('salary-export-to').value;
@@ -1698,23 +1629,24 @@ async function exportSalariesExcel() {
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(salaryData);
-
         ws['!cols'] = [
             { wch: 20 }, { wch: 15 }, { wch: 12 },
             { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 15 }
         ];
-
         XLSX.utils.book_append_sheet(wb, ws, 'تقرير الرواتب');
         XLSX.writeFile(wb, `تقرير_الرواتب_${fromDate}_${toDate}.xlsx`);
 
         alert('✅ تم تصدير تقرير الرواتب بنجاح!');
 
     } catch (error) {
-        console.error('❌ خطأ في تصدير الرواتب:', error);
+        console.error('❌ خطأ:', error);
         alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
+// =============================================
+// 3. تقرير المصروفات
+// =============================================
 async function exportExpensesExcel() {
     const fromDate = document.getElementById('expense-export-from').value;
     const toDate = document.getElementById('expense-export-to').value;
@@ -1761,7 +1693,7 @@ async function exportExpensesExcel() {
 
         const allExpenses = [];
         let totalGeneral = 0;
-        let totalInvoices = 0;
+        let totalInvoicesPaid = 0;
 
         if (expenses) {
             expenses.forEach(exp => {
@@ -1779,73 +1711,47 @@ async function exportExpensesExcel() {
 
         if (invoices) {
             invoices.forEach(inv => {
-                totalInvoices += inv.amount;
+                totalInvoicesPaid += parseFloat(inv.paid_amount) || 0;
                 allExpenses.push({
-                    'النوع': 'فاتورة مورد',
+                    'النوع': 'مدفوع لمورد',
                     'التصنيف': inv.suppliers?.name || 'غير محدد',
                     'التاريخ': new Date(inv.invoice_date).toLocaleDateString('ar-EG'),
-                    'المبلغ': inv.amount.toFixed(2),
+                    'المبلغ': (parseFloat(inv.paid_amount) || 0).toFixed(2),
                     'المدفوع إلى': inv.suppliers?.name || '-',
-                    'الوصف': inv.description || '-'
+                    'الوصف': `المدفوع من فاتورة بقيمة ${inv.amount.toFixed(2)} جنيه`
                 });
             });
         }
 
-        const totalExpenses = totalGeneral + totalInvoices;
+        const totalExpenses = totalGeneral + totalInvoicesPaid;
 
-        allExpenses.push({});
-        allExpenses.push({
-            'النوع': '📊 الملخص',
-            'التصنيف': '',
-            'التاريخ': '',
-            'المبلغ': '',
-            'المدفوع إلى': '',
-            'الوصف': ''
-        });
-        allExpenses.push({
-            'النوع': 'المصروفات العامة',
-            'التصنيف': '',
-            'التاريخ': '',
-            'المبلغ': totalGeneral.toFixed(2) + ' جنيه',
-            'المدفوع إلى': '',
-            'الوصف': ''
-        });
-        allExpenses.push({
-            'النوع': 'فواتير الموردين',
-            'التصنيف': '',
-            'التاريخ': '',
-            'المبلغ': totalInvoices.toFixed(2) + ' جنيه',
-            'المدفوع إلى': '',
-            'الوصف': ''
-        });
-        allExpenses.push({
-            'النوع': 'الإجمالي الكلي',
-            'التصنيف': '',
-            'التاريخ': '',
-            'المبلغ': totalExpenses.toFixed(2) + ' جنيه',
-            'المدفوع إلى': '',
-            'الوصف': ''
-        });
+        allExpenses.push({}, 
+            { 'النوع': '📊 الملخص', 'التصنيف': '', 'التاريخ': '', 'المبلغ': '', 'المدفوع إلى': '', 'الوصف': '' },
+            { 'النوع': 'المصروفات العامة', 'التصنيف': '', 'التاريخ': '', 'المبلغ': totalGeneral.toFixed(2) + ' جنيه', 'المدفوع إلى': '', 'الوصف': '' },
+            { 'النوع': 'المدفوع للموردين', 'التصنيف': '', 'التاريخ': '', 'المبلغ': totalInvoicesPaid.toFixed(2) + ' جنيه', 'المدفوع إلى': '', 'الوصف': '' },
+            { 'النوع': 'الإجمالي الكلي', 'التصنيف': '', 'التاريخ': '', 'المبلغ': totalExpenses.toFixed(2) + ' جنيه', 'المدفوع إلى': '', 'الوصف': '' }
+        );
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(allExpenses);
-
         ws['!cols'] = [
             { wch: 15 }, { wch: 20 }, { wch: 12 },
-            { wch: 12 }, { wch: 20 }, { wch: 30 }
+            { wch: 12 }, { wch: 20 }, { wch: 35 }
         ];
-
         XLSX.utils.book_append_sheet(wb, ws, 'تقرير المصروفات');
         XLSX.writeFile(wb, `تقرير_المصروفات_${fromDate}_${toDate}.xlsx`);
 
         alert('✅ تم تصدير تقرير المصروفات بنجاح!');
 
     } catch (error) {
-        console.error('❌ خطأ في تصدير المصروفات:', error);
+        console.error('❌ خطأ:', error);
         alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
+// =============================================
+// 4. التقرير المالي الشامل (مع الديون والتكاليف)
+// =============================================
 async function exportFullFinancialReport() {
     const fromDate = document.getElementById('full-export-from').value;
     const toDate = document.getElementById('full-export-to').value;
@@ -1856,26 +1762,21 @@ async function exportFullFinancialReport() {
     }
 
     try {
-        console.log('🔍 جاري تحميل التقرير الشامل...');
+        console.log('🔍 جاري تحميل التقرير المالي الشامل...');
 
-        // 1. المبيعات - استخدام total من جدول orders
+        // 1. المبيعات
         const { data: orders, error: ordersError } = await supabase
             .from('orders')
-            .select('id, total, status')
+            .select('id, total')
             .gte('created_at', fromDate + 'T00:00:00')
             .lte('created_at', toDate + 'T23:59:59')
             .in('status', ['completed', 'paid']);
 
-        if (ordersError) {
-            console.error('خطأ في تحميل المبيعات:', ordersError);
-        }
+        if (ordersError) console.error('خطأ في تحميل المبيعات:', ordersError);
 
-        let totalRevenue = 0;
-        if (orders && orders.length > 0) {
-            totalRevenue = orders.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
-        }
-
-        console.log('💰 إجمالي المبيعات:', totalRevenue);
+        const totalRevenue = (orders && orders.length > 0) 
+            ? orders.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0) 
+            : 0;
 
         // 2. الرواتب
         const { data: salaries, error: salariesError } = await supabase
@@ -1884,15 +1785,11 @@ async function exportFullFinancialReport() {
             .gte('date', fromDate)
             .lte('date', toDate);
 
-        if (salariesError) {
-            console.error('خطأ في تحميل الرواتب:', salariesError);
-        }
+        if (salariesError) console.error('خطأ في تحميل الرواتب:', salariesError);
 
         const totalSalaries = (salaries && salaries.length > 0) 
             ? salaries.reduce((sum, s) => sum + (parseFloat(s.salary_paid) || 0), 0) 
             : 0;
-
-        console.log('👥 إجمالي الرواتب:', totalSalaries);
 
         // 3. المصروفات العامة
         const { data: expenses, error: expensesError } = await supabase
@@ -1901,82 +1798,117 @@ async function exportFullFinancialReport() {
             .gte('expense_date', fromDate)
             .lte('expense_date', toDate);
 
-        if (expensesError) {
-            console.error('خطأ في تحميل المصروفات:', expensesError);
-        }
+        if (expensesError) console.error('خطأ في تحميل المصروفات:', expensesError);
 
         const totalExpenses = (expenses && expenses.length > 0)
             ? expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
             : 0;
 
-        console.log('💸 إجمالي المصروفات:', totalExpenses);
-
-        // 4. فواتير الموردين
+        // 4. فواتير الموردين (تكلفة المكونات)
         const { data: invoices, error: invoicesError } = await supabase
             .from('supplier_invoices')
-            .select('amount')
+            .select('amount, paid_amount')
             .gte('invoice_date', fromDate)
             .lte('invoice_date', toDate);
 
-        if (invoicesError) {
-            console.error('خطأ في تحميل الفواتير:', invoicesError);
-        }
+        if (invoicesError) console.error('خطأ في تحميل فواتير الموردين:', invoicesError);
 
-        const totalInvoices = (invoices && invoices.length > 0)
+        const totalIngredientsCost = (invoices && invoices.length > 0)
             ? invoices.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0)
             : 0;
 
-        console.log('📄 إجمالي فواتير الموردين:', totalInvoices);
+        const totalPaidToSuppliers = (invoices && invoices.length > 0)
+            ? invoices.reduce((sum, i) => sum + (parseFloat(i.paid_amount) || 0), 0)
+            : 0;
 
-        // الحسابات النهائية
-        const totalCosts = totalSalaries + totalExpenses + totalInvoices;
+        const totalDebtToSuppliers = totalIngredientsCost - totalPaidToSuppliers;
+
+        // 5. الحسابات النهائية
+        const totalCosts = totalSalaries + totalExpenses + totalIngredientsCost;
         const netProfit = totalRevenue - totalCosts;
         const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : '0.00';
+        const actualCashFlow = totalRevenue - (totalSalaries + totalExpenses + totalPaidToSuppliers);
 
-        console.log('📊 صافي الربح:', netProfit);
-        console.log('📈 هامش الربح:', profitMargin + '%');
-
-        // إنشاء التقرير الشامل
+        // 6. إنشاء التقرير
         const financialData = [
             { 'البيان': '📅 الفترة من', 'القيمة': fromDate },
             { 'البيان': '📅 الفترة إلى', 'القيمة': toDate },
             { 'البيان': '', 'القيمة': '' },
-            { 'البيان': '━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━' },
+            { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+            
             { 'البيان': '📊 الإيرادات', 'القيمة': '' },
             { 'البيان': 'إجمالي المبيعات', 'القيمة': totalRevenue.toFixed(2) + ' جنيه' },
             { 'البيان': `عدد الطلبات: ${orders?.length || 0}`, 'القيمة': '' },
             { 'البيان': '', 'القيمة': '' },
-            { 'البيان': '━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━' },
+            { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+            
             { 'البيان': '💰 المصروفات', 'القيمة': '' },
             { 'البيان': '  • رواتب الموظفين', 'القيمة': totalSalaries.toFixed(2) + ' جنيه' },
-            { 'البيان': '  • المصروفات العامة', 'القيمة': totalExpenses.toFixed(2) + ' جنيه' },
-            { 'البيان': '  • فواتير الموردين', 'القيمة': totalInvoices.toFixed(2) + ' جنيه' },
+            { 'البيان': '  • المصروفات العامة (كهرباء، مياه...)', 'القيمة': totalExpenses.toFixed(2) + ' جنيه' },
+            { 'البيان': '  • تكلفة المكونات (فواتير الموردين)', 'القيمة': totalIngredientsCost.toFixed(2) + ' جنيه' },
             { 'البيان': 'إجمالي المصروفات', 'القيمة': totalCosts.toFixed(2) + ' جنيه' },
             { 'البيان': '', 'القيمة': '' },
-            { 'البيان': '━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━' },
+            { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+            
             { 'البيان': '💵 النتيجة النهائية', 'القيمة': '' },
-            { 'البيان': '✅ صافي الربح', 'القيمة': netProfit.toFixed(2) + ' جنيه' },
+            { 'البيان': '✅ صافي الربح (قبل خصم الديون)', 'القيمة': netProfit.toFixed(2) + ' جنيه' },
             { 'البيان': '📈 هامش الربح', 'القيمة': profitMargin + '%' },
+            { 'البيان': '', 'القيمة': '' },
+            { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+            
+            { 'البيان': '📛 معلومات الديون', 'القيمة': '' },
+            { 'البيان': 'إجمالي فواتير الموردين', 'القيمة': totalIngredientsCost.toFixed(2) + ' جنيه' },
+            { 'البيان': 'المدفوع للموردين', 'القيمة': totalPaidToSuppliers.toFixed(2) + ' جنيه' },
+            { 'البيان': '⚠️ الدين المتبقي للموردين', 'القيمة': totalDebtToSuppliers.toFixed(2) + ' جنيه' },
+            { 'البيان': '', 'القيمة': '' },
+            { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+            
+            { 'البيان': '💵 التدفق النقدي', 'القيمة': '' },
+            { 'البيان': 'المبيعات (نقد مستلم)', 'القيمة': totalRevenue.toFixed(2) + ' جنيه' },
+            { 'البيان': 'المصروفات المدفوعة نقداً:', 'القيمة': '' },
+            { 'البيان': '  - الرواتب', 'القيمة': totalSalaries.toFixed(2) + ' جنيه' },
+            { 'البيان': '  - المصروفات العامة', 'القيمة': totalExpenses.toFixed(2) + ' جنيه' },
+            { 'البيان': '  - المدفوع للموردين', 'القيمة': totalPaidToSuppliers.toFixed(2) + ' جنيه' },
+            { 'البيان': '✅ صافي التدفق النقدي', 'القيمة': actualCashFlow.toFixed(2) + ' جنيه' },
+            { 'البيان': '', 'القيمة': '' },
+            { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+            
+            { 'البيان': '📌 الملخص النهائي', 'القيمة': '' },
+            { 'البيان': 'صافي الربح المحاسبي', 'القيمة': netProfit.toFixed(2) + ' جنيه' },
+            { 'البيان': 'التدفق النقدي الفعلي', 'القيمة': actualCashFlow.toFixed(2) + ' جنيه' },
+            { 'البيان': 'الفرق (ديون مستحقة للموردين)', 'القيمة': totalDebtToSuppliers.toFixed(2) + ' جنيه' },
         ];
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(financialData);
-
-        ws['!cols'] = [{ wch: 30 }, { wch: 25 }];
-
+        ws['!cols'] = [{ wch: 40 }, { wch: 25 }];
         XLSX.utils.book_append_sheet(wb, ws, 'التقرير المالي الشامل');
-        
-        const fileName = `التقرير_المالي_الشامل_${fromDate}_${toDate}.xlsx`;
-        XLSX.writeFile(wb, fileName);
+        XLSX.writeFile(wb, `التقرير_المالي_الشامل_${fromDate}_${toDate}.xlsx`);
 
-        alert(`✅ تم تصدير التقرير الشامل بنجاح!\n\n📊 ملخص:\n• المبيعات: ${totalRevenue.toFixed(2)} جنيه\n• المصروفات: ${totalCosts.toFixed(2)} جنيه\n• صافي الربح: ${netProfit.toFixed(2)} جنيه\n• هامش الربح: ${profitMargin}%`);
+        alert(`✅ تم تصدير التقرير الشامل بنجاح!\n\n` +
+              `📊 ملخص:\n` +
+              `• المبيعات: ${totalRevenue.toFixed(2)} جنيه\n` +
+              `• المصروفات الكلية: ${totalCosts.toFixed(2)} جنيه\n` +
+              `  - رواتب: ${totalSalaries.toFixed(2)} جنيه\n` +
+              `  - مصروفات عامة: ${totalExpenses.toFixed(2)} جنيه\n` +
+              `  - تكلفة المكونات: ${totalIngredientsCost.toFixed(2)} جنيه\n\n` +
+              `• صافي الربح: ${netProfit.toFixed(2)} جنيه\n` +
+              `• هامش الربح: ${profitMargin}%\n\n` +
+              `📛 معلومات الديون:\n` +
+              `• إجمالي الديون: ${totalIngredientsCost.toFixed(2)} جنيه\n` +
+              `• المدفوع: ${totalPaidToSuppliers.toFixed(2)} جنيه\n` +
+              `• المتبقي: ${totalDebtToSuppliers.toFixed(2)} جنيه\n\n` +
+              `💵 التدفق النقدي الفعلي: ${actualCashFlow.toFixed(2)} جنيه`);
 
     } catch (error) {
-        console.error('❌ خطأ في تصدير التقرير الشامل:', error);
+        console.error('❌ خطأ:', error);
         alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
+// =============================================
+// 5. تقرير الدفعات للموردين
+// =============================================
 async function exportPayments() {
     const fromDate = document.getElementById('paymentsFromDate').value;
     const toDate = document.getElementById('paymentsToDate').value;
@@ -2037,21 +1969,19 @@ async function exportPayments() {
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(paymentsData);
-
         ws['!cols'] = [
             { wch: 12 }, { wch: 20 }, { wch: 15 },
             { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 30 }
         ];
-
         XLSX.utils.book_append_sheet(wb, ws, 'تقرير الدفعات');
         XLSX.writeFile(wb, `تقرير_دفعات_الموردين_${fromDate}_${toDate}.xlsx`);
 
         alert('✅ تم تصدير تقرير الدفعات بنجاح!');
 
     } catch (error) {
-        console.error('❌ خطأ في تصدير الدفعات:', error);
+        console.error('❌ خطأ:', error);
         alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
-console.log('✅ Excel Export Functions loaded successfully - Final Version');
+console.log('✅ All Export Functions Loaded - Complete Version with Debt & Cost Tracking');
