@@ -513,32 +513,39 @@
                 <button class="btn btn-export" onclick="exportExpensesExcel()">📊 تصدير Excel</button>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 14px; color: #666;">⚡ كهرباء</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #667eea;" id="electricityTotal">0 جنيه</div>
-                </div>
-                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 14px; color: #666;">💧 مياه</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #2196f3;" id="waterTotal">0 جنيه</div>
-                </div>
-                <div style="background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 14px; color: #666;">🌐 إنترنت</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #ff9800;" id="internetTotal">0 جنيه</div>
-                </div>
-                <div style="background: #ffe5e5; padding: 15px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 14px; color: #666;">🔥 غاز</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #f44336;" id="gasTotal">0 جنيه</div>
-                </div>
-                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 14px; color: #666;">🏠 إيجار</div>
-                    <div style="font-size: 24px; font-weight: bold; color: #9c27b0;" id="rentTotal">0 جنيه</div>
-                </div>
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
-                    <div style="font-size: 14px;">الإجمالي الكلي</div>
-                    <div style="font-size: 24px; font-weight: bold;" id="expensesGrandTotal">0 جنيه</div>
-                </div>
-            </div>
+           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+    <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 14px; color: #666;">⚡ كهرباء</div>
+        <div style="font-size: 24px; font-weight: bold; color: #667eea;" id="electricityTotal">0 جنيه</div>
+    </div>
+    <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 14px; color: #666;">💧 مياه</div>
+        <div style="font-size: 24px; font-weight: bold; color: #2196f3;" id="waterTotal">0 جنيه</div>
+    </div>
+    <div style="background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 14px; color: #666;">🌐 إنترنت</div>
+        <div style="font-size: 24px; font-weight: bold; color: #ff9800;" id="internetTotal">0 جنيه</div>
+    </div>
+    <div style="background: #ffe5e5; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 14px; color: #666;">🔥 غاز</div>
+        <div style="font-size: 24px; font-weight: bold; color: #f44336;" id="gasTotal">0 جنيه</div>
+    </div>
+    <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 14px; color: #666;">🏠 إيجار</div>
+        <div style="font-size: 24px; font-weight: bold; color: #9c27b0;" id="rentTotal">0 جنيه</div>
+    </div>
+    <!-- بطاقة جديدة: أخرى -->
+    <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; text-align: center;">
+        <div style="font-size: 14px; color: #666;">📌 أخرى</div>
+        <div style="font-size: 24px; font-weight: bold; color: #4caf50;" id="otherTotal">0 جنيه</div>
+    </div>
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
+        <div style="font-size: 14px;">الإجمالي الكلي</div>
+        <div style="font-size: 24px; font-weight: bold;" id="expensesGrandTotal">0 جنيه</div>
+    </div>
+</div>
+
+            
 
             <table>
                 <thead>
@@ -1176,5 +1183,6 @@
     </script>
 </body>
 </html>
+
 
 
