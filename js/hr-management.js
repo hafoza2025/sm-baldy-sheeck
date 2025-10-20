@@ -1195,14 +1195,55 @@ async function viewInvoiceDetails(invoiceId) {
 
 async function loadGeneralExpenses() {
     try {
-        // استدعاء الدالة مباشرة
-        const { data, error } = await supabase.rpc('get_expenses_summary');
+        console.log('🔍 جاري تحميل المصروفات...');
+        
+        // 1. جلب البيانات من الجدول العادي
+        const { data: expenses, error: expError } = await supabase
+            .from('general_expenses')
+            .select('*')
+            .order('expense_date', { ascending: false })
+            .limit(100);
 
-        if (error) throw error;
+        if (expError) throw expError;
 
-        console.log('📊 البيانات من الدالة:', data);
+        // 2. جلب الإجماليات من الـ View
+        const { data: summary, error: summaryError } = await supabase
+            .from('general_expenses_summary')
+            .select('*');
 
-        // تحديث البطاقات
+        if (summaryError) console.error('خطأ في تحميل الملخص:', summaryError);
+
+        console.log('📊 الملخص:', summary);
+
+        // 3. عرض البيانات في الجدول
+        const tbody = document.getElementById('expensesBody');
+        if (tbody && expenses) {
+            const expenseTypeNames = {
+                'electricity': '⚡ كهرباء',
+                'water': '💧 مياه',
+                'internet': '🌐 إنترنت',
+                'gas': '🔥 غاز',
+                'rent': '🏠 إيجار',
+                'maintenance': '🔧 صيانة',
+                'other': '📌 أخرى'
+            };
+
+            tbody.innerHTML = expenses.map(exp => `
+                <tr>
+                    <td>${expenseTypeNames[exp.expense_type] || exp.expense_type}</td>
+                    <td>${new Date(exp.expense_date).toLocaleDateString('ar-EG')}</td>
+                    <td style="font-weight: bold; color: #f44336;">${(parseFloat(exp.amount) || 0).toFixed(2)} جنيه</td>
+                    <td>${exp.paid_to || '-'}</td>
+                    <td>${exp.description || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="printExpense(${exp.id})">🖨️</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteExpense(${exp.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 4. تحديث البطاقات من الـ View
         const totals = {
             electricity: 0,
             water: 0,
@@ -1211,14 +1252,17 @@ async function loadGeneralExpenses() {
             rent: 0
         };
 
-        data.forEach(item => {
-            if (totals.hasOwnProperty(item.expense_type)) {
-                totals[item.expense_type] = parseFloat(item.total_amount) || 0;
-            }
-        });
+        if (summary && summary.length > 0) {
+            summary.forEach(item => {
+                if (totals.hasOwnProperty(item.expense_type)) {
+                    totals[item.expense_type] = parseFloat(item.total_amount) || 0;
+                }
+            });
+        }
 
         const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
 
+        // تحديث البطاقات
         document.getElementById('electricityTotal').textContent = totals.electricity.toFixed(2) + ' جنيه';
         document.getElementById('waterTotal').textContent = totals.water.toFixed(2) + ' جنيه';
         document.getElementById('internetTotal').textContent = totals.internet.toFixed(2) + ' جنيه';
@@ -1226,12 +1270,13 @@ async function loadGeneralExpenses() {
         document.getElementById('rentTotal').textContent = totals.rent.toFixed(2) + ' جنيه';
         document.getElementById('expensesGrandTotal').textContent = grandTotal.toFixed(2) + ' جنيه';
 
-        console.log('✅ تم التحديث من Function');
+        console.log('✅ تم تحديث البطاقات من View - الإجمالي:', grandTotal.toFixed(2));
 
     } catch (error) {
         console.error('❌ خطأ:', error);
     }
 }
+
 
 
 async function saveExpense(event) {
