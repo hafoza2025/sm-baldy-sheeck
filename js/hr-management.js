@@ -1208,6 +1208,13 @@ async function loadGeneralExpenses() {
 
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">لا توجد مصروفات</td></tr>';
+            // تحديث البطاقات
+            document.getElementById('electricityTotal').textContent = '0.00 جنيه';
+            document.getElementById('waterTotal').textContent = '0.00 جنيه';
+            document.getElementById('internetTotal').textContent = '0.00 جنيه';
+            document.getElementById('gasTotal').textContent = '0.00 جنيه';
+            document.getElementById('rentTotal').textContent = '0.00 جنيه';
+            document.getElementById('expensesGrandTotal').textContent = '0.00 جنيه';
             return;
         }
 
@@ -1241,23 +1248,31 @@ async function loadGeneralExpenses() {
             water: 0,
             internet: 0,
             gas: 0,
-            rent: 0
+            rent: 0,
+            maintenance: 0,
+            other: 0
         };
 
         data.forEach(exp => {
             if (totals.hasOwnProperty(exp.expense_type)) {
                 totals[exp.expense_type] += parseFloat(exp.amount);
+            } else {
+                // إذا كان النوع غير موجود في القائمة، أضفه للـ other
+                totals.other += parseFloat(exp.amount);
             }
         });
 
         const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
 
+        // تحديث البطاقات
         document.getElementById('electricityTotal').textContent = totals.electricity.toFixed(2) + ' جنيه';
         document.getElementById('waterTotal').textContent = totals.water.toFixed(2) + ' جنيه';
         document.getElementById('internetTotal').textContent = totals.internet.toFixed(2) + ' جنيه';
         document.getElementById('gasTotal').textContent = totals.gas.toFixed(2) + ' جنيه';
         document.getElementById('rentTotal').textContent = totals.rent.toFixed(2) + ' جنيه';
         document.getElementById('expensesGrandTotal').textContent = grandTotal.toFixed(2) + ' جنيه';
+
+        console.log('✅ تم تحميل المصروفات:', grandTotal.toFixed(2));
 
     } catch (error) {
         console.error('خطأ في تحميل المصروفات:', error);
