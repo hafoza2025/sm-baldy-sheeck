@@ -2459,6 +2459,7 @@ async function updateExpenseCards() {
             'internetTotal': totals.internet,
             'gasTotal': totals.gas,
             'rentTotal': totals.rent,
+            'otherTotal': totals.other,  // ← أضف هذا السطر
             'expensesGrandTotal': grandTotal
         };
 
