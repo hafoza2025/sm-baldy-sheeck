@@ -1210,7 +1210,6 @@ async function loadGeneralExpenses() {
 
         const tbody = document.getElementById('expensesBody');
         
-        // إذا لم يكن الجدول موجوداً، لا تفعل شيئاً
         if (!tbody) {
             console.warn('⚠️ جدول المصروفات غير موجود');
             return;
@@ -1258,7 +1257,9 @@ async function loadGeneralExpenses() {
             </tr>
         `).join('');
 
-        // حساب الإجماليات حسب النوع
+        // =============================================
+        // حساب الإجماليات حسب النوع وتحديث البطاقات
+        // =============================================
         const totals = {
             electricity: 0,
             water: 0,
@@ -1282,7 +1283,7 @@ async function loadGeneralExpenses() {
 
         const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
 
-        // تحديث البطاقات
+        // تحديث البطاقات في Dashboard
         document.getElementById('electricityTotal').textContent = totals.electricity.toFixed(2) + ' جنيه';
         document.getElementById('waterTotal').textContent = totals.water.toFixed(2) + ' جنيه';
         document.getElementById('internetTotal').textContent = totals.internet.toFixed(2) + ' جنيه';
