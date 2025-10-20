@@ -1195,28 +1195,43 @@ async function viewInvoiceDetails(invoiceId) {
 
 async function loadGeneralExpenses() {
     try {
+        console.log('🔍 جاري تحميل المصروفات العامة...');
+        
         const { data, error } = await supabase
             .from('general_expenses')
             .select('*')
             .order('expense_date', { ascending: false })
             .limit(100);
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ خطأ في تحميل المصروفات:', error);
+            throw error;
+        }
 
         const tbody = document.getElementById('expensesBody');
-        if (!tbody) return;
+        
+        // إذا لم يكن الجدول موجوداً، لا تفعل شيئاً
+        if (!tbody) {
+            console.warn('⚠️ جدول المصروفات غير موجود');
+            return;
+        }
 
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">لا توجد مصروفات</td></tr>';
-            // تحديث البطاقات
+            
+            // تصفير البطاقات
             document.getElementById('electricityTotal').textContent = '0.00 جنيه';
             document.getElementById('waterTotal').textContent = '0.00 جنيه';
             document.getElementById('internetTotal').textContent = '0.00 جنيه';
             document.getElementById('gasTotal').textContent = '0.00 جنيه';
             document.getElementById('rentTotal').textContent = '0.00 جنيه';
             document.getElementById('expensesGrandTotal').textContent = '0.00 جنيه';
+            
+            console.log('✅ لا توجد مصروفات');
             return;
         }
+
+        console.log('✅ تم تحميل', data.length, 'مصروف');
 
         const expenseTypeNames = {
             'electricity': '⚡ كهرباء',
@@ -1228,11 +1243,12 @@ async function loadGeneralExpenses() {
             'other': '📌 أخرى'
         };
 
+        // عرض البيانات في الجدول
         tbody.innerHTML = data.map(exp => `
             <tr>
                 <td>${expenseTypeNames[exp.expense_type] || exp.expense_type}</td>
                 <td>${new Date(exp.expense_date).toLocaleDateString('ar-EG')}</td>
-                <td style="font-weight: bold;">${exp.amount.toFixed(2)} جنيه</td>
+                <td style="font-weight: bold;">${(parseFloat(exp.amount) || 0).toFixed(2)} جنيه</td>
                 <td>${exp.paid_to || '-'}</td>
                 <td>${exp.description || '-'}</td>
                 <td>
@@ -1254,11 +1270,13 @@ async function loadGeneralExpenses() {
         };
 
         data.forEach(exp => {
+            const amount = parseFloat(exp.amount) || 0;
+            
             if (totals.hasOwnProperty(exp.expense_type)) {
-                totals[exp.expense_type] += parseFloat(exp.amount);
+                totals[exp.expense_type] += amount;
             } else {
                 // إذا كان النوع غير موجود في القائمة، أضفه للـ other
-                totals.other += parseFloat(exp.amount);
+                totals.other += amount;
             }
         });
 
@@ -1272,12 +1290,21 @@ async function loadGeneralExpenses() {
         document.getElementById('rentTotal').textContent = totals.rent.toFixed(2) + ' جنيه';
         document.getElementById('expensesGrandTotal').textContent = grandTotal.toFixed(2) + ' جنيه';
 
-        console.log('✅ تم تحميل المصروفات:', grandTotal.toFixed(2));
+        console.log('✅ تم تحديث البطاقات:');
+        console.log('  - كهرباء:', totals.electricity.toFixed(2));
+        console.log('  - مياه:', totals.water.toFixed(2));
+        console.log('  - إنترنت:', totals.internet.toFixed(2));
+        console.log('  - غاز:', totals.gas.toFixed(2));
+        console.log('  - إيجار:', totals.rent.toFixed(2));
+        console.log('  - أخرى:', totals.other.toFixed(2));
+        console.log('  - الإجمالي:', grandTotal.toFixed(2));
 
     } catch (error) {
-        console.error('خطأ في تحميل المصروفات:', error);
+        console.error('❌ خطأ في تحميل المصروفات:', error);
+        alert('حدث خطأ في تحميل المصروفات: ' + error.message);
     }
 }
+
 
 async function saveExpense(event) {
     event.preventDefault();
