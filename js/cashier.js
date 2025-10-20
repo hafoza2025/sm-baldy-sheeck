@@ -11,7 +11,10 @@ const CashierSystem = {
         type: 'delivery',
         items: [],
         customer_info: {}
+        payment_method: 'cash'  // ✅ طريقة الدفع الافتراضية للطلب الجديد
     },
+        selectedOrderPaymentMethod: 'cash',  // ✅ طريقة الدفع للطلبات الموجودة
+
     currentEditCart: {
         items: []
     },
@@ -1118,6 +1121,7 @@ const CashierSystem = {
                 order_type: 'delivery',
                 status: 'new',
                 cashier_id: this.currentUser.id,
+                payment_method: this.newOrderCart.payment_method,  // ✅ أضف هذا السطر
                 subtotal: subtotal,
                 tax: tax,
                 discount: 0,
@@ -1193,6 +1197,8 @@ const CashierSystem = {
                 .update({
                     status: 'completed',
                     completed_at: new Date().toISOString()
+                    payment_method: this.selectedOrderPaymentMethod  // ✅ أضف طريقة الدفع
+
                 })
                 .eq('id', orderId);
 
@@ -1248,6 +1254,9 @@ const CashierSystem = {
                     <p>فاتورة: ${order.order_number}</p>
                     <p>${Utils.formatDate(order.created_at)}</p>
                 </div>
+                <div style="background: #f0f4ff; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">
+    💳 ${this.getPaymentMethodName(order.payment_method || this.selectedOrderPaymentMethod || this.newOrderCart.payment_method)}
+</div>
                 ${order.order_type === 'delivery'
                     ? `<p>العميل: ${order.deliveries[0]?.customer_name}</p>`
                     : `<p>طاولة: ${order.table_number}</p>`
@@ -1317,6 +1326,68 @@ const CashierSystem = {
             console.error('Error deducting inventory:', error);
         }
     },
+// ==================== طرق الدفع ====================
+
+// اختيار طريقة دفع للطلب الجديد (Delivery)
+selectPaymentMethodForNew(method) {
+    console.log('💳 طريقة الدفع للطلب الجديد:', method);
+    
+    this.newOrderCart.payment_method = method;
+    
+    // تحديث UI
+    document.querySelectorAll('.payment-method-btn.new-payment').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const selectedBtn = document.querySelector(`.new-payment[data-method="${method}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
+    
+    this.showPaymentMethodNotification(method);
+},
+
+// اختيار طريقة دفع للطلب الموجود (Dine-in)
+selectPaymentMethodForExisting(method) {
+    console.log('💳 طريقة الدفع للطلب الموجود:', method);
+    
+    this.selectedOrderPaymentMethod = method;
+    
+    // تحديث UI
+    document.querySelectorAll('.payment-method-btn.existing-payment').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const selectedBtn = document.querySelector(`.existing-payment[data-method="${method}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('active');
+    }
+    
+    this.showPaymentMethodNotification(method);
+},
+
+// عرض إشعار اختيار طريقة الدفع
+showPaymentMethodNotification(method) {
+    const methodNames = {
+        'cash': '💵 نقدي',
+        'visa': '💳 فيزا',
+        'wallet': '📱 محفظة',
+        'instapay': '⚡ انستاباي'
+    };
+    
+    Utils.showNotification(`تم اختيار: ${methodNames[method]}`, 'success');
+},
+
+// اسم طريقة الدفع
+getPaymentMethodName(method) {
+    const methodNames = {
+        'cash': '💵 نقدي',
+        'visa': '💳 فيزا',
+        'wallet': '📱 محفظة',
+        'instapay': '⚡ انستاباي'
+    };
+    return methodNames[method] || method;
+},
 
     setupEventListeners() {
         const sendBtn = document.getElementById('sendOrderBtn');
@@ -1327,6 +1398,7 @@ const CashierSystem = {
         if (sendBtn) sendBtn.addEventListener('click', () => this.sendNewOrder());
         if (clearBtn) clearBtn.addEventListener('click', () => {
             this.newOrderCart.items = [];
+            this.newOrderCart.payment_method = 'cash';  // ✅ إعادة تعيين
             this.updateNewOrderDisplay();
         });
         if (saveEditBtn) saveEditBtn.addEventListener('click', () => this.saveEditedOrder());
@@ -1411,3 +1483,4 @@ if (typeof protectAsync !== 'undefined') {
 }
 
 console.log('✅ Cashier System loaded with full control');
+
