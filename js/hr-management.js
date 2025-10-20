@@ -1806,20 +1806,26 @@ async function exportFullFinancialReport() {
     try {
         console.log('🔍 جاري تحميل التقرير المالي الشامل...');
 
+        // =============================================
         // 1. المبيعات
-        const { data: orders } = await supabase
+        // =============================================
+        const { data: orders, error: ordersError } = await supabase
             .from('orders')
             .select('id, total')
             .gte('created_at', fromDate + 'T00:00:00')
             .lte('created_at', toDate + 'T23:59:59')
             .in('status', ['completed', 'paid']);
 
+        if (ordersError) console.error('خطأ في تحميل المبيعات:', ordersError);
+
         const totalRevenue = (orders && orders.length > 0) 
             ? orders.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0) 
             : 0;
 
+        console.log('💰 إجمالي المبيعات:', totalRevenue);
+
         // =============================================
-        // حساب تكلفة المكونات من المبيعات (من Recipe)
+        // 2. حساب تكلفة المكونات من المبيعات (من recipes)
         // =============================================
         const orderIds = orders ? orders.map(o => o.id) : [];
         
@@ -1833,47 +1839,53 @@ async function exportFullFinancialReport() {
         if (orderItems && orderItems.length > 0) {
             const menuItemIds = [...new Set(orderItems.map(i => i.menu_item_id))];
             
+            // تحميل الوصفات
             const { data: recipes } = await supabase
-                .from('recipe_ingredients')
-                .select('menu_item_id, inventory_item_id, quantity')
+                .from('recipes')
+                .select('menu_item_id, ingredient_id, quantity_needed')
                 .in('menu_item_id', menuItemIds);
 
-            const inventoryIds = recipes ? [...new Set(recipes.map(r => r.inventory_item_id))] : [];
-            
-            const { data: inventory } = await supabase
-                .from('inventory')
-                .select('id, unit_cost')
-                .in('id', inventoryIds);
+            if (recipes && recipes.length > 0) {
+                const ingredientIds = [...new Set(recipes.map(r => r.ingredient_id))];
+                
+                // تحميل أسعار المكونات
+                const { data: ingredients } = await supabase
+                    .from('ingredients')
+                    .select('id, cost_per_unit')
+                    .in('id', ingredientIds);
 
-            const inventoryCostMap = {};
-            if (inventory) {
-                inventory.forEach(item => {
-                    inventoryCostMap[item.id] = parseFloat(item.unit_cost) || 0;
-                });
-            }
+                const ingredientsCostMap = {};
+                if (ingredients) {
+                    ingredients.forEach(item => {
+                        ingredientsCostMap[item.id] = parseFloat(item.cost_per_unit) || 0;
+                    });
+                }
 
-            const itemCostMap = {};
-            if (recipes) {
+                // حساب تكلفة كل صنف
+                const itemCostMap = {};
                 recipes.forEach(recipe => {
                     if (!itemCostMap[recipe.menu_item_id]) {
                         itemCostMap[recipe.menu_item_id] = 0;
                     }
-                    const ingredientCost = inventoryCostMap[recipe.inventory_item_id] || 0;
-                    const quantity = parseFloat(recipe.quantity) || 0;
+                    const ingredientCost = ingredientsCostMap[recipe.ingredient_id] || 0;
+                    const quantity = parseFloat(recipe.quantity_needed) || 0;
                     itemCostMap[recipe.menu_item_id] += ingredientCost * quantity;
                 });
-            }
 
-            orderItems.forEach(item => {
-                const costPerUnit = itemCostMap[item.menu_item_id] || 0;
-                const quantity = parseFloat(item.quantity) || 0;
-                totalSalesIngredientsCost += costPerUnit * quantity;
-            });
+                // حساب التكلفة الإجمالية للمبيعات
+                orderItems.forEach(item => {
+                    const costPerUnit = itemCostMap[item.menu_item_id] || 0;
+                    const quantity = parseFloat(item.quantity) || 0;
+                    totalSalesIngredientsCost += costPerUnit * quantity;
+                });
+            }
         }
 
         console.log('📦 تكلفة مكونات المبيعات:', totalSalesIngredientsCost);
 
-        // 2. الرواتب
+        // =============================================
+        // 3. الرواتب
+        // =============================================
         const { data: salaries } = await supabase
             .from('employee_attendance')
             .select('salary_paid')
@@ -1884,7 +1896,11 @@ async function exportFullFinancialReport() {
             ? salaries.reduce((sum, s) => sum + (parseFloat(s.salary_paid) || 0), 0) 
             : 0;
 
-        // 3. المصروفات العامة
+        console.log('👥 إجمالي الرواتب:', totalSalaries);
+
+        // =============================================
+        // 4. المصروفات العامة
+        // =============================================
         const { data: expenses } = await supabase
             .from('general_expenses')
             .select('amount')
@@ -1895,7 +1911,11 @@ async function exportFullFinancialReport() {
             ? expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
             : 0;
 
-        // 4. فواتير الموردين (للديون فقط)
+        console.log('💸 إجمالي المصروفات العامة:', totalExpenses);
+
+        // =============================================
+        // 5. فواتير الموردين (للديون)
+        // =============================================
         const { data: invoices } = await supabase
             .from('supplier_invoices')
             .select('amount, paid_amount')
@@ -1912,25 +1932,39 @@ async function exportFullFinancialReport() {
 
         const totalDebtToSuppliers = totalSupplierInvoices - totalPaidToSuppliers;
 
-        // 5. الحسابات النهائية
+        console.log('📄 إجمالي فواتير الموردين:', totalSupplierInvoices);
+        console.log('💰 المدفوع للموردين:', totalPaidToSuppliers);
+        console.log('📛 الدين المتبقي:', totalDebtToSuppliers);
+
+        // =============================================
+        // 6. الحسابات النهائية
+        // =============================================
         const totalCosts = totalSalaries + totalExpenses + totalSalesIngredientsCost + totalPaidToSuppliers;
         const netProfit = totalRevenue - totalCosts;
         const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : '0.00';
         const actualCashFlow = totalRevenue - (totalSalaries + totalExpenses + totalPaidToSuppliers);
 
-        // 6. إنشاء التقرير
+        console.log('📊 إجمالي المصروفات:', totalCosts);
+        console.log('📊 صافي الربح:', netProfit);
+        console.log('💵 التدفق النقدي:', actualCashFlow);
+
+        // =============================================
+        // 7. إنشاء التقرير
+        // =============================================
         const financialData = [
             { 'البيان': '📅 الفترة من', 'القيمة': fromDate },
             { 'البيان': '📅 الفترة إلى', 'القيمة': toDate },
             { 'البيان': '', 'القيمة': '' },
             { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
             
+            // الإيرادات
             { 'البيان': '📊 الإيرادات', 'القيمة': '' },
             { 'البيان': 'إجمالي المبيعات', 'القيمة': totalRevenue.toFixed(2) + ' جنيه' },
             { 'البيان': `عدد الطلبات: ${orders?.length || 0}`, 'القيمة': '' },
             { 'البيان': '', 'القيمة': '' },
             { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
             
+            // المصروفات
             { 'البيان': '💰 المصروفات', 'القيمة': '' },
             { 'البيان': '  • تكلفة مكونات المبيعات (من الوصفات)', 'القيمة': totalSalesIngredientsCost.toFixed(2) + ' جنيه' },
             { 'البيان': '  • رواتب الموظفين', 'القيمة': totalSalaries.toFixed(2) + ' جنيه' },
@@ -1940,12 +1974,14 @@ async function exportFullFinancialReport() {
             { 'البيان': '', 'القيمة': '' },
             { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
             
+            // النتيجة النهائية
             { 'البيان': '💵 النتيجة النهائية', 'القيمة': '' },
             { 'البيان': '✅ صافي الربح', 'القيمة': netProfit.toFixed(2) + ' جنيه' },
             { 'البيان': '📈 هامش الربح', 'القيمة': profitMargin + '%' },
             { 'البيان': '', 'القيمة': '' },
             { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
             
+            // معلومات الديون
             { 'البيان': '📛 معلومات الديون للموردين', 'القيمة': '' },
             { 'البيان': 'إجمالي فواتير الموردين', 'القيمة': totalSupplierInvoices.toFixed(2) + ' جنيه' },
             { 'البيان': 'المدفوع للموردين', 'القيمة': totalPaidToSuppliers.toFixed(2) + ' جنيه' },
@@ -1953,6 +1989,7 @@ async function exportFullFinancialReport() {
             { 'البيان': '', 'القيمة': '' },
             { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
             
+            // التدفق النقدي
             { 'البيان': '💵 التدفق النقدي', 'القيمة': '' },
             { 'البيان': 'المبيعات (نقد مستلم)', 'القيمة': totalRevenue.toFixed(2) + ' جنيه' },
             { 'البيان': 'المصروفات المدفوعة نقداً:', 'القيمة': '' },
@@ -1960,8 +1997,17 @@ async function exportFullFinancialReport() {
             { 'البيان': '  - المصروفات العامة', 'القيمة': totalExpenses.toFixed(2) + ' جنيه' },
             { 'البيان': '  - المدفوع للموردين', 'القيمة': totalPaidToSuppliers.toFixed(2) + ' جنيه' },
             { 'البيان': '✅ صافي التدفق النقدي', 'القيمة': actualCashFlow.toFixed(2) + ' جنيه' },
+            { 'البيان': '', 'القيمة': '' },
+            { 'البيان': '━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+            
+            // ملخص نهائي
+            { 'البيان': '📌 الملخص النهائي', 'القيمة': '' },
+            { 'البيان': 'صافي الربح المحاسبي', 'القيمة': netProfit.toFixed(2) + ' جنيه' },
+            { 'البيان': 'التدفق النقدي الفعلي', 'القيمة': actualCashFlow.toFixed(2) + ' جنيه' },
+            { 'البيان': 'الفرق (ديون مستحقة للموردين)', 'القيمة': totalDebtToSuppliers.toFixed(2) + ' جنيه' },
         ];
 
+        // إنشاء Excel
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(financialData);
         ws['!cols'] = [{ wch: 40 }, { wch: 25 }];
@@ -1973,17 +2019,24 @@ async function exportFullFinancialReport() {
               `• المبيعات: ${totalRevenue.toFixed(2)} جنيه\n` +
               `• تكلفة مكونات المبيعات: ${totalSalesIngredientsCost.toFixed(2)} جنيه\n` +
               `• المصروفات الكلية: ${totalCosts.toFixed(2)} جنيه\n` +
+              `  - رواتب: ${totalSalaries.toFixed(2)} جنيه\n` +
+              `  - مصروفات عامة: ${totalExpenses.toFixed(2)} جنيه\n` +
+              `  - مدفوع للموردين: ${totalPaidToSuppliers.toFixed(2)} جنيه\n\n` +
               `• صافي الربح: ${netProfit.toFixed(2)} جنيه\n` +
               `• هامش الربح: ${profitMargin}%\n\n` +
-              `📛 الديون:\n` +
-              `• المتبقي للموردين: ${totalDebtToSuppliers.toFixed(2)} جنيه\n\n` +
-              `💵 التدفق النقدي: ${actualCashFlow.toFixed(2)} جنيه`);
+              `📛 معلومات الديون:\n` +
+              `• إجمالي الديون: ${totalSupplierInvoices.toFixed(2)} جنيه\n` +
+              `• المدفوع: ${totalPaidToSuppliers.toFixed(2)} جنيه\n` +
+              `• المتبقي: ${totalDebtToSuppliers.toFixed(2)} جنيه\n\n` +
+              `💵 التدفق النقدي الفعلي: ${actualCashFlow.toFixed(2)} جنيه`);
 
     } catch (error) {
         console.error('❌ خطأ:', error);
         alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
+
+console.log('✅ Full Financial Report Function Loaded');
 
 // =============================================
 // 5. تقرير الدفعات للموردين
