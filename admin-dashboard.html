@@ -209,16 +209,18 @@
         </div>
 
         <!-- التبويبات -->
-        <div class="tabs">
+               <div class="tabs">
             <button class="tab-btn active" onclick="AdminDashboard.switchTab('current')">الطلبات الحالية</button>
             <button class="tab-btn" onclick="AdminDashboard.switchTab('orders')">جميع الطلبات</button>
             <button class="tab-btn" onclick="AdminDashboard.switchTab('users')">المستخدمين</button>
             <button class="tab-btn" onclick="AdminDashboard.switchTab('deliveries')">التوصيل</button>
             <button class="tab-btn" onclick="AdminDashboard.switchTab('inventory')">المخزون</button>
             <button class="tab-btn" onclick="AdminDashboard.switchTab('hr')">👥 الموظفين</button>
-            <button class="tab-btn" onclick="AdminDashboard.switchTab('expenses')">💰 المصروفات</button>
+            <button class="tab-btn" onclick="AdminDashboard.switchTab('suppliers')">🏪 الموردين</button>
+            <button class="tab-btn" onclick="AdminDashboard.switchTab('expenses')">💰 المصروفات العامة</button>
             <button class="tab-btn" onclick="AdminDashboard.switchTab('exports')">📊 التقارير</button>
         </div>
+
         <!-- Current Orders Tab -->
         <div id="currentTab" class="tab-content active">
             <h2>الطلبات الحالية</h2>
@@ -397,21 +399,22 @@
             </div>
         </div>
 
-        <!-- ========================================
-             قسم المصروفات والفواتير - جديد
+              <!-- ========================================
+             قسم إدارة الموردين - منفصل
              ======================================== -->
-        <div id="expensesTab" class="tab-content">
-            <h2 style="margin-bottom: 20px;">💰 إدارة المصروفات والفواتير</h2>
+        <div id="suppliersTab" class="tab-content">
+            <h2 style="margin-bottom: 20px;">🏪 إدارة الموردين والفواتير</h2>
 
             <!-- Sub-tabs -->
             <div class="tabs" style="margin-bottom: 20px;">
-                <button class="tab-btn active" onclick="switchExpenseSubTab('suppliers')">الموردين</button>
-                <button class="tab-btn" onclick="switchExpenseSubTab('invoices')">فواتير الموردين</button>
-                <button class="tab-btn" onclick="switchExpenseSubTab('general')">المصروفات العامة</button>
+                <button class="tab-btn active" onclick="switchSupplierSubTab('list')">قائمة الموردين</button>
+                <button class="tab-btn" onclick="switchSupplierSubTab('invoices')">فواتير الموردين</button>
+                <button class="tab-btn" onclick="switchSupplierSubTab('payments')">الدفعات</button>
+                <button class="tab-btn" onclick="switchSupplierSubTab('balance')">الأرصدة</button>
             </div>
 
-            <!-- تبويب: الموردين -->
-            <div id="suppliers-subtab" class="tab-content active">
+            <!-- تبويب: قائمة الموردين -->
+            <div id="list-subtab" class="tab-content active">
                 <div class="action-buttons" style="margin-bottom: 20px;">
                     <button class="btn btn-primary" onclick="openAddSupplierModal()">➕ إضافة مورد</button>
                 </div>
@@ -422,6 +425,9 @@
                             <th>الاسم</th>
                             <th>الهاتف</th>
                             <th>الفئة</th>
+                            <th>إجمالي الفواتير</th>
+                            <th>المدفوع</th>
+                            <th>المتبقي</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -433,6 +439,15 @@
             <div id="invoices-subtab" class="tab-content">
                 <div class="action-buttons" style="margin-bottom: 20px;">
                     <button class="btn btn-primary" onclick="openAddInvoiceModal()">➕ إضافة فاتورة</button>
+                    <select id="filterSupplier" onchange="loadInvoices()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">جميع الموردين</option>
+                    </select>
+                    <select id="filterInvoiceStatus" onchange="loadInvoices()" style="padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
+                        <option value="">جميع الحالات</option>
+                        <option value="pending">معلقة</option>
+                        <option value="partial">جزئي</option>
+                        <option value="paid">مدفوعة</option>
+                    </select>
                 </div>
 
                 <table>
@@ -441,7 +456,7 @@
                             <th>رقم الفاتورة</th>
                             <th>المورد</th>
                             <th>التاريخ</th>
-                            <th>المبلغ</th>
+                            <th>المبلغ الكلي</th>
                             <th>المدفوع</th>
                             <th>المتبقي</th>
                             <th>الحالة</th>
@@ -452,28 +467,94 @@
                 </table>
             </div>
 
-            <!-- تبويب: المصروفات العامة -->
-            <div id="general-subtab" class="tab-content">
-                <div class="action-buttons" style="margin-bottom: 20px;">
-                    <button class="btn btn-primary" onclick="openAddExpenseModal()">➕ إضافة مصروف</button>
-                    <button class="btn btn-export" onclick="exportExpensesExcel()">📊 تصدير Excel</button>
+            <!-- تبويب: الدفعات -->
+            <div id="payments-subtab" class="tab-content">
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-bottom: 20px;">سجل الدفعات</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <input type="date" id="paymentsFromDate" class="form-input">
+                        <input type="date" id="paymentsToDate" class="form-input">
+                        <button class="btn btn-info" onclick="loadPayments()">عرض</button>
+                        <button class="btn btn-export" onclick="exportPayments()">📊 تصدير</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>المورد</th>
+                                <th>رقم الفاتورة</th>
+                                <th>المبلغ</th>
+                                <th>طريقة الدفع</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsBody"></tbody>
+                    </table>
                 </div>
+            </div>
 
-                <table>
-                    <thead>
-                        <tr>
-                            <th>النوع</th>
-                            <th>التاريخ</th>
-                            <th>المبلغ</th>
-                            <th>المدفوع إلى</th>
-                            <th>الوصف</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody id="expensesBody"></tbody>
-                </table>
+            <!-- تبويب: الأرصدة -->
+            <div id="balance-subtab" class="tab-content">
+                <div style="background: white; padding: 20px; border-radius: 8px;">
+                    <h3 style="margin-bottom: 20px;">أرصدة الموردين</h3>
+                    <div id="suppliersBalanceList"></div>
+                </div>
             </div>
         </div>
+
+        <!-- ========================================
+             قسم المصروفات العامة - منفصل
+             ======================================== -->
+        <div id="expensesTab" class="tab-content">
+            <h2 style="margin-bottom: 20px;">💰 المصروفات العامة (كهرباء، مياه، إيجار...)</h2>
+
+            <div class="action-buttons" style="margin-bottom: 20px;">
+                <button class="btn btn-primary" onclick="openAddExpenseModal()">➕ إضافة مصروف</button>
+                <button class="btn btn-export" onclick="exportExpensesExcel()">📊 تصدير Excel</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">⚡ كهرباء</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #667eea;" id="electricityTotal">0 جنيه</div>
+                </div>
+                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">💧 مياه</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #2196f3;" id="waterTotal">0 جنيه</div>
+                </div>
+                <div style="background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">🌐 إنترنت</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #ff9800;" id="internetTotal">0 جنيه</div>
+                </div>
+                <div style="background: #ffe5e5; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">🔥 غاز</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #f44336;" id="gasTotal">0 جنيه</div>
+                </div>
+                <div style="background: #f3e5f5; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">🏠 إيجار</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #9c27b0;" id="rentTotal">0 جنيه</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
+                    <div style="font-size: 14px;">الإجمالي الكلي</div>
+                    <div style="font-size: 24px; font-weight: bold;" id="expensesGrandTotal">0 جنيه</div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>النوع</th>
+                        <th>التاريخ</th>
+                        <th>المبلغ</th>
+                        <th>المدفوع إلى</th>
+                        <th>الوصف</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="expensesBody"></tbody>
+            </table>
+        </div>
+
 
         <!-- ========================================
              قسم تصدير Excel - جديد
@@ -735,6 +816,57 @@
             </form>
         </div>
     </div>
+
+        <!-- Modal: إضافة دفعة لفاتورة -->
+    <div id="addPaymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>إضافة دفعة</h2>
+                <span class="close-modal" onclick="closeModal('addPaymentModal')">×</span>
+            </div>
+            <div id="paymentInvoiceDetails" style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <!-- سيتم ملؤها ديناميكياً -->
+            </div>
+            <form id="addPaymentForm" onsubmit="savePayment(event)">
+                <input type="hidden" id="paymentInvoiceId">
+                <input type="hidden" id="paymentSupplierId">
+                
+                <div class="form-group">
+                    <label>المبلغ المدفوع *</label>
+                    <input type="number" id="paymentAmount" required step="0.01" min="0.01" placeholder="0.00">
+                    <small id="remainingAmount" style="color: #666;"></small>
+                </div>
+                
+                <div class="form-group">
+                    <label>تاريخ الدفع *</label>
+                    <input type="date" id="paymentDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>طريقة الدفع *</label>
+                    <select id="paymentMethod" required>
+                        <option value="cash">💵 نقدي</option>
+                        <option value="bank_transfer">🏦 تحويل بنكي</option>
+                        <option value="check">📝 شيك</option>
+                        <option value="credit">💳 آجل</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>رقم الإيصال</label>
+                    <input type="text" id="paymentReceiptNumber" placeholder="اختياري">
+                </div>
+                
+                <div class="form-group">
+                    <label>ملاحظات</label>
+                    <textarea id="paymentNotes" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%;">💰 تسجيل الدفعة</button>
+            </form>
+        </div>
+    </div>
+
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1044,4 +1176,5 @@
     </script>
 </body>
 </html>
+
 
