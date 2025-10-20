@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -115,6 +116,39 @@
       display: none;
     }
 
+    /* أزرار طرق الدفع */
+    .payment-method-btn {
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+    }
+
+    .payment-method-btn:hover {
+      border-color: #667eea;
+      background: #f0f4ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .payment-method-btn.active {
+      border-color: #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-weight: bold;
+    }
+
+    .payment-method-btn span {
+      display: block;
+      margin-bottom: 5px;
+    }
+
     @media (max-width: 1400px) {
       .cashier-main-layout {
         grid-template-columns: 1fr;
@@ -154,6 +188,31 @@
         <h2 style="margin-bottom: 20px;">✏️ تعديل الفاتورة</h2>
         <div id="editOrderItems" style="flex: 1; overflow-y: auto;"></div>
         
+        <!-- طرق الدفع للطلبات الموجودة -->
+        <div style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #333;">
+            💳 طريقة الدفع:
+          </label>
+          <div id="existingOrderPaymentButtons" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <button type="button" class="payment-method-btn existing-payment active" data-method="cash" onclick="CashierSystem.selectPaymentMethodForExisting('cash')">
+              <span style="font-size: 24px;">💵</span>
+              <div>كاش</div>
+            </button>
+            <button type="button" class="payment-method-btn existing-payment" data-method="visa" onclick="CashierSystem.selectPaymentMethodForExisting('visa')">
+              <span style="font-size: 24px;">💳</span>
+              <div>فيزا</div>
+            </button>
+            <button type="button" class="payment-method-btn existing-payment" data-method="wallet" onclick="CashierSystem.selectPaymentMethodForExisting('wallet')">
+              <span style="font-size: 24px;">📱</span>
+              <div>محفظة</div>
+            </button>
+            <button type="button" class="payment-method-btn existing-payment" data-method="instapay" onclick="CashierSystem.selectPaymentMethodForExisting('instapay')">
+              <span style="font-size: 24px;">⚡</span>
+              <div>انستاباي</div>
+            </button>
+          </div>
+        </div>
+        
         <div style="margin-top: auto; padding-top: 15px; border-top: 2px solid #e0e0e0; display: flex; gap: 10px;">
           <button id="saveEditBtn" class="btn btn-success" style="flex: 1;">
             ✅ حفظ التعديلات
@@ -177,6 +236,31 @@
                  style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 5px; margin-bottom: 10px;">
           <input type="text" id="customerAddress" placeholder="العنوان" 
                  style="width: 100%; padding: 10px; border: 1px solid #e0e0e0; border-radius: 5px;">
+        </div>
+
+        <!-- طرق الدفع للطلب الجديد -->
+        <div style="margin: 0 0 15px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #333;">
+            💳 طريقة الدفع:
+          </label>
+          <div id="newOrderPaymentButtons" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <button type="button" class="payment-method-btn new-payment active" data-method="cash" onclick="CashierSystem.selectPaymentMethodForNew('cash')">
+              <span style="font-size: 24px;">💵</span>
+              <div>كاش</div>
+            </button>
+            <button type="button" class="payment-method-btn new-payment" data-method="visa" onclick="CashierSystem.selectPaymentMethodForNew('visa')">
+              <span style="font-size: 24px;">💳</span>
+              <div>فيزا</div>
+            </button>
+            <button type="button" class="payment-method-btn new-payment" data-method="wallet" onclick="CashierSystem.selectPaymentMethodForNew('wallet')">
+              <span style="font-size: 24px;">📱</span>
+              <div>محفظة</div>
+            </button>
+            <button type="button" class="payment-method-btn new-payment" data-method="instapay" onclick="CashierSystem.selectPaymentMethodForNew('instapay')">
+              <span style="font-size: 24px;">⚡</span>
+              <div>انستاباي</div>
+            </button>
+          </div>
         </div>
 
         <!-- الأصناف المطلوبة -->
@@ -231,7 +315,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       CashierSystem.init();
     });
-  </script>
+ 
   <!-- ===================================
      زر Refresh + مؤشر الاتصال
      =================================== -->
@@ -647,4 +731,5 @@ console.log('✅ Refresh system initialized');
 
 </body>
 </html>
+
 
