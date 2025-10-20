@@ -1443,8 +1443,9 @@ async function exportSalesExcel() {
     }
 
     try {
-        console.log('🔍 جاري تحميل المبيعات من', fromDate, 'إلى', toDate);
+        console.log('🔍 جاري تحميل المبيعات...');
         
+        // 1. تحميل الطلبات
         const { data: orders, error: ordersError } = await supabase
             .from('orders')
             .select('id, created_at, order_type, status, total')
@@ -1463,129 +1464,90 @@ async function exportSalesExcel() {
             return;
         }
 
+        console.log('✅ تم تحميل', orders.length, 'طلب');
+
         const orderIds = orders.map(o => o.id);
         
+        // 2. تحميل تفاصيل الطلبات
         const { data: orderItems, error: itemsError } = await supabase
             .from('order_items')
             .select('order_id, menu_item_id, quantity, unit_price')
             .in('order_id', orderIds);
 
-        if (itemsError) console.error('خطأ:', itemsError);
+        if (itemsError) {
+            console.error('❌ خطأ في order_items:', itemsError);
+            return;
+        }
 
-        const menuItemIds = orderItems ? [...new Set(orderItems.map(i => i.menu_item_id))] : [];
+        console.log('✅ تم تحميل', orderItems?.length || 0, 'صنف');
+
+        if (!orderItems || orderItems.length === 0) {
+            alert('⚠️ لا توجد تفاصيل للطلبات');
+            return;
+        }
+
+        // 3. الحصول على IDs الأصناف
+        const menuItemIds = [...new Set(orderItems.map(i => i.menu_item_id))];
+        console.log('🔍 menu_item_ids:', menuItemIds);
         
+        // 4. تحميل بيانات الأصناف (الأسماء والتكلفة)
         const { data: menuItems, error: menuError } = await supabase
             .from('menu_items')
             .select('id, name_ar, cost')
             .in('id', menuItemIds);
 
-        if (menuError) console.error('خطأ:', menuError);
-
-        // =============================================
-        // طريقة 1: محاولة جلب من recipe_ingredients
-        // =============================================
-        let itemCostMap = {};
-        
-        const { data: recipes, error: recipeError } = await supabase
-            .from('recipe_ingredients')
-            .select('menu_item_id, inventory_item_id, quantity');
-
-        console.log('📦 عدد الوصفات المحملة:', recipes?.length || 0);
-
-        if (!recipeError && recipes && recipes.length > 0) {
-            const inventoryIds = [...new Set(recipes.map(r => r.inventory_item_id))];
-            
-            const { data: inventory, error: invError } = await supabase
-                .from('inventory')
-                .select('id, unit_cost')
-                .in('id', inventoryIds);
-
-            console.log('📦 عدد المكونات المحملة:', inventory?.length || 0);
-
-            if (!invError && inventory) {
-                const inventoryCostMap = {};
-                inventory.forEach(item => {
-                    inventoryCostMap[item.id] = parseFloat(item.unit_cost) || 0;
-                });
-
-                recipes.forEach(recipe => {
-                    if (!itemCostMap[recipe.menu_item_id]) {
-                        itemCostMap[recipe.menu_item_id] = 0;
-                    }
-                    const ingredientCost = inventoryCostMap[recipe.inventory_item_id] || 0;
-                    const quantity = parseFloat(recipe.quantity) || 0;
-                    itemCostMap[recipe.menu_item_id] += ingredientCost * quantity;
-                });
-            }
+        if (menuError) {
+            console.error('❌ خطأ في menu_items:', menuError);
         }
 
-        // =============================================
-        // طريقة 2: إذا فشلت، استخدم cost من menu_items
-        // =============================================
-        if (Object.keys(itemCostMap).length === 0 && menuItems) {
-            console.log('⚠️ لم يتم العثور على وصفات، استخدام cost من القائمة');
+        console.log('✅ تم تحميل', menuItems?.length || 0, 'صنف من القائمة');
+        console.log('📋 Menu Items:', menuItems);
+
+        // 5. إنشاء خرائط
+        const menuItemsMap = {};
+        const itemCostMap = {};
+
+        if (menuItems && menuItems.length > 0) {
             menuItems.forEach(item => {
+                menuItemsMap[item.id] = item.name_ar || 'صنف غير معروف';
                 itemCostMap[item.id] = parseFloat(item.cost) || 0;
             });
         }
 
+        console.log('💰 خريطة الأسماء:', menuItemsMap);
         console.log('💰 خريطة التكاليف:', itemCostMap);
 
-        const menuItemsMap = {};
-        if (menuItems) {
-            menuItems.forEach(item => {
-                menuItemsMap[item.id] = item.name_ar;
-            });
-        }
-
+        // 6. دمج البيانات
         const salesData = [];
         let totalRevenue = 0;
         let totalIngredientsCost = 0;
 
-        orders.forEach(order => {
-            const items = orderItems ? orderItems.filter(item => item.order_id === order.id) : [];
+        orderItems.forEach(item => {
+            // البحث عن الطلب
+            const order = orders.find(o => o.id === item.order_id);
+            if (!order) return;
+
+            const quantity = parseFloat(item.quantity) || 0;
+            const price = parseFloat(item.unit_price) || 0;
+            const itemTotal = quantity * price;
+            totalRevenue += itemTotal;
             
-            if (items.length > 0) {
-                items.forEach(item => {
-                    const quantity = parseFloat(item.quantity) || 0;
-                    const price = parseFloat(item.unit_price) || 0;
-                    const itemTotal = quantity * price;
-                    totalRevenue += itemTotal;
-                    
-                    const costPerUnit = itemCostMap[item.menu_item_id] || 0;
-                    const totalCostForItem = costPerUnit * quantity;
-                    totalIngredientsCost += totalCostForItem;
-                    
-                    salesData.push({
-                        'رقم الطلب': order.id,
-                        'التاريخ': new Date(order.created_at).toLocaleDateString('ar-EG'),
-                        'الوقت': new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-                        'الصنف': menuItemsMap[item.menu_item_id] || 'غير محدد',
-                        'الكمية': quantity,
-                        'السعر': price.toFixed(2),
-                        'الإجمالي': itemTotal.toFixed(2),
-                        'تكلفة الوحدة': costPerUnit.toFixed(2),
-                        'تكلفة المكونات': totalCostForItem.toFixed(2),
-                        'النوع': order.order_type === 'dine_in' ? 'داخلي' : 'توصيل'
-                    });
-                });
-            } else {
-                const orderTotal = parseFloat(order.total) || 0;
-                totalRevenue += orderTotal;
-                
-                salesData.push({
-                    'رقم الطلب': order.id,
-                    'التاريخ': new Date(order.created_at).toLocaleDateString('ar-EG'),
-                    'الوقت': new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-                    'الصنف': 'طلب كامل',
-                    'الكمية': 1,
-                    'السعر': orderTotal.toFixed(2),
-                    'الإجمالي': orderTotal.toFixed(2),
-                    'تكلفة الوحدة': '0.00',
-                    'تكلفة المكونات': '0.00',
-                    'النوع': order.order_type === 'dine_in' ? 'داخلي' : 'توصيل'
-                });
-            }
+            const costPerUnit = itemCostMap[item.menu_item_id] || 0;
+            const totalCostForItem = costPerUnit * quantity;
+            totalIngredientsCost += totalCostForItem;
+            
+            salesData.push({
+                'رقم الطلب': order.id,
+                'التاريخ': new Date(order.created_at).toLocaleDateString('ar-EG'),
+                'الوقت': new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+                'الصنف': menuItemsMap[item.menu_item_id] || `ID: ${item.menu_item_id}`,
+                'الكمية': quantity,
+                'السعر': price.toFixed(2),
+                'الإجمالي': itemTotal.toFixed(2),
+                'تكلفة الوحدة': costPerUnit.toFixed(2),
+                'تكلفة المكونات': totalCostForItem.toFixed(2),
+                'النوع': order.order_type === 'dine_in' ? 'داخلي' : order.order_type === 'delivery' ? 'توصيل' : order.order_type
+            });
         });
 
         console.log('💰 إجمالي المبيعات:', totalRevenue);
@@ -1594,6 +1556,7 @@ async function exportSalesExcel() {
         const grossProfit = totalRevenue - totalIngredientsCost;
         const profitMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(2) : '0.00';
 
+        // إضافة الملخص
         salesData.push({}, 
             { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '━━━━━━━━━━━━━━━━━━━━', 'الكمية': '', 'السعر': '', 'الإجمالي': '', 'تكلفة الوحدة': '', 'تكلفة المكونات': '', 'النوع': '' },
             { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📊 الملخص المالي', 'الكمية': '', 'السعر': '', 'الإجمالي': '', 'تكلفة الوحدة': '', 'تكلفة المكونات': '', 'النوع': '' },
@@ -1612,7 +1575,7 @@ async function exportSalesExcel() {
         XLSX.utils.book_append_sheet(wb, ws, 'تقرير المبيعات');
         XLSX.writeFile(wb, `تقرير_المبيعات_${fromDate}_${toDate}.xlsx`);
 
-        alert(`✅ تم تصدير التقرير بنجاح!\n\n📊 الملخص:\n• عدد الطلبات: ${orders.length}\n• إجمالي المبيعات: ${totalRevenue.toFixed(2)} جنيه\n• تكلفة المكونات: ${totalIngredientsCost.toFixed(2)} جنيه\n• مجمل الربح: ${grossProfit.toFixed(2)} جنيه\n• هامش الربح: ${profitMargin}%`);
+        alert(`✅ تم تصدير التقرير بنجاح!\n\n📊 الملخص:\n• عدد الطلبات: ${orders.length}\n• عدد الأصناف: ${orderItems.length}\n• إجمالي المبيعات: ${totalRevenue.toFixed(2)} جنيه\n• تكلفة المكونات: ${totalIngredientsCost.toFixed(2)} جنيه\n• مجمل الربح: ${grossProfit.toFixed(2)} جنيه\n• هامش الربح: ${profitMargin}%`);
 
     } catch (error) {
         console.error('❌ خطأ:', error);
