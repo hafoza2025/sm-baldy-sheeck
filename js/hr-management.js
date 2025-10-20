@@ -1445,7 +1445,6 @@ async function exportSalesExcel() {
     try {
         console.log('🔍 جاري تحميل المبيعات من', fromDate, 'إلى', toDate);
         
-        // تحميل الطلبات
         const { data: orders, error: ordersError } = await supabase
             .from('orders')
             .select('id, created_at, order_type, status, total')
@@ -1466,7 +1465,6 @@ async function exportSalesExcel() {
 
         const orderIds = orders.map(o => o.id);
         
-        // تحميل تفاصيل الطلبات
         const { data: orderItems, error: itemsError } = await supabase
             .from('order_items')
             .select('order_id, menu_item_id, quantity, unit_price')
@@ -1476,58 +1474,63 @@ async function exportSalesExcel() {
 
         const menuItemIds = orderItems ? [...new Set(orderItems.map(i => i.menu_item_id))] : [];
         
-        // تحميل أسماء الأصناف
         const { data: menuItems, error: menuError } = await supabase
             .from('menu_items')
-            .select('id, name_ar')
+            .select('id, name_ar, cost')
             .in('id', menuItemIds);
 
         if (menuError) console.error('خطأ:', menuError);
 
         // =============================================
-        // حساب تكلفة المكونات من الـ Recipe
+        // طريقة 1: محاولة جلب من recipe_ingredients
         // =============================================
+        let itemCostMap = {};
+        
         const { data: recipes, error: recipeError } = await supabase
             .from('recipe_ingredients')
-            .select('menu_item_id, inventory_item_id, quantity')
-            .in('menu_item_id', menuItemIds);
+            .select('menu_item_id, inventory_item_id, quantity');
 
-        if (recipeError) console.error('خطأ في تحميل الوصفات:', recipeError);
+        console.log('📦 عدد الوصفات المحملة:', recipes?.length || 0);
 
-        // تحميل أسعار المكونات من المخزون
-        const inventoryIds = recipes ? [...new Set(recipes.map(r => r.inventory_item_id))] : [];
-        
-        const { data: inventory, error: invError } = await supabase
-            .from('inventory')
-            .select('id, unit_cost')
-            .in('id', inventoryIds);
+        if (!recipeError && recipes && recipes.length > 0) {
+            const inventoryIds = [...new Set(recipes.map(r => r.inventory_item_id))];
+            
+            const { data: inventory, error: invError } = await supabase
+                .from('inventory')
+                .select('id, unit_cost')
+                .in('id', inventoryIds);
 
-        if (invError) console.error('خطأ في تحميل المخزون:', invError);
+            console.log('📦 عدد المكونات المحملة:', inventory?.length || 0);
 
-        // إنشاء خريطة لأسعار المكونات
-        const inventoryCostMap = {};
-        if (inventory) {
-            inventory.forEach(item => {
-                inventoryCostMap[item.id] = parseFloat(item.unit_cost) || 0;
+            if (!invError && inventory) {
+                const inventoryCostMap = {};
+                inventory.forEach(item => {
+                    inventoryCostMap[item.id] = parseFloat(item.unit_cost) || 0;
+                });
+
+                recipes.forEach(recipe => {
+                    if (!itemCostMap[recipe.menu_item_id]) {
+                        itemCostMap[recipe.menu_item_id] = 0;
+                    }
+                    const ingredientCost = inventoryCostMap[recipe.inventory_item_id] || 0;
+                    const quantity = parseFloat(recipe.quantity) || 0;
+                    itemCostMap[recipe.menu_item_id] += ingredientCost * quantity;
+                });
+            }
+        }
+
+        // =============================================
+        // طريقة 2: إذا فشلت، استخدم cost من menu_items
+        // =============================================
+        if (Object.keys(itemCostMap).length === 0 && menuItems) {
+            console.log('⚠️ لم يتم العثور على وصفات، استخدام cost من القائمة');
+            menuItems.forEach(item => {
+                itemCostMap[item.id] = parseFloat(item.cost) || 0;
             });
         }
 
-        // حساب تكلفة كل صنف من الوصفة
-        const itemCostMap = {};
-        if (recipes) {
-            recipes.forEach(recipe => {
-                if (!itemCostMap[recipe.menu_item_id]) {
-                    itemCostMap[recipe.menu_item_id] = 0;
-                }
-                const ingredientCost = inventoryCostMap[recipe.inventory_item_id] || 0;
-                const quantity = parseFloat(recipe.quantity) || 0;
-                itemCostMap[recipe.menu_item_id] += ingredientCost * quantity;
-            });
-        }
+        console.log('💰 خريطة التكاليف:', itemCostMap);
 
-        console.log('📦 تكلفة المكونات:', itemCostMap);
-
-        // إنشاء خريطة للأسماء
         const menuItemsMap = {};
         if (menuItems) {
             menuItems.forEach(item => {
@@ -1535,7 +1538,6 @@ async function exportSalesExcel() {
             });
         }
 
-        // دمج البيانات
         const salesData = [];
         let totalRevenue = 0;
         let totalIngredientsCost = 0;
@@ -1550,7 +1552,6 @@ async function exportSalesExcel() {
                     const itemTotal = quantity * price;
                     totalRevenue += itemTotal;
                     
-                    // حساب تكلفة المكونات لهذا الصنف
                     const costPerUnit = itemCostMap[item.menu_item_id] || 0;
                     const totalCostForItem = costPerUnit * quantity;
                     totalIngredientsCost += totalCostForItem;
@@ -1563,6 +1564,7 @@ async function exportSalesExcel() {
                         'الكمية': quantity,
                         'السعر': price.toFixed(2),
                         'الإجمالي': itemTotal.toFixed(2),
+                        'تكلفة الوحدة': costPerUnit.toFixed(2),
                         'تكلفة المكونات': totalCostForItem.toFixed(2),
                         'النوع': order.order_type === 'dine_in' ? 'داخلي' : 'توصيل'
                     });
@@ -1579,30 +1581,33 @@ async function exportSalesExcel() {
                     'الكمية': 1,
                     'السعر': orderTotal.toFixed(2),
                     'الإجمالي': orderTotal.toFixed(2),
+                    'تكلفة الوحدة': '0.00',
                     'تكلفة المكونات': '0.00',
                     'النوع': order.order_type === 'dine_in' ? 'داخلي' : 'توصيل'
                 });
             }
         });
 
+        console.log('💰 إجمالي المبيعات:', totalRevenue);
+        console.log('📦 إجمالي تكلفة المكونات:', totalIngredientsCost);
+
         const grossProfit = totalRevenue - totalIngredientsCost;
         const profitMargin = totalRevenue > 0 ? ((grossProfit / totalRevenue) * 100).toFixed(2) : '0.00';
 
-        // إضافة الملخص
         salesData.push({}, 
-            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '━━━━━━━━━━━━━━━━━━━━', 'الكمية': '', 'السعر': '', 'الإجمالي': '', 'تكلفة المكونات': '', 'النوع': '' },
-            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📊 الملخص المالي', 'الكمية': '', 'السعر': '', 'الإجمالي': '', 'تكلفة المكونات': '', 'النوع': '' },
-            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '💰 إجمالي المبيعات', 'الكمية': '', 'السعر': '', 'الإجمالي': totalRevenue.toFixed(2) + ' جنيه', 'تكلفة المكونات': '', 'النوع': '' },
-            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📦 تكلفة المكونات (من الوصفات)', 'الكمية': '', 'السعر': '', 'الإجمالي': totalIngredientsCost.toFixed(2) + ' جنيه', 'تكلفة المكونات': '', 'النوع': '' },
-            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '✅ مجمل الربح', 'الكمية': '', 'السعر': '', 'الإجمالي': grossProfit.toFixed(2) + ' جنيه', 'تكلفة المكونات': '', 'النوع': '' },
-            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📈 هامش الربح', 'الكمية': '', 'السعر': '', 'الإجمالي': profitMargin + '%', 'تكلفة المكونات': '', 'النوع': '' }
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '━━━━━━━━━━━━━━━━━━━━', 'الكمية': '', 'السعر': '', 'الإجمالي': '', 'تكلفة الوحدة': '', 'تكلفة المكونات': '', 'النوع': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📊 الملخص المالي', 'الكمية': '', 'السعر': '', 'الإجمالي': '', 'تكلفة الوحدة': '', 'تكلفة المكونات': '', 'النوع': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '💰 إجمالي المبيعات', 'الكمية': '', 'السعر': '', 'الإجمالي': totalRevenue.toFixed(2) + ' جنيه', 'تكلفة الوحدة': '', 'تكلفة المكونات': '', 'النوع': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📦 تكلفة المكونات', 'الكمية': '', 'السعر': '', 'الإجمالي': totalIngredientsCost.toFixed(2) + ' جنيه', 'تكلفة الوحدة': '', 'تكلفة المكونات': '', 'النوع': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '✅ مجمل الربح', 'الكمية': '', 'السعر': '', 'الإجمالي': grossProfit.toFixed(2) + ' جنيه', 'تكلفة الوحدة': '', 'تكلفة المكونات': '', 'النوع': '' },
+            { 'رقم الطلب': '', 'التاريخ': '', 'الوقت': '', 'الصنف': '📈 هامش الربح', 'الكمية': '', 'السعر': '', 'الإجمالي': profitMargin + '%', 'تكلفة الوحدة': '', 'تكلفة المكونات': '', 'النوع': '' }
         );
 
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(salesData);
         ws['!cols'] = [
             { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 30 },
-            { wch: 8 }, { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 10 }
+            { wch: 8 }, { wch: 10 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 10 }
         ];
         XLSX.utils.book_append_sheet(wb, ws, 'تقرير المبيعات');
         XLSX.writeFile(wb, `تقرير_المبيعات_${fromDate}_${toDate}.xlsx`);
