@@ -1195,95 +1195,30 @@ async function viewInvoiceDetails(invoiceId) {
 
 async function loadGeneralExpenses() {
     try {
-        console.log('🔍 جاري تحميل المصروفات العامة...');
-        
-        const { data, error } = await supabase
-            .from('general_expenses')
-            .select('*')
-            .order('expense_date', { ascending: false })
-            .limit(100);
+        // استدعاء الدالة مباشرة
+        const { data, error } = await supabase.rpc('get_expenses_summary');
 
-        if (error) {
-            console.error('❌ خطأ في تحميل المصروفات:', error);
-            throw error;
-        }
+        if (error) throw error;
 
-        const tbody = document.getElementById('expensesBody');
-        
-        if (!tbody) {
-            console.warn('⚠️ جدول المصروفات غير موجود');
-            return;
-        }
+        console.log('📊 البيانات من الدالة:', data);
 
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">لا توجد مصروفات</td></tr>';
-            
-            // تصفير البطاقات
-            document.getElementById('electricityTotal').textContent = '0.00 جنيه';
-            document.getElementById('waterTotal').textContent = '0.00 جنيه';
-            document.getElementById('internetTotal').textContent = '0.00 جنيه';
-            document.getElementById('gasTotal').textContent = '0.00 جنيه';
-            document.getElementById('rentTotal').textContent = '0.00 جنيه';
-            document.getElementById('expensesGrandTotal').textContent = '0.00 جنيه';
-            
-            console.log('✅ لا توجد مصروفات');
-            return;
-        }
-
-        console.log('✅ تم تحميل', data.length, 'مصروف');
-
-        const expenseTypeNames = {
-            'electricity': '⚡ كهرباء',
-            'water': '💧 مياه',
-            'internet': '🌐 إنترنت',
-            'gas': '🔥 غاز',
-            'rent': '🏠 إيجار',
-            'maintenance': '🔧 صيانة',
-            'other': '📌 أخرى'
-        };
-
-        // عرض البيانات في الجدول
-        tbody.innerHTML = data.map(exp => `
-            <tr>
-                <td>${expenseTypeNames[exp.expense_type] || exp.expense_type}</td>
-                <td>${new Date(exp.expense_date).toLocaleDateString('ar-EG')}</td>
-                <td style="font-weight: bold;">${(parseFloat(exp.amount) || 0).toFixed(2)} جنيه</td>
-                <td>${exp.paid_to || '-'}</td>
-                <td>${exp.description || '-'}</td>
-                <td>
-                    <button class="btn btn-sm btn-info" onclick="printExpense(${exp.id})">🖨️</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteExpense(${exp.id})">حذف</button>
-                </td>
-            </tr>
-        `).join('');
-
-        // =============================================
-        // حساب الإجماليات حسب النوع وتحديث البطاقات
-        // =============================================
+        // تحديث البطاقات
         const totals = {
             electricity: 0,
             water: 0,
             internet: 0,
             gas: 0,
-            rent: 0,
-            maintenance: 0,
-            other: 0
+            rent: 0
         };
 
-        data.forEach(exp => {
-            const amount = parseFloat(exp.amount) || 0;
-            
-            if (totals.hasOwnProperty(exp.expense_type)) {
-                totals[exp.expense_type] += amount;
-            } else {
-                // إذا كان النوع غير موجود في القائمة، أضفه للـ other
-                totals.other += amount;
+        data.forEach(item => {
+            if (totals.hasOwnProperty(item.expense_type)) {
+                totals[item.expense_type] = parseFloat(item.total_amount) || 0;
             }
         });
 
         const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
 
-        // تحديث البطاقات في Dashboard
         document.getElementById('electricityTotal').textContent = totals.electricity.toFixed(2) + ' جنيه';
         document.getElementById('waterTotal').textContent = totals.water.toFixed(2) + ' جنيه';
         document.getElementById('internetTotal').textContent = totals.internet.toFixed(2) + ' جنيه';
@@ -1291,18 +1226,10 @@ async function loadGeneralExpenses() {
         document.getElementById('rentTotal').textContent = totals.rent.toFixed(2) + ' جنيه';
         document.getElementById('expensesGrandTotal').textContent = grandTotal.toFixed(2) + ' جنيه';
 
-        console.log('✅ تم تحديث البطاقات:');
-        console.log('  - كهرباء:', totals.electricity.toFixed(2));
-        console.log('  - مياه:', totals.water.toFixed(2));
-        console.log('  - إنترنت:', totals.internet.toFixed(2));
-        console.log('  - غاز:', totals.gas.toFixed(2));
-        console.log('  - إيجار:', totals.rent.toFixed(2));
-        console.log('  - أخرى:', totals.other.toFixed(2));
-        console.log('  - الإجمالي:', grandTotal.toFixed(2));
+        console.log('✅ تم التحديث من Function');
 
     } catch (error) {
-        console.error('❌ خطأ في تحميل المصروفات:', error);
-        alert('حدث خطأ في تحميل المصروفات: ' + error.message);
+        console.error('❌ خطأ:', error);
     }
 }
 
