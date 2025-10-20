@@ -1474,13 +1474,12 @@ async function exportSalesExcel() {
 
         if (itemsError || !orderItems) {
             console.error('❌ خطأ في order_items:', itemsError);
-            alert('❌ خطأ في تحميل تفاصيل الطلبات');
             return;
         }
 
         const menuItemIds = [...new Set(orderItems.map(i => i.menu_item_id))];
         
-        // 3. تحميل أسماء الأصناف فقط
+        // 3. تحميل أسماء الأصناف
         const { data: menuItems, error: menuError } = await supabase
             .from('menu_items')
             .select('id, name_ar')
@@ -1488,41 +1487,41 @@ async function exportSalesExcel() {
 
         if (menuError) console.error('❌ خطأ في menu_items:', menuError);
 
-        // 4. تحميل الوصفات (recipes)
+        // 4. تحميل الوصفات من جدول recipes
         const { data: recipes, error: recipeError } = await supabase
-            .from('recipe_ingredients')
-            .select('menu_item_id, inventory_item_id, quantity')
+            .from('recipes')
+            .select('menu_item_id, ingredient_id, quantity_needed')
             .in('menu_item_id', menuItemIds);
 
         console.log('📦 عدد الوصفات:', recipes?.length || 0);
 
-        // 5. تحميل أسعار المخزون
-        let inventoryCostMap = {};
+        // 5. تحميل أسعار المكونات من جدول ingredients
+        let ingredientsCostMap = {};
         let itemCostMap = {};
 
         if (recipes && recipes.length > 0) {
-            const inventoryIds = [...new Set(recipes.map(r => r.inventory_item_id))];
+            const ingredientIds = [...new Set(recipes.map(r => r.ingredient_id))];
             
-            const { data: inventory, error: invError } = await supabase
-                .from('inventory')
-                .select('id, unit_cost')
-                .in('id', inventoryIds);
+            const { data: ingredients, error: ingError } = await supabase
+                .from('ingredients')
+                .select('id, cost_per_unit')
+                .in('id', ingredientIds);
 
-            console.log('📦 عدد المكونات:', inventory?.length || 0);
+            console.log('📦 عدد المكونات:', ingredients?.length || 0);
 
-            if (inventory) {
-                inventory.forEach(item => {
-                    inventoryCostMap[item.id] = parseFloat(item.unit_cost) || 0;
+            if (ingredients) {
+                ingredients.forEach(item => {
+                    ingredientsCostMap[item.id] = parseFloat(item.cost_per_unit) || 0;
                 });
             }
 
-            // حساب تكلفة كل صنف من الوصفة
+            // حساب تكلفة كل صنف
             recipes.forEach(recipe => {
                 if (!itemCostMap[recipe.menu_item_id]) {
                     itemCostMap[recipe.menu_item_id] = 0;
                 }
-                const ingredientCost = inventoryCostMap[recipe.inventory_item_id] || 0;
-                const quantity = parseFloat(recipe.quantity) || 0;
+                const ingredientCost = ingredientsCostMap[recipe.ingredient_id] || 0;
+                const quantity = parseFloat(recipe.quantity_needed) || 0;
                 itemCostMap[recipe.menu_item_id] += ingredientCost * quantity;
             });
         }
@@ -1601,6 +1600,7 @@ async function exportSalesExcel() {
         alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
+
 
 
 // =============================================
