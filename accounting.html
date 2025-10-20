@@ -1,1 +1,456 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام المحاسبة | مطعم الفرعون</title>
+    <link rel="stylesheet" href="css/shared.css">
+    <link rel="stylesheet" href="css/accounting.css">
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo">🏛️ نظام المحاسبة</div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="exportAllToExcel()">
+                    📊 تصدير Excel شامل
+                </button>
+                <button class="btn btn-info" onclick="showFinancialSummary()">
+                    💰 الملخص المالي
+                </button>
+                <span class="user-name" id="userName"></span>
+                <button class="btn btn-secondary" onclick="logout()">تسجيل الخروج</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="accounting-container">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
+                    <span class="icon">📊</span>
+                    <span>لوحة التحكم</span>
+                </a>
+                <a href="#" class="nav-item" data-section="employees" onclick="showSection('employees')">
+                    <span class="icon">👥</span>
+                    <span>الموظفين</span>
+                </a>
+                <a href="#" class="nav-item" data-section="attendance" onclick="showSection('attendance')">
+                    <span class="icon">📅</span>
+                    <span>الحضور والغياب</span>
+                </a>
+                <a href="#" class="nav-item" data-section="payroll" onclick="showSection('payroll')">
+                    <span class="icon">💵</span>
+                    <span>الرواتب</span>
+                </a>
+                <a href="#" class="nav-item" data-section="suppliers" onclick="showSection('suppliers')">
+                    <span class="icon">🏭</span>
+                    <span>الموردين</span>
+                </a>
+                <a href="#" class="nav-item" data-section="invoices" onclick="showSection('invoices')">
+                    <span class="icon">📑</span>
+                    <span>فواتير الموردين</span>
+                </a>
+                <a href="#" class="nav-item" data-section="expenses" onclick="showSection('expenses')">
+                    <span class="icon">💳</span>
+                    <span>المصروفات العامة</span>
+                </a>
+                <a href="#" class="nav-item" data-section="contracts" onclick="showSection('contracts')">
+                    <span class="icon">📄</span>
+                    <span>العقود</span>
+                </a>
+                <a href="#" class="nav-item" data-section="reports" onclick="showSection('reports')">
+                    <span class="icon">📈</span>
+                    <span>التقارير</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="content-section active">
+                <h2 class="section-title">لوحة التحكم المالية</h2>
+                
+                <!-- Date Filter -->
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label>الفترة:</label>
+                        <select id="periodFilter" onchange="AccountingSystem.applyFilter()">
+                            <option value="today">اليوم</option>
+                            <option value="week" selected>هذا الأسبوع</option>
+                            <option value="month">هذا الشهر</option>
+                            <option value="custom">مخصص</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" id="customDateGroup" style="display: none;">
+                        <input type="date" id="startDate">
+                        <span>إلى</span>
+                        <input type="date" id="endDate">
+                        <button class="btn btn-sm btn-primary" onclick="AccountingSystem.applyFilter()">تطبيق</button>
+                    </div>
+                </div>
+
+                <!-- Financial Summary Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card revenue">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <h3>إجمالي المبيعات</h3>
+                            <p class="stat-value" id="totalRevenue">0 ج.م</p>
+                            <span class="stat-period" id="revenuePeriod"></span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card expenses">
+                        <div class="stat-icon">💸</div>
+                        <div class="stat-info">
+                            <h3>إجمالي المصروفات</h3>
+                            <p class="stat-value" id="totalExpenses">0 ج.م</p>
+                            <span class="stat-period" id="expensesPeriod"></span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card profit">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-info">
+                            <h3>صافي الربح</h3>
+                            <p class="stat-value" id="netProfit">0 ج.م</p>
+                            <span class="stat-period" id="profitPeriod"></span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card employees-cost">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <h3>تكلفة الموظفين</h3>
+                            <p class="stat-value" id="employeesCost">0 ج.م</p>
+                            <span class="stat-period"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expenses Breakdown -->
+                <div class="breakdown-container">
+                    <div class="breakdown-card">
+                        <h3>تفصيل المصروفات</h3>
+                        <div class="breakdown-list" id="expensesBreakdown"></div>
+                    </div>
+
+                    <div class="breakdown-card">
+                        <h3>أعلى الموردين</h3>
+                        <div class="breakdown-list" id="topSuppliers"></div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="recent-transactions">
+                    <h3>آخر العمليات</h3>
+                    <div class="table-responsive">
+                        <table class="data-table" id="recentTransactionsTable">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>النوع</th>
+                                    <th>الوصف</th>
+                                    <th>المبلغ</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Employees Section -->
+            <section id="employees-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">إدارة الموظفين</h2>
+                    <button class="btn btn-primary" onclick="AccountingSystem.showAddEmployeeModal()">
+                        ➕ إضافة موظف
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="employeesTable">
+                        <thead>
+                            <tr>
+                                <th>الصورة</th>
+                                <th>الاسم</th>
+                                <th>الوظيفة</th>
+                                <th>القسم</th>
+                                <th>الراتب اليومي</th>
+                                <th>الراتب الشهري</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Attendance Section -->
+            <section id="attendance-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">الحضور والغياب</h2>
+                    <button class="btn btn-primary" onclick="AccountingSystem.showAttendanceModal()">
+                        ✅ تسجيل حضور
+                    </button>
+                </div>
+
+                <div class="attendance-calendar" id="attendanceCalendar"></div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="attendanceTable">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>الموظف</th>
+                                <th>وقت الدخول</th>
+                                <th>وقت الخروج</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Payroll Section -->
+            <section id="payroll-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">إدارة الرواتب</h2>
+                    <button class="btn btn-primary" onclick="AccountingSystem.showPayrollModal()">
+                        💵 إنشاء كشف راتب
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="payrollTable">
+                        <thead>
+                            <tr>
+                                <th>الشهر</th>
+                                <th>الموظف</th>
+                                <th>أيام العمل</th>
+                                <th>الأساسي</th>
+                                <th>الخصومات</th>
+                                <th>البونص</th>
+                                <th>الصافي</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Suppliers Section -->
+            <section id="suppliers-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">إدارة الموردين</h2>
+                    <button class="btn btn-primary" onclick="AccountingSystem.showAddSupplierModal()">
+                        ➕ إضافة مورد
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="suppliersTable">
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>الشركة</th>
+                                <th>الفئة</th>
+                                <th>الهاتف</th>
+                                <th>الرصيد الحالي</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Supplier Invoices Section -->
+            <section id="invoices-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">فواتير الموردين</h2>
+                    <button class="btn btn-primary" onclick="AccountingSystem.showAddInvoiceModal()">
+                        ➕ إضافة فاتورة
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="invoicesTable">
+                        <thead>
+                            <tr>
+                                <th>رقم الفاتورة</th>
+                                <th>المورد</th>
+                                <th>التاريخ</th>
+                                <th>الإجمالي</th>
+                                <th>المدفوع</th>
+                                <th>المتبقي</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- General Expenses Section -->
+            <section id="expenses-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">المصروفات العامة</h2>
+                    <button class="btn btn-primary" onclick="AccountingSystem.showAddExpenseModal()">
+                        ➕ إضافة مصروف
+                    </button>
+                </div>
+
+                <div class="expenses-categories">
+                    <button class="category-btn active" data-type="all" onclick="AccountingSystem.filterExpenses('all')">الكل</button>
+                    <button class="category-btn" data-type="electricity" onclick="AccountingSystem.filterExpenses('electricity')">⚡ كهرباء</button>
+                    <button class="category-btn" data-type="water" onclick="AccountingSystem.filterExpenses('water')">💧 مياه</button>
+                    <button class="category-btn" data-type="internet" onclick="AccountingSystem.filterExpenses('internet')">🌐 إنترنت</button>
+                    <button class="category-btn" data-type="gas" onclick="AccountingSystem.filterExpenses('gas')">🔥 غاز</button>
+                    <button class="category-btn" data-type="rent" onclick="AccountingSystem.filterExpenses('rent')">🏢 إيجار</button>
+                    <button class="category-btn" data-type="maintenance" onclick="AccountingSystem.filterExpenses('maintenance')">🔧 صيانة</button>
+                    <button class="category-btn" data-type="other" onclick="AccountingSystem.filterExpenses('other')">📋 أخرى</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="expensesTable">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>النوع</th>
+                                <th>الوصف</th>
+                                <th>المبلغ</th>
+                                <th>طريقة الدفع</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Contracts Section -->
+            <section id="contracts-section" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">إدارة العقود</h2>
+                    <button class="btn btn-primary" onclick="AccountingSystem.showCreateContractModal()">
+                        ➕ إنشاء عقد
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="contractsTable">
+                        <thead>
+                            <tr>
+                                <th>رقم العقد</th>
+                                <th>النوع</th>
+                                <th>العنوان</th>
+                                <th>الطرف</th>
+                                <th>المبلغ</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="content-section">
+                <h2 class="section-title">التقارير والإحصائيات</h2>
+
+                <div class="reports-grid">
+                    <div class="report-card" onclick="AccountingSystem.generateEmployeeReport()">
+                        <div class="report-icon">👥</div>
+                        <h3>تقرير الموظفين</h3>
+                        <p>تقرير شامل بالموظفين والحضور والرواتب</p>
+                    </div>
+
+                    <div class="report-card" onclick="AccountingSystem.generateExpensesReport()">
+                        <div class="report-icon">💸</div>
+                        <h3>تقرير المصروفات</h3>
+                        <p>تحليل تفصيلي لكافة المصروفات</p>
+                    </div>
+
+                    <div class="report-card" onclick="AccountingSystem.generateSuppliersReport()">
+                        <div class="report-icon">🏭</div>
+                        <h3>تقرير الموردين</h3>
+                        <p>تقرير الموردين والفواتير والمستحقات</p>
+                    </div>
+
+                    <div class="report-card" onclick="AccountingSystem.generateProfitLossReport()">
+                        <div class="report-icon">📊</div>
+                        <h3>الأرباح والخسائر</h3>
+                        <p>تقرير مفصل بالإيرادات والمصروفات</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals will be injected here -->
+    <div id="modalContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>جاري التحميل...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="config/keys.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/accounting.js"></script>
+    <script>
+        // Initialize system on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            AccountingSystem.init();
+        });
+
+        // Navigation
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Show selected section
+            document.getElementById(`${sectionName}-section`).classList.add('active');
+
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('authToken');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
 
