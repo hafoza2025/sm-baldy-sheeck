@@ -1747,6 +1747,9 @@ async function exportExpensesExcel() {
         let totalInvoicesPaid = 0;
         let totalInvoicesRemaining = 0;
 
+        // خريطة لتجميع ديون كل مورد
+        const supplierDebts = {};
+
         // =============================================
         // 3. إضافة المصروفات العامة
         // =============================================
@@ -1837,10 +1840,25 @@ async function exportExpensesExcel() {
                 const amount = parseFloat(inv.amount) || 0;
                 const paid = parseFloat(inv.paid_amount) || 0;
                 const remaining = amount - paid;
+                const supplierName = inv.suppliers?.name || 'غير محدد';
 
                 totalInvoicesAmount += amount;
                 totalInvoicesPaid += paid;
                 totalInvoicesRemaining += remaining;
+
+                // تجميع ديون كل مورد
+                if (!supplierDebts[supplierName]) {
+                    supplierDebts[supplierName] = {
+                        totalAmount: 0,
+                        totalPaid: 0,
+                        totalRemaining: 0,
+                        invoicesCount: 0
+                    };
+                }
+                supplierDebts[supplierName].totalAmount += amount;
+                supplierDebts[supplierName].totalPaid += paid;
+                supplierDebts[supplierName].totalRemaining += remaining;
+                supplierDebts[supplierName].invoicesCount++;
 
                 const statusBadge = inv.status === 'paid' ? '✅ مدفوعة' 
                     : inv.status === 'partial' ? '⏳ جزئي' 
@@ -1848,19 +1866,19 @@ async function exportExpensesExcel() {
 
                 allExpenses.push({
                     'القسم': 'فاتورة مورد',
-                    'النوع': inv.suppliers?.name || 'غير محدد',
+                    'النوع': supplierName,
                     'التاريخ': new Date(inv.invoice_date).toLocaleDateString('ar-EG'),
                     'المبلغ الكلي': amount.toFixed(2),
                     'المدفوع': paid.toFixed(2),
                     'المتبقي': remaining.toFixed(2),
-                    'المدفوع إلى': inv.suppliers?.name || '-',
-                    'الوصف': `${statusBadge} - ${inv.description || 'فاتورة مشتريات'}`
+                    'المدفوع إلى': supplierName,
+                    'الوصف': `${statusBadge} - رقم ${inv.invoice_number || inv.id} - ${inv.description || 'فاتورة مشتريات'}`
                 });
             });
         }
 
         // =============================================
-        // 5. الملخص النهائي
+        // 5. الملخص الإجمالي
         // =============================================
         const totalExpenses = totalGeneral + totalInvoicesPaid;
 
@@ -1932,25 +1950,108 @@ async function exportExpensesExcel() {
         });
 
         // =============================================
-        // 6. إنشاء Excel
+        // 6. تفصيل الديون لكل مورد
+        // =============================================
+        if (Object.keys(supplierDebts).length > 0) {
+            allExpenses.push({});
+            allExpenses.push({});
+            allExpenses.push({
+                'القسم': '═══════════════════════════════',
+                'النوع': '',
+                'التاريخ': '',
+                'المبلغ الكلي': '',
+                'المدفوع': '',
+                'المتبقي': '',
+                'المدفوع إلى': '',
+                'الوصف': ''
+            });
+            allExpenses.push({
+                'القسم': '📛 تفصيل الديون المتبقية لكل مورد',
+                'النوع': '',
+                'التاريخ': '',
+                'المبلغ الكلي': '',
+                'المدفوع': '',
+                'المتبقي': '',
+                'المدفوع إلى': '',
+                'الوصف': ''
+            });
+            allExpenses.push({
+                'القسم': '═══════════════════════════════',
+                'النوع': '',
+                'التاريخ': '',
+                'المبلغ الكلي': '',
+                'المدفوع': '',
+                'المتبقي': '',
+                'المدفوع إلى': '',
+                'الوصف': ''
+            });
+
+            // ترتيب الموردين حسب الدين المتبقي (من الأكبر للأصغر)
+            const sortedSuppliers = Object.entries(supplierDebts)
+                .sort((a, b) => b[1].totalRemaining - a[1].totalRemaining);
+
+            sortedSuppliers.forEach(([supplierName, debt]) => {
+                const status = debt.totalRemaining > 0 ? '⚠️ يوجد دين' : '✅ مدفوع بالكامل';
+                
+                allExpenses.push({
+                    'القسم': 'مورد',
+                    'النوع': supplierName,
+                    'التاريخ': '',
+                    'المبلغ الكلي': debt.totalAmount.toFixed(2),
+                    'المدفوع': debt.totalPaid.toFixed(2),
+                    'المتبقي': debt.totalRemaining.toFixed(2),
+                    'المدفوع إلى': '',
+                    'الوصف': `${status} - عدد الفواتير: ${debt.invoicesCount}`
+                });
+            });
+
+            allExpenses.push({});
+            allExpenses.push({
+                'القسم': '📊 إجمالي الديون',
+                'النوع': '',
+                'التاريخ': '',
+                'المبلغ الكلي': totalInvoicesAmount.toFixed(2) + ' جنيه',
+                'المدفوع': totalInvoicesPaid.toFixed(2) + ' جنيه',
+                'المتبقي': totalInvoicesRemaining.toFixed(2) + ' جنيه',
+                'المدفوع إلى': '',
+                'الوصف': `عدد الموردين: ${Object.keys(supplierDebts).length}`
+            });
+        }
+
+        // =============================================
+        // 7. إنشاء Excel
         // =============================================
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(allExpenses);
         ws['!cols'] = [
-            { wch: 15 }, { wch: 20 }, { wch: 12 },
-            { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 35 }
+            { wch: 18 }, { wch: 20 }, { wch: 12 },
+            { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 40 }
         ];
         XLSX.utils.book_append_sheet(wb, ws, 'تقرير المصروفات');
-        XLSX.writeFile(wb, `تقرير_المصروفات_${fromDate}_${toDate}.xlsx`);
+        XLSX.writeFile(wb, `تقرير_المصروفات_المفصل_${fromDate}_${toDate}.xlsx`);
 
-        alert(`✅ تم تصدير تقرير المصروفات بنجاح!\n\n` +
+        // إعداد رسالة الملخص
+        let debtDetails = '';
+        if (Object.keys(supplierDebts).length > 0) {
+            debtDetails = '\n\n📛 الديون المتبقية حسب المورد:\n';
+            Object.entries(supplierDebts)
+                .sort((a, b) => b[1].totalRemaining - a[1].totalRemaining)
+                .forEach(([name, debt]) => {
+                    if (debt.totalRemaining > 0) {
+                        debtDetails += `• ${name}: ${debt.totalRemaining.toFixed(2)} جنيه\n`;
+                    }
+                });
+        }
+
+        alert(`✅ تم تصدير تقرير المصروفات المفصل بنجاح!\n\n` +
               `📊 ملخص:\n` +
               `• المصروفات العامة: ${totalGeneral.toFixed(2)} جنيه\n\n` +
               `📄 فواتير الموردين:\n` +
               `• إجمالي الفواتير: ${totalInvoicesAmount.toFixed(2)} جنيه\n` +
               `• المدفوع: ${totalInvoicesPaid.toFixed(2)} جنيه\n` +
               `• المتبقي (الدين): ${totalInvoicesRemaining.toFixed(2)} جنيه\n\n` +
-              `✅ إجمالي المصروفات المدفوعة: ${totalExpenses.toFixed(2)} جنيه`);
+              `✅ إجمالي المصروفات المدفوعة: ${totalExpenses.toFixed(2)} جنيه` +
+              debtDetails);
 
     } catch (error) {
         console.error('❌ خطأ:', error);
@@ -1958,7 +2059,7 @@ async function exportExpensesExcel() {
     }
 }
 
-console.log('✅ Detailed Expenses Report Loaded');
+console.log('✅ Detailed Expenses Report with Supplier Debts Loaded');
 
 
 // =============================================
