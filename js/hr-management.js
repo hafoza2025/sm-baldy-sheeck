@@ -2403,3 +2403,169 @@ async function exportPayments() {
 }
 
 console.log('✅ All Export Functions Loaded - Complete Version with Debt & Cost Tracking');
+// =============================================
+// حل نهائي لتحديث المصروفات العامة
+// =============================================
+
+// دالة محسّنة لتحديث البطاقات
+async function updateExpenseCards() {
+    try {
+        console.log('🔄 تحديث بطاقات المصروفات...');
+        
+        // جلب البيانات
+        const { data, error } = await supabase
+            .from('general_expenses')
+            .select('expense_type, amount');
+
+        if (error) {
+            console.error('❌ خطأ:', error);
+            return;
+        }
+
+        console.log('✅ البيانات من Supabase:', data);
+
+        // حساب الإجماليات
+        const totals = {
+            electricity: 0,
+            water: 0,
+            internet: 0,
+            gas: 0,
+            rent: 0,
+            other: 0
+        };
+
+        if (data && data.length > 0) {
+            data.forEach(exp => {
+                const amount = parseFloat(exp.amount) || 0;
+                const type = exp.expense_type;
+                
+                if (totals.hasOwnProperty(type)) {
+                    totals[type] += amount;
+                } else {
+                    totals.other += amount;
+                }
+            });
+        }
+
+        const grandTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+
+        console.log('📊 الإجماليات:', totals);
+        console.log('💰 الإجمالي الكلي:', grandTotal);
+
+        // تحديث البطاقات مباشرة
+        const cards = {
+            'electricityTotal': totals.electricity,
+            'waterTotal': totals.water,
+            'internetTotal': totals.internet,
+            'gasTotal': totals.gas,
+            'rentTotal': totals.rent,
+            'expensesGrandTotal': grandTotal
+        };
+
+        for (const [id, value] of Object.entries(cards)) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value.toFixed(2) + ' جنيه';
+                console.log(`✅ ${id} = ${value.toFixed(2)} جنيه`);
+            } else {
+                console.warn(`⚠️ العنصر ${id} غير موجود`);
+            }
+        }
+
+        console.log('✅ تم تحديث جميع البطاقات بنجاح!');
+
+    } catch (error) {
+        console.error('❌ خطأ في تحديث البطاقات:', error);
+    }
+}
+
+// تحديث دالة loadGeneralExpenses
+async function loadGeneralExpenses() {
+    try {
+        console.log('🔍 جاري تحميل المصروفات العامة...');
+        
+        const { data, error } = await supabase
+            .from('general_expenses')
+            .select('*')
+            .order('expense_date', { ascending: false });
+
+        if (error) throw error;
+
+        const tbody = document.getElementById('expensesBody');
+        
+        if (!tbody) {
+            console.warn('⚠️ جدول المصروفات غير موجود');
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">لا توجد مصروفات</td></tr>';
+        } else {
+            const expenseTypeNames = {
+                'electricity': '⚡ كهرباء',
+                'water': '💧 مياه',
+                'internet': '🌐 إنترنت',
+                'gas': '🔥 غاز',
+                'rent': '🏠 إيجار',
+                'maintenance': '🔧 صيانة',
+                'other': '📌 أخرى'
+            };
+
+            tbody.innerHTML = data.map(exp => `
+                <tr>
+                    <td>${expenseTypeNames[exp.expense_type] || exp.expense_type}</td>
+                    <td>${new Date(exp.expense_date).toLocaleDateString('ar-EG')}</td>
+                    <td style="font-weight: bold; color: #f44336;">${(parseFloat(exp.amount) || 0).toFixed(2)} جنيه</td>
+                    <td>${exp.paid_to || '-'}</td>
+                    <td>${exp.description || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="printExpense(${exp.id})">🖨️</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteExpense(${exp.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // تحديث البطاقات
+        await updateExpenseCards();
+
+        console.log('✅ تم تحميل المصروفات بنجاح');
+
+    } catch (error) {
+        console.error('❌ خطأ في تحميل المصروفات:', error);
+    }
+}
+
+// استدعاء عند تحميل الصفحة
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 تحميل الصفحة - تهيئة المصروفات...');
+    setTimeout(() => {
+        updateExpenseCards();
+        loadGeneralExpenses();
+    }, 2000);
+});
+
+// استدعاء عند الضغط على أي تبويب
+document.addEventListener('click', function(e) {
+    const target = e.target;
+    
+    // إذا كان الزر يحتوي على "مصروفات" أو "expenses"
+    if (target.tagName === 'BUTTON' || target.classList.contains('tab-btn')) {
+        const text = target.textContent || target.innerText || '';
+        if (text.includes('المصروفات') || text.includes('expenses')) {
+            console.log('🔄 تم الضغط على تبويب المصروفات');
+            setTimeout(() => {
+                updateExpenseCards();
+                loadGeneralExpenses();
+            }, 500);
+        }
+    }
+});
+
+// تصدير للاستخدام العام
+if (typeof window !== 'undefined') {
+    window.updateExpenseCards = updateExpenseCards;
+    window.loadGeneralExpenses = loadGeneralExpenses;
+}
+
+console.log('✅ HR Management - Expenses Module Loaded with Auto-Update');
