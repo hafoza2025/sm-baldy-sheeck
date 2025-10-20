@@ -1426,7 +1426,7 @@ function switchSupplierSubTab(tabName) {
 
 console.log('✅ Complete HR & Suppliers Management System with Smart Payments loaded');
 // ===================================
-// تصدير التقارير إلى Excel (محسّن ومعالج للأخطاء)
+// تصدير التقارير إلى Excel (النسخة النهائية المُحسّنة)
 // ===================================
 
 async function exportSalesExcel() {
@@ -1441,45 +1441,77 @@ async function exportSalesExcel() {
     try {
         console.log('🔍 جاري تحميل المبيعات من', fromDate, 'إلى', toDate);
         
-        // تحميل الطلبات
-        const { data: orders, error } = await supabase
+        // ======================================
+        // الطريقة المُحسّنة: استعلامات منفصلة
+        // ======================================
+        
+        // 1. تحميل الطلبات أولاً
+        const { data: orders, error: ordersError } = await supabase
             .from('orders')
-            .select(`
-                id,
-                created_at,
-                order_type,
-                status,
-                order_items (
-                    quantity,
-                    price,
-                    menu_items (name_ar)
-                )
-            `)
+            .select('id, created_at, order_type, status, total')
             .gte('created_at', fromDate + 'T00:00:00')
             .lte('created_at', toDate + 'T23:59:59')
-            .eq('status', 'completed');
+            .in('status', ['completed', 'paid']);
 
-        if (error) {
-            console.error('خطأ في الاستعلام:', error);
-            throw error;
+        if (ordersError) {
+            console.error('❌ خطأ في تحميل الطلبات:', ordersError);
+            alert('❌ خطأ في تحميل الطلبات: ' + ordersError.message);
+            return;
         }
 
         console.log('📦 تم تحميل', orders?.length || 0, 'طلب');
 
         if (!orders || orders.length === 0) {
-            alert('⚠️ لا توجد طلبات مكتملة في هذه الفترة');
+            alert('⚠️ لا توجد طلبات في هذه الفترة\n\nتأكد من:\n✅ وجود طلبات بحالة "completed" أو "paid"\n✅ التواريخ المختارة صحيحة');
             return;
         }
 
-        // تحضير البيانات
+        // 2. تحميل تفاصيل الطلبات (order_items)
+        const orderIds = orders.map(o => o.id);
+        
+        const { data: orderItems, error: itemsError } = await supabase
+            .from('order_items')
+            .select('order_id, menu_item_id, quantity, unit_price')
+            .in('order_id', orderIds);
+
+        if (itemsError) {
+            console.error('❌ خطأ في تحميل تفاصيل الطلبات:', itemsError);
+        }
+
+        console.log('📦 تم تحميل', orderItems?.length || 0, 'صنف');
+
+        // 3. تحميل أسماء الأصناف
+        const menuItemIds = orderItems ? [...new Set(orderItems.map(i => i.menu_item_id))] : [];
+        
+        const { data: menuItems, error: menuError } = await supabase
+            .from('menu_items')
+            .select('id, name_ar')
+            .in('id', menuItemIds);
+
+        if (menuError) {
+            console.error('❌ خطأ في تحميل القائمة:', menuError);
+        }
+
+        // إنشاء خريطة للأصناف
+        const menuItemsMap = {};
+        if (menuItems) {
+            menuItems.forEach(item => {
+                menuItemsMap[item.id] = item.name_ar;
+            });
+        }
+
+        // 4. دمج البيانات وإعداد التقرير
         const salesData = [];
         let totalRevenue = 0;
 
         orders.forEach(order => {
-            if (order.order_items && Array.isArray(order.order_items)) {
-                order.order_items.forEach(item => {
+            // البحث عن الأصناف الخاصة بهذا الطلب
+            const items = orderItems ? orderItems.filter(item => item.order_id === order.id) : [];
+            
+            if (items.length > 0) {
+                items.forEach(item => {
                     const quantity = parseFloat(item.quantity) || 0;
-                    const price = parseFloat(item.price) || 0;
+                    const price = parseFloat(item.unit_price) || 0;
                     const itemTotal = quantity * price;
                     totalRevenue += itemTotal;
                     
@@ -1487,25 +1519,52 @@ async function exportSalesExcel() {
                         'رقم الطلب': order.id || '-',
                         'التاريخ': order.created_at ? new Date(order.created_at).toLocaleDateString('ar-EG') : '-',
                         'الوقت': order.created_at ? new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-',
-                        'الصنف': item.menu_items?.name_ar || 'غير محدد',
+                        'الصنف': menuItemsMap[item.menu_item_id] || 'غير محدد',
                         'الكمية': quantity,
                         'السعر': price.toFixed(2),
                         'الإجمالي': itemTotal.toFixed(2),
                         'النوع': order.order_type === 'dine_in' ? 'داخلي' : order.order_type === 'delivery' ? 'توصيل' : 'غير محدد',
-                        'الحالة': 'مكتمل'
+                        'الحالة': order.status || '-'
                     });
+                });
+            } else {
+                // إذا لم توجد تفاصيل، استخدم إجمالي الطلب
+                const orderTotal = parseFloat(order.total) || 0;
+                totalRevenue += orderTotal;
+                
+                salesData.push({
+                    'رقم الطلب': order.id || '-',
+                    'التاريخ': order.created_at ? new Date(order.created_at).toLocaleDateString('ar-EG') : '-',
+                    'الوقت': order.created_at ? new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-',
+                    'الصنف': 'طلب كامل',
+                    'الكمية': 1,
+                    'السعر': orderTotal.toFixed(2),
+                    'الإجمالي': orderTotal.toFixed(2),
+                    'النوع': order.order_type === 'dine_in' ? 'داخلي' : order.order_type === 'delivery' ? 'توصيل' : 'غير محدد',
+                    'الحالة': order.status || '-'
                 });
             }
         });
 
         console.log('💰 إجمالي المبيعات:', totalRevenue);
 
-        // حساب التكاليف (تقديري 35%)
+        // حساب التكاليف والأرباح
         const totalCost = totalRevenue * 0.35;
         const netProfit = totalRevenue - totalCost;
 
         // إضافة صف الملخص
         salesData.push({});
+        salesData.push({
+            'رقم الطلب': '',
+            'التاريخ': '',
+            'الوقت': '',
+            'الصنف': '━━━━━━━━━━━━━━━━━━━━',
+            'الكمية': '',
+            'السعر': '',
+            'الإجمالي': '',
+            'النوع': '',
+            'الحالة': ''
+        });
         salesData.push({
             'رقم الطلب': '',
             'التاريخ': '',
@@ -1566,11 +1625,224 @@ async function exportSalesExcel() {
         const fileName = `تقرير_المبيعات_${fromDate}_${toDate}.xlsx`;
         XLSX.writeFile(wb, fileName);
 
-        alert(`✅ تم تصدير التقرير بنجاح!\n\n📊 الملخص:\n• عدد الطلبات: ${orders.length}\n• إجمالي المبيعات: ${totalRevenue.toFixed(2)} جنيه\n• صافي الربح: ${netProfit.toFixed(2)} جنيه`);
+        alert(`✅ تم تصدير التقرير بنجاح!\n\n📊 الملخص:\n• عدد الطلبات: ${orders.length}\n• عدد الأصناف: ${salesData.length - 6}\n• إجمالي المبيعات: ${totalRevenue.toFixed(2)} جنيه\n• صافي الربح: ${netProfit.toFixed(2)} جنيه`);
 
     } catch (error) {
         console.error('❌ خطأ في تصدير المبيعات:', error);
         alert('❌ حدث خطأ في تصدير التقرير:\n' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+async function exportSalariesExcel() {
+    const fromDate = document.getElementById('salary-export-from').value;
+    const toDate = document.getElementById('salary-export-to').value;
+
+    if (!fromDate || !toDate) {
+        alert('❌ يرجى اختيار الفترة الزمنية');
+        return;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('employee_attendance')
+            .select(`
+                *,
+                employees (name, position, daily_salary)
+            `)
+            .gte('date', fromDate)
+            .lte('date', toDate);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert('⚠️ لا توجد بيانات حضور في هذه الفترة');
+            return;
+        }
+
+        const salaryMap = {};
+        
+        data.forEach(record => {
+            const empId = record.employee_id;
+            if (!salaryMap[empId]) {
+                salaryMap[empId] = {
+                    'اسم الموظف': record.employees.name,
+                    'الوظيفة': record.employees.position,
+                    'الراتب اليومي': record.employees.daily_salary,
+                    'أيام الحضور': 0,
+                    'أيام الغياب': 0,
+                    'نصف يوم': 0,
+                    'إجمالي المستحق': 0
+                };
+            }
+
+            if (record.status === 'present') salaryMap[empId]['أيام الحضور']++;
+            else if (record.status === 'absent') salaryMap[empId]['أيام الغياب']++;
+            else if (record.status === 'half_day') salaryMap[empId]['نصف يوم']++;
+
+            salaryMap[empId]['إجمالي المستحق'] += parseFloat(record.salary_paid || 0);
+        });
+
+        const salaryData = Object.values(salaryMap);
+        const totalSalaries = salaryData.reduce((sum, emp) => sum + emp['إجمالي المستحق'], 0);
+
+        salaryData.push({});
+        salaryData.push({
+            'اسم الموظف': '📊 الإجمالي الكلي',
+            'الوظيفة': '',
+            'الراتب اليومي': '',
+            'أيام الحضور': '',
+            'أيام الغياب': '',
+            'نصف يوم': '',
+            'إجمالي المستحق': totalSalaries.toFixed(2) + ' جنيه'
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(salaryData);
+
+        ws['!cols'] = [
+            { wch: 20 }, { wch: 15 }, { wch: 12 },
+            { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 15 }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, 'تقرير الرواتب');
+        XLSX.writeFile(wb, `تقرير_الرواتب_${fromDate}_${toDate}.xlsx`);
+
+        alert('✅ تم تصدير تقرير الرواتب بنجاح!');
+
+    } catch (error) {
+        console.error('❌ خطأ في تصدير الرواتب:', error);
+        alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+async function exportExpensesExcel() {
+    const fromDate = document.getElementById('expense-export-from').value;
+    const toDate = document.getElementById('expense-export-to').value;
+
+    if (!fromDate || !toDate) {
+        alert('❌ يرجى اختيار الفترة الزمنية');
+        return;
+    }
+
+    try {
+        const { data: expenses, error: expError } = await supabase
+            .from('general_expenses')
+            .select('*')
+            .gte('expense_date', fromDate)
+            .lte('expense_date', toDate);
+
+        if (expError) throw expError;
+
+        const { data: invoices, error: invError } = await supabase
+            .from('supplier_invoices')
+            .select(`
+                *,
+                suppliers (name)
+            `)
+            .gte('invoice_date', fromDate)
+            .lte('invoice_date', toDate);
+
+        if (invError) throw invError;
+
+        if ((!expenses || expenses.length === 0) && (!invoices || invoices.length === 0)) {
+            alert('⚠️ لا توجد مصروفات في هذه الفترة');
+            return;
+        }
+
+        const expenseTypeNames = {
+            'electricity': '⚡ كهرباء',
+            'water': '💧 مياه',
+            'internet': '🌐 إنترنت',
+            'gas': '🔥 غاز',
+            'rent': '🏠 إيجار',
+            'maintenance': '🔧 صيانة',
+            'other': '📌 أخرى'
+        };
+
+        const allExpenses = [];
+        let totalGeneral = 0;
+        let totalInvoices = 0;
+
+        if (expenses) {
+            expenses.forEach(exp => {
+                totalGeneral += exp.amount;
+                allExpenses.push({
+                    'النوع': 'مصروف عام',
+                    'التصنيف': expenseTypeNames[exp.expense_type] || exp.expense_type,
+                    'التاريخ': new Date(exp.expense_date).toLocaleDateString('ar-EG'),
+                    'المبلغ': exp.amount.toFixed(2),
+                    'المدفوع إلى': exp.paid_to || '-',
+                    'الوصف': exp.description || '-'
+                });
+            });
+        }
+
+        if (invoices) {
+            invoices.forEach(inv => {
+                totalInvoices += inv.amount;
+                allExpenses.push({
+                    'النوع': 'فاتورة مورد',
+                    'التصنيف': inv.suppliers?.name || 'غير محدد',
+                    'التاريخ': new Date(inv.invoice_date).toLocaleDateString('ar-EG'),
+                    'المبلغ': inv.amount.toFixed(2),
+                    'المدفوع إلى': inv.suppliers?.name || '-',
+                    'الوصف': inv.description || '-'
+                });
+            });
+        }
+
+        const totalExpenses = totalGeneral + totalInvoices;
+
+        allExpenses.push({});
+        allExpenses.push({
+            'النوع': '📊 الملخص',
+            'التصنيف': '',
+            'التاريخ': '',
+            'المبلغ': '',
+            'المدفوع إلى': '',
+            'الوصف': ''
+        });
+        allExpenses.push({
+            'النوع': 'المصروفات العامة',
+            'التصنيف': '',
+            'التاريخ': '',
+            'المبلغ': totalGeneral.toFixed(2) + ' جنيه',
+            'المدفوع إلى': '',
+            'الوصف': ''
+        });
+        allExpenses.push({
+            'النوع': 'فواتير الموردين',
+            'التصنيف': '',
+            'التاريخ': '',
+            'المبلغ': totalInvoices.toFixed(2) + ' جنيه',
+            'المدفوع إلى': '',
+            'الوصف': ''
+        });
+        allExpenses.push({
+            'النوع': 'الإجمالي الكلي',
+            'التصنيف': '',
+            'التاريخ': '',
+            'المبلغ': totalExpenses.toFixed(2) + ' جنيه',
+            'المدفوع إلى': '',
+            'الوصف': ''
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(allExpenses);
+
+        ws['!cols'] = [
+            { wch: 15 }, { wch: 20 }, { wch: 12 },
+            { wch: 12 }, { wch: 20 }, { wch: 30 }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, 'تقرير المصروفات');
+        XLSX.writeFile(wb, `تقرير_المصروفات_${fromDate}_${toDate}.xlsx`);
+
+        alert('✅ تم تصدير تقرير المصروفات بنجاح!');
+
+    } catch (error) {
+        console.error('❌ خطأ في تصدير المصروفات:', error);
+        alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
@@ -1586,13 +1858,13 @@ async function exportFullFinancialReport() {
     try {
         console.log('🔍 جاري تحميل التقرير الشامل...');
 
-        // 1. المبيعات
+        // 1. المبيعات - استخدام total من جدول orders
         const { data: orders, error: ordersError } = await supabase
             .from('orders')
-            .select('id, order_items(quantity, price)')
+            .select('id, total, status')
             .gte('created_at', fromDate + 'T00:00:00')
             .lte('created_at', toDate + 'T23:59:59')
-            .eq('status', 'completed');
+            .in('status', ['completed', 'paid']);
 
         if (ordersError) {
             console.error('خطأ في تحميل المبيعات:', ordersError);
@@ -1600,15 +1872,7 @@ async function exportFullFinancialReport() {
 
         let totalRevenue = 0;
         if (orders && orders.length > 0) {
-            orders.forEach(order => {
-                if (order.order_items && Array.isArray(order.order_items)) {
-                    order.order_items.forEach(item => {
-                        const quantity = parseFloat(item.quantity) || 0;
-                        const price = parseFloat(item.price) || 0;
-                        totalRevenue += quantity * price;
-                    });
-                }
-            });
+            totalRevenue = orders.reduce((sum, order) => sum + (parseFloat(order.total) || 0), 0);
         }
 
         console.log('💰 إجمالي المبيعات:', totalRevenue);
@@ -1680,6 +1944,7 @@ async function exportFullFinancialReport() {
             { 'البيان': '━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━' },
             { 'البيان': '📊 الإيرادات', 'القيمة': '' },
             { 'البيان': 'إجمالي المبيعات', 'القيمة': totalRevenue.toFixed(2) + ' جنيه' },
+            { 'البيان': `عدد الطلبات: ${orders?.length || 0}`, 'القيمة': '' },
             { 'البيان': '', 'القيمة': '' },
             { 'البيان': '━━━━━━━━━━━━━━━━━━━━', 'القيمة': '━━━━━━━━━━━━━━━━━━━━' },
             { 'البيان': '💰 المصروفات', 'القيمة': '' },
@@ -1697,10 +1962,7 @@ async function exportFullFinancialReport() {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.json_to_sheet(financialData);
 
-        ws['!cols'] = [
-            { wch: 30 },
-            { wch: 25 }
-        ];
+        ws['!cols'] = [{ wch: 30 }, { wch: 25 }];
 
         XLSX.utils.book_append_sheet(wb, ws, 'التقرير المالي الشامل');
         
@@ -1711,8 +1973,85 @@ async function exportFullFinancialReport() {
 
     } catch (error) {
         console.error('❌ خطأ في تصدير التقرير الشامل:', error);
-        alert('❌ حدث خطأ في تصدير التقرير الشامل:\n' + (error.message || 'خطأ غير معروف'));
+        alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
-console.log('✅ Excel Export Functions loaded (Fixed Version)');
+async function exportPayments() {
+    const fromDate = document.getElementById('paymentsFromDate').value;
+    const toDate = document.getElementById('paymentsToDate').value;
+
+    if (!fromDate || !toDate) {
+        alert('❌ يرجى اختيار الفترة الزمنية');
+        return;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('supplier_payments')
+            .select(`
+                *,
+                suppliers (name),
+                supplier_invoices (invoice_number)
+            `)
+            .gte('payment_date', fromDate)
+            .lte('payment_date', toDate)
+            .order('payment_date', { ascending: false });
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            alert('⚠️ لا توجد دفعات في هذه الفترة');
+            return;
+        }
+
+        const paymentMethods = {
+            'cash': '💵 نقدي',
+            'bank_transfer': '🏦 تحويل بنكي',
+            'check': '📝 شيك',
+            'credit': '💳 آجل'
+        };
+
+        const paymentsData = data.map(payment => ({
+            'التاريخ': new Date(payment.payment_date).toLocaleDateString('ar-EG'),
+            'المورد': payment.suppliers?.name || 'غير محدد',
+            'رقم الفاتورة': '#' + (payment.supplier_invoices?.invoice_number || payment.invoice_id),
+            'المبلغ': payment.payment_amount.toFixed(2),
+            'طريقة الدفع': paymentMethods[payment.payment_method] || payment.payment_method,
+            'رقم الإيصال': payment.receipt_number || '-',
+            'ملاحظات': payment.notes || '-'
+        }));
+
+        const total = data.reduce((sum, p) => sum + parseFloat(p.payment_amount), 0);
+
+        paymentsData.push({});
+        paymentsData.push({
+            'التاريخ': '',
+            'المورد': '',
+            'رقم الفاتورة': 'الإجمالي',
+            'المبلغ': total.toFixed(2) + ' جنيه',
+            'طريقة الدفع': '',
+            'رقم الإيصال': '',
+            'ملاحظات': ''
+        });
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(paymentsData);
+
+        ws['!cols'] = [
+            { wch: 12 }, { wch: 20 }, { wch: 15 },
+            { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 30 }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, ws, 'تقرير الدفعات');
+        XLSX.writeFile(wb, `تقرير_دفعات_الموردين_${fromDate}_${toDate}.xlsx`);
+
+        alert('✅ تم تصدير تقرير الدفعات بنجاح!');
+
+    } catch (error) {
+        console.error('❌ خطأ في تصدير الدفعات:', error);
+        alert('❌ حدث خطأ: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+console.log('✅ Excel Export Functions loaded successfully - Final Version');
