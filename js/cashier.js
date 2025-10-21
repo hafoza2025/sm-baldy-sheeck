@@ -1240,6 +1240,141 @@ const CashierSystem = {
         Utils.showNotification('حدث خطأ', 'error');
     }
 },
+    // عرض نافذة اختيار طريقة الدفع
+async showPaymentMethodDialog(order) {
+    return new Promise((resolve) => {
+        // إنشاء النافذة المنبثقة
+        const modalHTML = `
+            <div id="paymentModal" style="
+                position: fixed; 
+                top: 0; 
+                left: 0; 
+                width: 100%; 
+                height: 100%; 
+                background: rgba(0,0,0,0.7); 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                z-index: 9999;
+            ">
+                <div style="
+                    background: white; 
+                    border-radius: 15px; 
+                    padding: 30px; 
+                    width: 90%; 
+                    max-width: 500px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                ">
+                    <h3 style="margin: 0 0 10px 0; text-align: center; color: #667eea;">💳 اختر طريقة الدفع</h3>
+                    <p style="text-align: center; color: #666; margin-bottom: 20px;">الإجمالي: ${Utils.formatCurrency(order.total)}</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <button class="modal-payment-btn" data-method="cash" style="
+                            padding: 20px; 
+                            border: 2px solid #e0e0e0; 
+                            border-radius: 10px; 
+                            background: white; 
+                            cursor: pointer;
+                            transition: all 0.3s;
+                            text-align: center;
+                        ">
+                            <div style="font-size: 32px; margin-bottom: 5px;">💵</div>
+                            <div style="font-weight: bold;">كاش</div>
+                        </button>
+                        <button class="modal-payment-btn" data-method="visa" style="
+                            padding: 20px; 
+                            border: 2px solid #e0e0e0; 
+                            border-radius: 10px; 
+                            background: white; 
+                            cursor: pointer;
+                            transition: all 0.3s;
+                            text-align: center;
+                        ">
+                            <div style="font-size: 32px; margin-bottom: 5px;">💳</div>
+                            <div style="font-weight: bold;">فيزا</div>
+                        </button>
+                        <button class="modal-payment-btn" data-method="wallet" style="
+                            padding: 20px; 
+                            border: 2px solid #e0e0e0; 
+                            border-radius: 10px; 
+                            background: white; 
+                            cursor: pointer;
+                            transition: all 0.3s;
+                            text-align: center;
+                        ">
+                            <div style="font-size: 32px; margin-bottom: 5px;">📱</div>
+                            <div style="font-weight: bold;">محفظة</div>
+                        </button>
+                        <button class="modal-payment-btn" data-method="instapay" style="
+                            padding: 20px; 
+                            border: 2px solid #e0e0e0; 
+                            border-radius: 10px; 
+                            background: white; 
+                            cursor: pointer;
+                            transition: all 0.3s;
+                            text-align: center;
+                        ">
+                            <div style="font-size: 32px; margin-bottom: 5px;">⚡</div>
+                            <div style="font-weight: bold;">انستاباي</div>
+                        </button>
+                    </div>
+                    
+                    <button id="cancelPaymentModal" style="
+                        width: 100%; 
+                        padding: 15px; 
+                        background: #f44336; 
+                        color: white; 
+                        border: none; 
+                        border-radius: 8px; 
+                        cursor: pointer; 
+                        font-size: 16px;
+                        font-weight: bold;
+                    ">❌ إلغاء</button>
+                </div>
+            </div>
+        `;
+
+        // إضافة النافذة للصفحة
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        const modal = document.getElementById('paymentModal');
+
+        // عند النقر على طريقة دفع
+        document.querySelectorAll('.modal-payment-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const method = btn.getAttribute('data-method');
+                modal.remove();
+                resolve(method);
+            });
+
+            // تأثير hover
+            btn.addEventListener('mouseenter', function() {
+                this.style.borderColor = '#667eea';
+                this.style.background = '#f0f4ff';
+                this.style.transform = 'scale(1.05)';
+            });
+            btn.addEventListener('mouseleave', function() {
+                this.style.borderColor = '#e0e0e0';
+                this.style.background = 'white';
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+        // عند الإلغاء
+        document.getElementById('cancelPaymentModal').addEventListener('click', () => {
+            modal.remove();
+            resolve(null);
+        });
+
+        // إغلاق عند النقر خارج النافذة
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                resolve(null);
+            }
+        });
+    });
+},
 
     printReceipt(order) {
         const receiptHTML = `
@@ -1627,6 +1762,7 @@ async showPaymentMethodDialog(order) {
         });
     });
 },
+
 
 
 
