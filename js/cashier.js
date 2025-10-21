@@ -1389,7 +1389,7 @@ const CashierSystem = {
     });
 },
 
- printReceipt(order) {
+printReceipt(order) {
     // ✅ طباعة البيانات للتشخيص
     console.log('📦 Order Data:', order);
     console.log('🚚 Delivery Info:', order.deliveries);
@@ -1603,18 +1603,6 @@ const CashierSystem = {
     };
 },
 
-    const printWindow = window.open('', '', 'height=600,width=300');
-    printWindow.document.write(receiptHTML);
-    printWindow.document.close();
-    
-    printWindow.onload = function() {
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            setTimeout(() => printWindow.close(), 500);
-        }, 250);
-    };
-},
 
 
 
@@ -1870,6 +1858,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
