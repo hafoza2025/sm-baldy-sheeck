@@ -1505,7 +1505,7 @@ const CashierSystem = {
         </head>
         <body>
             <div class="header">
-                <h2>${SYSTEM_CONFIG.restaurantName}</h2>
+                <h2>مطعم بلدي شيك</h2>
                 <p>فاتورة: ${order.order_number}</p>
                 <p>${Utils.formatDate(order.created_at)}</p>
             </div>
@@ -1558,8 +1558,9 @@ const CashierSystem = {
             </div>
 
             <div class="footer">
-                <p>شكراً لزيارتكم</p>
+                <p>شكراً لزيارتكم بلدي شيك</p>
                 <p>نتمنى لكم يوماً سعيداً</p>
+                 <p>بلدي شيك بلدي علي اصلة</p>
             </div>
         </body>
         </html>
@@ -1831,6 +1832,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
