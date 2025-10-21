@@ -1631,7 +1631,7 @@ console.log('✅ Cashier System loaded with full control');
 async function showPaymentMethodDialog(order) {
     return new Promise((resolve) => {
         const modalHTML = `
-            <div id="paymentModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+            <div id="paymentModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 99999;">
                 <div style="background: white; border-radius: 15px; padding: 30px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
                     <h3 style="margin: 0 0 10px 0; text-align: center; color: #667eea;">💳 اختر طريقة الدفع</h3>
                     <p style="text-align: center; color: #666; margin-bottom: 20px;">الإجمالي: ${Utils.formatCurrency(order.total)}</p>
@@ -1674,6 +1674,7 @@ async function showPaymentMethodDialog(order) {
         });
     });
 }
+
 
 
 
