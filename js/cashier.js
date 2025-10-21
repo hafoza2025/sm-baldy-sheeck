@@ -231,6 +231,7 @@ const CashierSystem = {
         if (!order) return;
 
         this.selectedOrder = order;
+        this.selectedOrderPaymentMethod = order.payment_method || 'cash';  // ✅ تحميل طريقة الدفع الحالية
         this.currentEditCart.items = [];
 
         this.displayOpenOrders(this.openOrders);
@@ -1483,6 +1484,7 @@ if (typeof protectAsync !== 'undefined') {
 }
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
