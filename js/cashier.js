@@ -1251,53 +1251,43 @@ async sendNewOrder() {
 
 
     async closeAndPrintOrder(orderId) {
-        const order = this.openOrders.find(o => o.id === orderId);
-        if (!order) return;
+    try {
+        // ✅ جيب البيانات الكاملة
+        const { data: order, error } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                order_items(*, menu_item:menu_item_id(name_ar, price)),
+                staff:staff_id(full_name),
+                deliveries(*)
+            `)
+            .eq('id', orderId)
+            .single();
 
-        const confirmMsg = `هل تأكد من إغلاق الفاتورة؟\nالإجمالي: ${Utils.formatCurrency(order.total)}\n(العميل دفع)`;
+        if (error) throw error;
 
-        if (!confirm(confirmMsg)) return;
+        console.log('📦 Order Data:', order);
+        console.log('🚚 Deliveries:', order.deliveries);
 
-        try {
-            const { error } = await supabase
-                .from('orders')
-                .update({
-                    status: 'completed',
-                    completed_at: new Date().toISOString()
-                })
-                .eq('id', orderId);
+        // طباعة الفاتورة
+        this.printReceipt(order);
 
-            if (error) throw error;
+        // تحديث الحالة
+        const { error: updateError } = await supabase
+            .from('orders')
+            .update({ status: 'completed' })
+            .eq('id', orderId);
 
-            if (order.order_type === 'delivery') {
-                await supabase
-                    .from('deliveries')
-                    .update({
-                        delivery_status: 'delivered',
-                        delivered_at: new Date().toISOString()
-                    })
-                    .eq('order_id', orderId);
-            }
+        if (updateError) throw updateError;
 
-            if (order.order_type === 'dine_in' && order.table_number) {
-                await supabase
-                    .from('tables')
-                    .update({
-                        status: 'available',
-                        current_order_id: null
-                    })
-                    .eq('table_number', order.table_number);
-            }
+        await this.loadOpenOrders();
+        Utils.showNotification('✅ تم إغلاق الطلب', 'success');
 
-            Utils.showNotification('تم إغلاق الفاتورة بنجاح', 'success');
-            this.printReceipt(order);
-            await this.loadOpenOrders();
-
-        } catch (error) {
-            console.error('Error closing order:', error);
-            Utils.showNotification('حدث خطأ', 'error');
-        }
-    },
+    } catch (error) {
+        console.error('Error:', error);
+        Utils.showNotification('❌ حدث خطأ', 'error');
+    }
+},
 
 
     // عرض نافذة اختيار طريقة الدفع
@@ -1908,6 +1898,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
