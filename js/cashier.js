@@ -1214,6 +1214,7 @@ async sendNewOrder() {
             delivery_fee: deliveryFee,
             delivery_status: 'preparing'
         };
+        console.log('🚚 Delivery Data:', deliveryData);  // ✅ للتشخيص
 
         console.log('🚚 بيانات التوصيل:', deliveryData);
 
@@ -1898,6 +1899,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
