@@ -1196,7 +1196,7 @@ const CashierSystem = {
                 .from('orders')
                 .update({
                     status: 'completed',
-                    completed_at: new Date().toISOString()
+                    completed_at: new Date().toISOString(),
                     payment_method: this.selectedOrderPaymentMethod  // ✅ أضف طريقة الدفع
                 })
                 .eq('id', orderId);
@@ -1483,6 +1483,7 @@ if (typeof protectAsync !== 'undefined') {
 }
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
