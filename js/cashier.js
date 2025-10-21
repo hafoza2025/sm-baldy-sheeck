@@ -1198,7 +1198,7 @@ const CashierSystem = {
     if (!paymentChoice) return; // المستخدم ألغى
 
     this.selectedOrderPaymentMethod = paymentChoice;
-  Utils.showLoading();
+
 
     try {
         const { error } = await supabase
@@ -1628,11 +1628,17 @@ if (typeof protectAsync !== 'undefined') {
 
 console.log('✅ Cashier System loaded with full control');
 
-// دالة عرض نافذة اختيار طريقة الدفع (خارج CashierSystem)
 async function showPaymentMethodDialog(order) {
+    // ✅ اخفي Loading قبل عرض النافذة
+    const loadingElement = document.getElementById('loadingOverlay');
+    const wasLoadingVisible = loadingElement && loadingElement.style.display !== 'none';
+    if (wasLoadingVisible) {
+        loadingElement.style.display = 'none';
+    }
+
     return new Promise((resolve) => {
         const modalHTML = `
-            <div id="paymentModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 99999;">
+            <div id="paymentModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 999999;">
                 <div style="background: white; border-radius: 15px; padding: 30px; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
                     <h3 style="margin: 0 0 10px 0; text-align: center; color: #667eea;">💳 اختر طريقة الدفع</h3>
                     <p style="text-align: center; color: #666; margin-bottom: 20px;">الإجمالي: ${Utils.formatCurrency(order.total)}</p>
@@ -1662,19 +1668,28 @@ async function showPaymentMethodDialog(order) {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         const modal = document.getElementById('paymentModal');
         
+        // دالة لإعادة Loading بعد الاختيار
+        const finishAndRestore = (method) => {
+            modal.remove();
+            if (wasLoadingVisible && loadingElement) {
+                loadingElement.style.display = 'flex';
+            }
+            resolve(method);
+        };
+        
         document.querySelectorAll('.modal-payment-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                modal.remove();
-                resolve(btn.getAttribute('data-method'));
+                finishAndRestore(btn.getAttribute('data-method'));
             });
         });
         
         document.getElementById('cancelPaymentModal').addEventListener('click', () => {
-            modal.remove();
-            resolve(null);
+            finishAndRestore(null);
         });
     });
 }
+
+
 
 
 
