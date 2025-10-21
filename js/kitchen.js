@@ -361,302 +361,154 @@ const KitchenDisplay = {
       });
     };
 
-    const restaurantName = (typeof SYSTEM_CONFIG !== 'undefined' && SYSTEM_CONFIG.restaurantName) 
-      ? SYSTEM_CONFIG.restaurantName 
-      : 'مطعم الفرعون';
-
     const printHTML = `
       <!DOCTYPE html>
-      <html lang="ar" dir="rtl">
+      <html dir="rtl">
       <head>
         <meta charset="UTF-8">
         <title>Recipe - ${menuItem.name_ar}</title>
         <style>
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+          @media print {
+            body {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          }
           * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
           }
-
-          @page {
-            size: 80mm auto;
-            margin: 0;
-          }
-
           body {
-            font-family: 'Cairo', 'Arial', sans-serif;
-            width: 80mm;
+            font-family: Arial, 'Tahoma', sans-serif;
+            width: 72mm;
+            font-size: 13px;
+            font-weight: bold;
+            line-height: 1.5;
             padding: 5mm;
-            background: white;
+            margin: 0 auto;
             color: #000;
-            font-size: 11px;
-            line-height: 1.4;
           }
-
-          .receipt {
-            width: 100%;
-          }
-
           .header {
             text-align: center;
-            border-bottom: 2px dashed #000;
-            padding-bottom: 5mm;
-            margin-bottom: 5mm;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
           }
-
-          .header h1 {
-            font-size: 16px;
+          .header h2 {
+            font-size: 18px;
+            margin-bottom: 5px;
             font-weight: bold;
-            margin-bottom: 2mm;
           }
-
-          .header .subtitle {
+          .header p {
             font-size: 12px;
+            margin: 3px 0;
+          }
+          .recipe-box {
+            background: #000;
+            color: #fff;
+            padding: 8px;
+            margin: 10px 0;
+            text-align: center;
             font-weight: bold;
-          }
-
-          .item-info {
-            border-bottom: 1px dashed #000;
-            padding-bottom: 3mm;
-            margin-bottom: 3mm;
-          }
-
-          .item-name {
             font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 2mm;
-            text-align: center;
+            border: 2px solid #000;
           }
-
-          .info-line {
+          .info {
+            font-size: 11px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            line-height: 1.6;
+          }
+          .info div {
+            margin: 3px 0;
+            word-wrap: break-word;
+          }
+          hr {
+            border: none;
+            border-top: 2px solid #000;
+            margin: 8px 0;
+          }
+          .items-header {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1mm;
-            font-size: 10px;
-          }
-
-          .label {
             font-weight: bold;
+            font-size: 12px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
           }
-
-          .section-title {
+          .item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
             font-size: 12px;
             font-weight: bold;
-            text-align: center;
-            margin: 3mm 0;
-            padding: 2mm 0;
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
           }
-
-          .ingredient {
-            border-bottom: 1px dotted #ccc;
-            padding: 2mm 0;
-            font-size: 10px;
+          .item span:first-child {
+            flex: 1;
+            padding-left: 8px;
           }
-
-          .ingredient:last-child {
-            border-bottom: none;
-          }
-
-          .ing-name {
-            font-weight: bold;
-            margin-bottom: 1mm;
-          }
-
-          .ing-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            color: #333;
-          }
-
-          .stock-ok { color: #2E7D32; font-weight: bold; }
-          .stock-low { color: #E65100; font-weight: bold; }
-          .stock-critical { color: #C62828; font-weight: bold; }
-
+          .stock-ok { color: #2E7D32; }
+          .stock-low { color: #E65100; }
+          .stock-critical { color: #C62828; }
           .no-recipe {
             text-align: center;
-            padding: 5mm;
-            border: 1px dashed #000;
-            margin: 3mm 0;
-            font-size: 11px;
+            padding: 10px;
+            border: 2px dashed #000;
+            margin: 10px 0;
+            background: #fff3cd;
+            font-size: 12px;
+            color: #856404;
           }
-
           .footer {
-            border-top: 2px dashed #000;
-            padding-top: 3mm;
-            margin-top: 5mm;
             text-align: center;
-            font-size: 9px;
-          }
-
-          @media print {
-            body {
-              width: 80mm;
-            }
+            margin-top: 15px;
+            font-size: 13px;
+            font-weight: bold;
+            border-top: 2px solid #000;
+            padding-top: 10px;
           }
         </style>
       </head>
       <body>
-        <div class="receipt">
-          <div class="header">
-            <h1>${restaurantName}</h1>
-            <div class="subtitle">🍳 Recipe - الوصفة</div>
-          </div>
-
-          <div class="item-info">
-            <div class="item-name">${menuItem.name_ar}</div>
-            
-            <div class="info-line">
-              <span class="label">الفئة:</span>
-              <span>${menuItem.category || 'غير محدد'}</span>
-            </div>
-            
-            <div class="info-line">
-              <span class="label">الكمية:</span>
-              <span>× ${quantity}</span>
-            </div>
-            
-            <div class="info-line">
-              <span class="label">التاريخ:</span>
-              <span>${formatDate(now)}</span>
-            </div>
-            
-            <div class="info-line">
-              <span class="label">الوقت:</span>
-              <span>${formatTime(now)}</span>
-            </div>
-          </div>
-
-          ${recipes && recipes.length > 0 ? `
-            <div class="section-title">
-              📋 المكونات المطلوبة
-            </div>
-
-            ${recipes.map(recipe => {
-              const totalNeeded = recipe.quantity_needed * quantity;
-              const stock = recipe.ingredient.current_stock;
-              const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
-              
-              return `
-                <div class="ingredient">
-                  <div class="ing-name">${recipe.ingredient.name}</div>
-                  <div class="ing-details">
-                    <span>الكمية: ${totalNeeded.toFixed(2)} ${recipe.ingredient.unit}</span>
-                    <span class="${stockStatus}">المخزون: ${stock.toFixed(2)}</span>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          ` : `
-            <div class="no-recipe">
-              ⚠️ لا توجد وصفة محددة لهذا الصنف
-            </div>
-          `}
-
-          <div class="footer">
-            <div>تمت الطباعة من نظام المطعم</div>
-          </div>
-        </div>
-
-        <script>
-          window.onload = function() {
-            setTimeout(function() {
-              window.print();
-            }, 300);
-          };
-        </script>
-      </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank', 'width=300,height=600');
-    
-    if (printWindow) {
-      printWindow.document.write(printHTML);
-      printWindow.document.close();
-    } else {
-      alert('⚠️ لم نتمكن من فتح نافذة الطباعة. تأكد من السماح بالنوافذ المنبثقة.');
-    }
-  },
-
-  generateAllRecipesPrintPage(recipesToPrint, orderNumber) {
-    const now = new Date();
-
-    const formatDate = (date) => {
-      const d = new Date(date);
-      return d.toLocaleDateString('ar-EG', { 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit' 
-      });
-    };
-
-    const formatTime = (date) => {
-      const d = new Date(date);
-      return d.toLocaleTimeString('ar-EG', { 
-        hour: '2-digit', 
-        minute: '2-digit'
-      });
-    };
-
-    const restaurantName = (typeof SYSTEM_CONFIG !== 'undefined' && SYSTEM_CONFIG.restaurantName) 
-      ? SYSTEM_CONFIG.restaurantName 
-      : 'مطعم الفرعون';
-
-    // إنشاء HTML لكل الـ recipes
-    const allRecipesHTML = recipesToPrint.map((item, index) => `
-      ${index > 0 ? '<div style="page-break-before: always; margin-top: 10mm;"></div>' : ''}
-      
-      <div class="receipt">
         <div class="header">
-          <h1>${restaurantName}</h1>
-          <div class="subtitle">🍳 Recipe - الوصفة</div>
-          <div style="font-size: 10px; margin-top: 2mm;">طلب #${orderNumber} - (${index + 1}/${recipesToPrint.length})</div>
+          <h2>مطعم بلدي شيك</h2>
+          <p>🍳 Recipe - وصفة الطبخ</p>
+          <p>${formatDate(now)}</p>
         </div>
 
-        <div class="item-info">
-          <div class="item-name">${item.menuItem.name_ar}</div>
-          
-          <div class="info-line">
-            <span class="label">الفئة:</span>
-            <span>${item.menuItem.category || 'غير محدد'}</span>
-          </div>
-          
-          <div class="info-line">
-            <span class="label">الكمية:</span>
-            <span>× ${item.quantity}</span>
-          </div>
-          
-          <div class="info-line">
-            <span class="label">التاريخ:</span>
-            <span>${formatDate(now)}</span>
-          </div>
-          
-          <div class="info-line">
-            <span class="label">الوقت:</span>
-            <span>${formatTime(now)}</span>
-          </div>
+        <div class="recipe-box">
+          📋 ${menuItem.name_ar}
         </div>
 
-        ${item.recipes && item.recipes.length > 0 ? `
-          <div class="section-title">
-            📋 المكونات المطلوبة
+        <div class="info">
+          <div>الفئة: ${menuItem.category || 'غير محدد'}</div>
+          <div>الكمية: <strong>× ${quantity}</strong></div>
+          <div>الوقت: ${formatTime(now)}</div>
+        </div>
+
+        <hr>
+
+        ${recipes && recipes.length > 0 ? `
+          <div class="items-header">
+            <span>المكون</span>
+            <span>المخزون</span>
           </div>
 
-          ${item.recipes.map(recipe => {
-            const totalNeeded = recipe.quantity_needed * item.quantity;
+          ${recipes.map(recipe => {
+            const totalNeeded = (recipe.quantity_needed * quantity).toFixed(2);
             const stock = recipe.ingredient.current_stock;
             const stockStatus = stock > totalNeeded ? 'stock-ok' : stock > 0 ? 'stock-low' : 'stock-critical';
             
             return `
-              <div class="ingredient">
-                <div class="ing-name">${recipe.ingredient.name}</div>
-                <div class="ing-details">
-                  <span>الكمية: ${totalNeeded.toFixed(2)} ${recipe.ingredient.unit}</span>
-                  <span class="${stockStatus}">المخزون: ${stock.toFixed(2)}</span>
-                </div>
+              <div class="item">
+                <span>${recipe.ingredient.name} (${totalNeeded} ${recipe.ingredient.unit})</span>
+                <span class="${stockStatus}">${stock.toFixed(2)}</span>
               </div>
             `;
           }).join('')}
@@ -666,154 +518,18 @@ const KitchenDisplay = {
           </div>
         `}
 
+        <hr>
+
         <div class="footer">
-          <div>تمت الطباعة من نظام المطعم</div>
+          <p>بالهناء والشفاء! 🍽️</p>
+          <p>بلدي شيك بلدي علي اصلة</p>
         </div>
-      </div>
-    `).join('');
-
-    const printHTML = `
-      <!DOCTYPE html>
-      <html lang="ar" dir="rtl">
-      <head>
-        <meta charset="UTF-8">
-        <title>All Recipes - Order #${orderNumber}</title>
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-
-          @page {
-            size: 80mm auto;
-            margin: 0;
-          }
-
-          body {
-            font-family: 'Cairo', 'Arial', sans-serif;
-            width: 80mm;
-            padding: 5mm;
-            background: white;
-            color: #000;
-            font-size: 11px;
-            line-height: 1.4;
-          }
-
-          .receipt {
-            width: 100%;
-            margin-bottom: 5mm;
-          }
-
-          .header {
-            text-align: center;
-            border-bottom: 2px dashed #000;
-            padding-bottom: 5mm;
-            margin-bottom: 5mm;
-          }
-
-          .header h1 {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 2mm;
-          }
-
-          .header .subtitle {
-            font-size: 12px;
-            font-weight: bold;
-          }
-
-          .item-info {
-            border-bottom: 1px dashed #000;
-            padding-bottom: 3mm;
-            margin-bottom: 3mm;
-          }
-
-          .item-name {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 2mm;
-            text-align: center;
-          }
-
-          .info-line {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1mm;
-            font-size: 10px;
-          }
-
-          .label {
-            font-weight: bold;
-          }
-
-          .section-title {
-            font-size: 12px;
-            font-weight: bold;
-            text-align: center;
-            margin: 3mm 0;
-            padding: 2mm 0;
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
-          }
-
-          .ingredient {
-            border-bottom: 1px dotted #ccc;
-            padding: 2mm 0;
-            font-size: 10px;
-          }
-
-          .ingredient:last-child {
-            border-bottom: none;
-          }
-
-          .ing-name {
-            font-weight: bold;
-            margin-bottom: 1mm;
-          }
-
-          .ing-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            color: #333;
-          }
-
-          .stock-ok { color: #2E7D32; font-weight: bold; }
-          .stock-low { color: #E65100; font-weight: bold; }
-          .stock-critical { color: #C62828; font-weight: bold; }
-
-          .no-recipe {
-            text-align: center;
-            padding: 5mm;
-            border: 1px dashed #000;
-            margin: 3mm 0;
-            font-size: 11px;
-          }
-
-          .footer {
-            border-top: 2px dashed #000;
-            padding-top: 3mm;
-            margin-top: 5mm;
-            text-align: center;
-            font-size: 9px;
-          }
-
-          @media print {
-            body {
-              width: 80mm;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        ${allRecipesHTML}
 
         <script>
           window.onload = function() {
             setTimeout(function() {
               window.print();
-            }, 500);
+            }, 300);
           };
         </script>
       </body>
@@ -1035,3 +751,4 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem &&
 }
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
