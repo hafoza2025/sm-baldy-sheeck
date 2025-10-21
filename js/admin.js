@@ -470,11 +470,21 @@ const AdminDashboard = {
         }
     },
 
-    displayOrders(orders) {
-        const tbody = document.getElementById('ordersBody');
-        if (!tbody) return;
+   displayOrders(orders) {
+    const tbody = document.getElementById('ordersBody');
+    if (!tbody) return;
 
-        tbody.innerHTML = orders.map(order => `
+    tbody.innerHTML = orders.map(order => {
+        // ✅ تحديد أيقونة طريقة الدفع
+        const paymentIcons = {
+            'cash': '💵 كاش',
+            'visa': '💳 فيزا',
+            'wallet': '📱 محفظة',
+            'instapay': '⚡ انستاباي'
+        };
+        const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
+
+        return `
             <tr>
                 <td><strong>#${order.order_number}</strong></td>
                 <td>${Utils.formatDate(order.created_at)}</td>
@@ -482,35 +492,37 @@ const AdminDashboard = {
                 <td>${order.order_type === 'dine_in' ? `طاولة ${order.table_number}` : order.deliveries[0]?.customer_name || '-'}</td>
                 <td>${order.staff?.full_name || 'كاشير'}</td>
                 <td><strong>${Utils.formatCurrency(order.total)}</strong></td>
+                <td style="text-align: center; font-size: 13px;">${paymentMethod}</td>
                 <td><span class="badge ${this.getStatusClass(order.status)}">${this.getStatusText(order.status)}</span></td>
             </tr>
-        `).join('');
-    },
+        `;
+    }).join('');
+},
 
-    filterOrders() {
-        const dateFrom = document.getElementById('orderDateFrom').value;
-        const dateTo = document.getElementById('orderDateTo').value;
-        const type = document.getElementById('orderTypeFilter').value;
-        const status = document.getElementById('orderStatusFilter').value;
+filterOrders() {
+    const dateFrom = document.getElementById('orderDateFrom').value;
+    const dateTo = document.getElementById('orderDateTo').value;
+    const type = document.getElementById('orderTypeFilter').value;
+    const status = document.getElementById('orderStatusFilter').value;
 
-        let filtered = this.allOrders;
+    let filtered = this.allOrders;
 
-        if (dateFrom) {
-            filtered = filtered.filter(order => order.created_at >= dateFrom);
-        }
-        if (dateTo) {
-            filtered = filtered.filter(order => order.created_at <= dateTo + 'T23:59:59');
-        }
-        if (type) {
-            filtered = filtered.filter(order => order.order_type === type);
-        }
-        if (status) {
-            filtered = filtered.filter(order => order.status === status);
-        }
+    if (dateFrom) {
+        filtered = filtered.filter(order => order.created_at >= dateFrom);
+    }
+    if (dateTo) {
+        filtered = filtered.filter(order => order.created_at <= dateTo + 'T23:59:59');
+    }
+    if (type) {
+        filtered = filtered.filter(order => order.order_type === type);
+    }
+    if (status) {
+        filtered = filtered.filter(order => order.status === status);
+    }
 
-        this.filteredOrders = filtered;
-        this.displayOrders(filtered);
-    },
+    this.filteredOrders = filtered;
+    this.displayOrders(filtered);
+},
 
     // تحميل المستخدمين
     async loadUsers() {
@@ -820,3 +832,4 @@ if (typeof window !== 'undefined') {
 }
 
 console.log('✅ Admin Dashboard loaded with live stats');
+
