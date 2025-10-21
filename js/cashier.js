@@ -1561,6 +1561,39 @@ getPaymentMethodName(method) {
         if (cancelEditBtn) cancelEditBtn.addEventListener('click', () => this.cancelEdit());
     },
 
+// ✅ أضف الدالة هنا
+updatePaymentButtons() {
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.mini-payment-btn');
+        if (!btn) return;
+
+        const orderId = parseInt(btn.getAttribute('data-order-id'));
+        const method = btn.getAttribute('data-method');
+
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .update({ payment_method: method })
+                .eq('id', orderId);
+
+            if (error) throw error;
+
+            const order = this.openOrders.find(o => o.id === orderId);
+            if (order) order.payment_method = method;
+
+            this.displayOpenOrders();
+
+            const labels = { 'cash': '💵 كاش', 'visa': '💳 فيزا', 'wallet': '📱 محفظة', 'instapay': '⚡ انستاباي' };
+            Utils.showNotification(`تم تحديد: ${labels[method]}`, 'success');
+
+        } catch (error) {
+            console.error('Error:', error);
+            Utils.showNotification('حدث خطأ', 'error');
+        }
+    });
+};
+
+// باقي الدوال...
     setupRealtimeSubscriptions() {
         Realtime.subscribeToOrders((payload) => {
             console.log('Order change detected:', payload);
@@ -1638,46 +1671,11 @@ if (typeof protectAsync !== 'undefined') {
     }
 }
 
-setupEventListeners() {
-    // ... الكود الموجود
-},
 
-// ✅ أضف الدالة هنا
-updatePaymentButtons() {
-    document.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.mini-payment-btn');
-        if (!btn) return;
-
-        const orderId = parseInt(btn.getAttribute('data-order-id'));
-        const method = btn.getAttribute('data-method');
-
-        try {
-            const { error } = await supabase
-                .from('orders')
-                .update({ payment_method: method })
-                .eq('id', orderId);
-
-            if (error) throw error;
-
-            const order = this.openOrders.find(o => o.id === orderId);
-            if (order) order.payment_method = method;
-
-            this.displayOpenOrders();
-
-            const labels = { 'cash': '💵 كاش', 'visa': '💳 فيزا', 'wallet': '📱 محفظة', 'instapay': '⚡ انستاباي' };
-            Utils.showNotification(`تم تحديد: ${labels[method]}`, 'success');
-
-        } catch (error) {
-            console.error('Error:', error);
-            Utils.showNotification('حدث خطأ', 'error');
-        }
-    });
-};
-
-// باقي الدوال...
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
