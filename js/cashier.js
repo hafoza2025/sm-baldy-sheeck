@@ -1119,15 +1119,15 @@ const CashierSystem = {
         document.getElementById('totalAmount').textContent = Utils.formatCurrency(total);
     },
 
-    async sendNewOrder() {
+async sendNewOrder() {
     if (this.newOrderCart.items.length === 0) {
         Utils.showNotification('السلة فارغة', 'error');
         return;
     }
 
-    const customerName = document.getElementById('customerName').value;
-    const customerPhone = document.getElementById('customerPhone').value;
-    const customerAddress = document.getElementById('customerAddress').value;
+    const customerName = document.getElementById('customerName')?.value;
+    const customerPhone = document.getElementById('customerPhone')?.value;
+    const customerAddress = document.getElementById('customerAddress')?.value;
 
     if (!customerName || !customerPhone || !customerAddress) {
         Utils.showNotification('يرجى إدخال بيانات العميل كاملة', 'error');
@@ -1135,23 +1135,29 @@ const CashierSystem = {
     }
 
     try {
+        console.log('🚀 إرسال طلب جديد...');
+        
         const subtotal = this.newOrderCart.items.reduce((sum, item) => sum + item.totalprice, 0);
         const tax = 0; // ✅ لا ضريبة في التوصيل
-        const deliveryFee = SYSTEM_CONFIG.deliveryFee;
-        const total = subtotal + deliveryFee; // ✅ بدون ضريبة
+        const deliveryFee = SYSTEM_CONFIG.deliveryFee || 0;
+        const total = subtotal + deliveryFee;
+
+        console.log('💰 الحسابات:', { subtotal, tax, deliveryFee, total });
 
         const orderData = {
             order_number: Utils.generateOrderNumber(),
             order_type: 'delivery',
             status: 'new',
-            cashier_id: this.currentUser.id,
-            payment_method: this.newOrderCart.paymentmethod,
+            staff_id: this.currentUser.id, // ✅ staff_id مش cashier_id
+            payment_method: this.newOrderCart.paymentmethod || 'cash',
             subtotal: subtotal,
-            tax: tax, // ✅ 0
+            tax: tax,
             discount: 0,
             delivery_fee: deliveryFee,
             total: total
         };
+
+        console.log('📦 بيانات الطلب:', orderData);
 
         const { data: order, error: orderError } = await supabase
             .from('orders')
@@ -1159,7 +1165,12 @@ const CashierSystem = {
             .select()
             .single();
 
-        if (orderError) throw orderError;
+        if (orderError) {
+            console.error('❌ خطأ في إنشاء الطلب:', orderError);
+            throw orderError;
+        }
+
+        console.log('✅ تم إنشاء الطلب:', order);
 
         const orderItems = this.newOrderCart.items.map(item => ({
             order_id: order.id,
@@ -1169,31 +1180,47 @@ const CashierSystem = {
             total_price: item.totalprice
         }));
 
+        console.log('🍽️ الأصناف:', orderItems);
+
         const { error: itemsError } = await supabase
             .from('order_items')
             .insert(orderItems);
 
-        if (itemsError) throw itemsError;
+        if (itemsError) {
+            console.error('❌ خطأ في إضافة الأصناف:', itemsError);
+            throw itemsError;
+        }
+
+        console.log('✅ تمت إضافة الأصناف');
 
         const deliveryData = {
             order_id: order.id,
             customer_name: customerName,
             customer_phone: customerPhone,
-            customer_address: customerAddress, // ✅ مهم!
+            customer_address: customerAddress,
             delivery_fee: deliveryFee,
             delivery_status: 'preparing'
         };
+
+        console.log('🚚 بيانات التوصيل:', deliveryData);
 
         const { error: deliveryError } = await supabase
             .from('deliveries')
             .insert([deliveryData]);
 
-        if (deliveryError) throw deliveryError;
+        if (deliveryError) {
+            console.error('❌ خطأ في بيانات التوصيل:', deliveryError);
+            throw deliveryError;
+        }
 
+        console.log('✅ تمت إضافة بيانات التوصيل');
+
+        // خصم المخزون
         await this.deductInventory(order.id, this.newOrderCart.items);
 
-        Utils.showNotification('تم إرسال الطلب بنجاح', 'success');
+        Utils.showNotification('✅ تم إرسال الطلب بنجاح', 'success');
 
+        // تنظيف النموذج
         this.newOrderCart.items = [];
         this.updateNewOrderDisplay();
         document.getElementById('customerName').value = '';
@@ -1203,10 +1230,12 @@ const CashierSystem = {
         await this.loadOpenOrders();
 
     } catch (error) {
-        console.error('Error sending order:', error);
-        Utils.showNotification('حدث خطأ في إرسال الطلب', 'error');
+        console.error('❌ خطأ في إرسال الطلب:', error);
+        console.error('تفاصيل الخطأ:', error.message);
+        Utils.showNotification('❌ حدث خطأ: ' + error.message, 'error');
     }
 },
+
 
     async closeAndPrintOrder(orderId) {
         const order = this.openOrders.find(o => o.id === orderId);
@@ -1865,6 +1894,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
