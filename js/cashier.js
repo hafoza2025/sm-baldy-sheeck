@@ -1672,12 +1672,13 @@ updatePaymentButtons() {
             Utils.showNotification('حدث خطأ', 'error');
         }
     });
-},
+};
 
 // باقي الدوال...
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
