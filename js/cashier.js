@@ -1389,7 +1389,7 @@ const CashierSystem = {
     });
 },
 
-   printReceipt(order) {
+  printReceipt(order) {
     const receiptHTML = `
         <!DOCTYPE html>
         <html dir="rtl">
@@ -1401,76 +1401,105 @@ const CashierSystem = {
                     size: 80mm auto;
                     margin: 0;
                 }
+                @media print {
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                }
                 * {
                     margin: 0;
                     padding: 0;
                     box-sizing: border-box;
                 }
                 body { 
-                    font-family: 'Courier New', monospace;
+                    font-family: Arial, 'Tahoma', sans-serif;
                     width: 72mm;
-                    font-size: 10px;
-                    line-height: 1.3;
-                    padding: 3mm;
+                    font-size: 13px;
+                    font-weight: bold;
+                    line-height: 1.5;
+                    padding: 5mm;
                     margin: 0 auto;
+                    color: #000;
                 }
                 .header { 
                     text-align: center;
-                    border-bottom: 1px dashed #333;
-                    padding-bottom: 8px;
-                    margin-bottom: 8px;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 10px;
+                    margin-bottom: 10px;
                 }
                 .header h2 {
-                    font-size: 14px;
-                    margin-bottom: 3px;
+                    font-size: 18px;
+                    margin-bottom: 5px;
+                    font-weight: bold;
                 }
                 .header p {
-                    font-size: 9px;
-                    margin: 2px 0;
+                    font-size: 12px;
+                    margin: 3px 0;
                 }
                 .payment-box {
-                    background: #f0f4ff;
-                    padding: 6px;
-                    border-radius: 3px;
-                    margin: 8px 0;
+                    background: #000;
+                    color: #fff;
+                    padding: 8px;
+                    margin: 10px 0;
                     text-align: center;
                     font-weight: bold;
-                    font-size: 11px;
-                    color: #667eea;
-                    border: 1px solid #667eea;
+                    font-size: 14px;
+                    border: 2px solid #000;
                 }
                 .info {
-                    font-size: 9px;
-                    margin-bottom: 8px;
+                    font-size: 12px;
+                    margin-bottom: 10px;
+                    font-weight: bold;
                 }
                 hr {
                     border: none;
-                    border-top: 1px dashed #333;
-                    margin: 5px 0;
+                    border-top: 2px solid #000;
+                    margin: 8px 0;
+                }
+                .items-header {
+                    display: flex;
+                    justify-content: space-between;
+                    font-weight: bold;
+                    font-size: 12px;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 5px;
+                    margin-bottom: 5px;
                 }
                 .item { 
                     display: flex;
                     justify-content: space-between;
-                    margin: 3px 0;
-                    font-size: 9px;
+                    margin: 5px 0;
+                    font-size: 12px;
+                    font-weight: bold;
                 }
                 .item span:first-child {
                     flex: 1;
-                    padding-left: 5px;
+                    padding-left: 8px;
+                }
+                .summary-item {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 6px 0;
+                    font-size: 13px;
+                    font-weight: bold;
                 }
                 .total { 
-                    font-size: 12px;
+                    font-size: 16px;
                     font-weight: bold;
-                    border-top: 2px solid #333;
-                    padding-top: 6px;
-                    margin-top: 6px;
+                    border-top: 3px double #000;
+                    border-bottom: 3px double #000;
+                    padding: 10px 0;
+                    margin: 10px 0;
+                    background: #f0f0f0;
                 }
                 .footer {
                     text-align: center;
-                    margin-top: 10px;
-                    font-size: 9px;
-                    border-top: 1px dashed #333;
-                    padding-top: 6px;
+                    margin-top: 15px;
+                    font-size: 13px;
+                    font-weight: bold;
+                    border-top: 2px solid #000;
+                    padding-top: 10px;
                 }
             </style>
         </head>
@@ -1494,6 +1523,11 @@ const CashierSystem = {
 
             <hr>
 
+            <div class="items-header">
+                <span>الصنف</span>
+                <span>السعر</span>
+            </div>
+
             ${order.order_items.map(item => `
                 <div class="item">
                     <span>${item.menu_item?.name_ar} × ${item.quantity}</span>
@@ -1503,28 +1537,28 @@ const CashierSystem = {
 
             <hr>
 
-            <div class="item">
+            <div class="summary-item">
                 <span>المجموع:</span>
                 <span>${Utils.formatCurrency(order.subtotal)}</span>
             </div>
-            <div class="item">
+            <div class="summary-item">
                 <span>الضريبة:</span>
                 <span>${Utils.formatCurrency(order.tax)}</span>
             </div>
             ${order.delivery_fee > 0 ? `
-                <div class="item">
+                <div class="summary-item">
                     <span>التوصيل:</span>
                     <span>${Utils.formatCurrency(order.delivery_fee)}</span>
                 </div>
             ` : ''}
 
-            <div class="item total">
+            <div class="summary-item total">
                 <span>الإجمالي:</span>
                 <span>${Utils.formatCurrency(order.total)}</span>
             </div>
 
             <div class="footer">
-                <p><strong>شكراً لزيارتكم</strong></p>
+                <p>شكراً لزيارتكم</p>
                 <p>نتمنى لكم يوماً سعيداً</p>
             </div>
         </body>
@@ -1543,6 +1577,7 @@ const CashierSystem = {
         }, 250);
     };
 },
+
 
 
     async deductInventory(orderId, items) {
@@ -1796,6 +1831,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
