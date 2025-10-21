@@ -1561,34 +1561,55 @@ getPaymentMethodName(method) {
         if (cancelEditBtn) cancelEditBtn.addEventListener('click', () => this.cancelEdit());
     },
 
-// ✅ أضف الدالة هنا
 updatePaymentButtons() {
     document.addEventListener('click', async (e) => {
         const btn = e.target.closest('.mini-payment-btn');
         if (!btn) return;
 
+        e.preventDefault();
+        e.stopPropagation();
+
         const orderId = parseInt(btn.getAttribute('data-order-id'));
         const method = btn.getAttribute('data-method');
 
+        console.log('🔄 Updating payment for order:', orderId, 'to:', method);
+
         try {
-            const { error } = await supabase
+            // ✅ 1. التحديث في Database
+            const { data, error } = await supabase
                 .from('orders')
                 .update({ payment_method: method })
-                .eq('id', orderId);
+                .eq('id', orderId)
+                .select();
 
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Supabase error:', error);
+                throw error;
+            }
 
+            console.log('✅ Database updated:', data);
+
+            // ✅ 2. التحديث في الذاكرة
             const order = this.openOrders.find(o => o.id === orderId);
-            if (order) order.payment_method = method;
+            if (order) {
+                order.payment_method = method;
+                console.log('✅ Memory updated');
+            }
 
-            this.displayOpenOrders();
+            // ✅ 3. إعادة عرض الفواتير فوراً
+            this.displayOpenOrders(this.openOrders);
 
-            const labels = { 'cash': '💵 كاش', 'visa': '💳 فيزا', 'wallet': '📱 محفظة', 'instapay': '⚡ انستاباي' };
-            Utils.showNotification(`تم تحديد: ${labels[method]}`, 'success');
+            const labels = { 
+                'cash': '💵 كاش', 
+                'visa': '💳 فيزا', 
+                'wallet': '📱 محفظة', 
+                'instapay': '⚡ انستاباي' 
+            };
+            Utils.showNotification(`✅ تم التحديث إلى: ${labels[method]}`, 'success');
 
         } catch (error) {
-            console.error('Error:', error);
-            Utils.showNotification('حدث خطأ', 'error');
+            console.error('❌ Error updating payment:', error);
+            Utils.showNotification('❌ حدث خطأ في التحديث', 'error');
         }
     });
 },
@@ -1675,6 +1696,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
