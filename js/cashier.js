@@ -7,13 +7,13 @@ const CashierSystem = {
     openOrders: [],
     selectedOrder: null,
     itemToReplace: null,
+    selectedOrderPaymentMethod: 'cash',  // ✅ طريقة الدفع للطلبات الموجودة
     newOrderCart: {
         type: 'delivery',
         items: [],
         customer_info: {},
         payment_method: 'cash'  // ✅ طريقة الدفع الافتراضية للطلب الجديد
     },
-        selectedOrderPaymentMethod: 'cash',  // ✅ طريقة الدفع للطلبات الموجودة
 
     currentEditCart: {
         items: []
@@ -1483,5 +1483,6 @@ if (typeof protectAsync !== 'undefined') {
 }
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
