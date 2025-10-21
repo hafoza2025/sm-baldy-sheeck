@@ -1591,7 +1591,7 @@ updatePaymentButtons() {
             Utils.showNotification('حدث خطأ', 'error');
         }
     });
-};
+},
 
 // باقي الدوال...
     setupRealtimeSubscriptions() {
@@ -1675,6 +1675,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
