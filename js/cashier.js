@@ -30,6 +30,8 @@ const CashierSystem = {
         await this.loadOpenOrders();
         this.setupEventListeners();
         this.setupRealtimeSubscriptions();
+        this.updatePaymentButtons();  // ✅ أضف هذا السطر هنا
+
     },
 
     // تحميل المنيو
@@ -121,90 +123,107 @@ const CashierSystem = {
     },
 
     // عرض الفواتير المفتوحة
-    displayOpenOrders(orders) {
-        const container = document.getElementById('openOrdersList');
-        if (!container) return;
+   displayOpenOrders(orders) {
+    const container = document.getElementById('openOrdersList');
+    if (!container) return;
 
-        if (orders.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #999;">
-                    <h3>لا توجد فواتير مفتوحة</h3>
-                    <p>انتظر طلبات جديدة من الموظفين</p>
-                </div>
-            `;
-            return;
-        }
+    if (orders.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #999;">
+                <h3>لا توجد فواتير مفتوحة</h3>
+                <p>انتظر طلبات جديدة من الموظفين</p>
+            </div>
+        `;
+        return;
+    }
 
-        container.innerHTML = orders.map(order => {
-            const itemsCount = order.order_items?.length || 0;
-            const isSelected = this.selectedOrder?.id === order.id;
+    container.innerHTML = orders.map(order => {
+        const itemsCount = order.order_items?.length || 0;
+        const isSelected = this.selectedOrder?.id === order.id;
 
-            return `
-                <div class="order-card ${isSelected ? 'selected' : ''}" 
-                     style="cursor: pointer; margin-bottom: 15px; padding: 15px; border: 2px solid ${isSelected ? '#667eea' : '#e0e0e0'}; border-radius: 10px; background: ${isSelected ? '#f0f4ff' : 'white'};">
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <div>
-                            <h3 style="margin: 0; font-size: 20px;">
-                                ${order.order_type === 'delivery' ? '🛵' : '🍽️'} 
-                                ${order.order_type === 'delivery'
-                                    ? order.deliveries[0]?.customer_name
-                                    : `طاولة ${order.table_number}`}
-                            </h3>
-                            <small style="color: #666;">الطلب #${order.order_number}</small>
+        return `
+            <div class="order-card ${isSelected ? 'selected' : ''}" 
+                 style="cursor: pointer; margin-bottom: 15px; padding: 15px; border: 2px solid ${isSelected ? '#667eea' : '#e0e0e0'}; border-radius: 10px; background: ${isSelected ? '#f0f4ff' : 'white'};">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 20px;">
+                            ${order.order_type === 'delivery' ? '🛵' : '🍽️'} 
+                            ${order.order_type === 'delivery'
+                                ? order.deliveries[0]?.customer_name
+                                : `طاولة ${order.table_number}`}
+                        </h3>
+                        <small style="color: #666;">الطلب #${order.order_number}</small>
+                    </div>
+                    <div style="text-align: left;">
+                        <div style="font-size: 20px; font-weight: bold; color: #667eea;">
+                            ${Utils.formatCurrency(order.total)}
                         </div>
-                        <div style="text-align: left;">
-                            <div style="font-size: 20px; font-weight: bold; color: #667eea;">
-                                ${Utils.formatCurrency(order.total)}
+                        <small style="color: #666;">${itemsCount} صنف</small>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; font-size: 12px; color: #666; margin-bottom: 10px;">
+                    <span>⏰ ${Utils.formatTime(order.created_at)}</span>
+                    <span>👤 ${order.staff?.full_name || 'كاشير'}</span>
+                    <span class="badge ${this.getStatusClass(order.status)}">
+                        ${this.getStatusText(order.status)}
+                    </span>
+                </div>
+
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
+                    <strong style="font-size: 13px;">الأصناف:</strong>
+                    <div style="margin-top: 5px;">
+                        ${order.order_items.slice(0, 3).map(item => `
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; margin: 3px 0;">
+                                <span>${item.menu_item?.name_ar} × ${item.quantity}</span>
+                                <span>${Utils.formatCurrency(item.total_price)}</span>
                             </div>
-                            <small style="color: #666;">${itemsCount} صنف</small>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 10px; font-size: 12px; color: #666; margin-bottom: 10px;">
-                        <span>⏰ ${Utils.formatTime(order.created_at)}</span>
-                        <span>👤 ${order.staff?.full_name || 'كاشير'}</span>
-                        <span class="badge ${this.getStatusClass(order.status)}">
-                            ${this.getStatusText(order.status)}
-                        </span>
-                    </div>
-
-                    <div style="background: #f9f9f9; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
-                        <strong style="font-size: 13px;">الأصناف:</strong>
-                        <div style="margin-top: 5px;">
-                            ${order.order_items.slice(0, 3).map(item => `
-                                <div style="display: flex; justify-content: space-between; font-size: 12px; margin: 3px 0;">
-                                    <span>${item.menu_item?.name_ar} × ${item.quantity}</span>
-                                    <span>${Utils.formatCurrency(item.total_price)}</span>
-                                </div>
-                            `).join('')}
-                            ${order.order_items.length > 3 ? `<small style="color: #666;">و ${order.order_items.length - 3} أصناف أخرى...</small>` : ''}
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
-                        <button onclick="event.stopPropagation(); CashierSystem.selectOrderForEdit(${order.id})" 
-                                class="btn btn-info" 
-                                style="padding: 8px; font-size: 12px;">
-                            ➕ إضافة
-                        </button>
-                        
-                        <button onclick="event.stopPropagation(); CashierSystem.selectOrderForFullEdit(${order.id})" 
-                                class="btn btn-warning" 
-                                style="padding: 8px; font-size: 12px;">
-                            ✏️ تعديل
-                        </button>
-                        
-                        <button onclick="event.stopPropagation(); CashierSystem.closeAndPrintOrder(${order.id})" 
-                                class="btn btn-success" 
-                                style="padding: 8px; font-size: 12px;">
-                            ✅ إغلاق
-                        </button>
+                        `).join('')}
+                        ${order.order_items.length > 3 ? `<small style="color: #666;">و ${order.order_items.length - 3} أصناف أخرى...</small>` : ''}
                     </div>
                 </div>
-            `;
-        }).join('');
-    },
+
+                <div style="padding: 10px; background: #f5f5f5; border-radius: 8px; margin-bottom: 10px;">
+                    <div style="font-size: 11px; color: #666; margin-bottom: 5px; text-align: center;">💳 طريقة الدفع</div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;">
+                        ${['cash', 'visa', 'wallet', 'instapay'].map(m => {
+                            const icons = { cash: '💵', visa: '💳', wallet: '📱', instapay: '⚡' };
+                            const labels = { cash: 'كاش', visa: 'فيزا', wallet: 'محفظة', instapay: 'انستا' };
+                            const active = (order.payment_method || 'cash') === m;
+                            return `<button class="mini-payment-btn" data-order-id="${order.id}" data-method="${m}" 
+                                style="padding: 8px 5px; font-size: 11px; border: 2px solid ${active ? '#667eea' : '#e0e0e0'}; 
+                                border-radius: 6px; background: ${active ? '#f0f4ff' : 'white'}; cursor: pointer; text-align: center; transition: all 0.3s;">
+                                ${icons[m]}<br>${labels[m]}
+                            </button>`;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
+                    <button onclick="event.stopPropagation(); CashierSystem.selectOrderForEdit(${order.id})" 
+                            class="btn btn-info" 
+                            style="padding: 8px; font-size: 12px;">
+                        ➕ إضافة
+                    </button>
+                    
+                    <button onclick="event.stopPropagation(); CashierSystem.selectOrderForFullEdit(${order.id})" 
+                            class="btn btn-warning" 
+                            style="padding: 8px; font-size: 12px;">
+                        ✏️ تعديل
+                    </button>
+                    
+                    <button onclick="event.stopPropagation(); CashierSystem.closeAndPrintOrder(${order.id})" 
+                            class="btn btn-success" 
+                            style="padding: 8px; font-size: 12px;">
+                        ✅ إغلاق
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+},
+
 
     getStatusClass(status) {
         const classes = {
@@ -1617,9 +1636,49 @@ if (typeof protectAsync !== 'undefined') {
         const original = CashierSystem.confirmReplace.bind(CashierSystem);
         CashierSystem.confirmReplace = protectAsync(original, 'replace-item', true);
     }
-}
+},
+
+setupEventListeners() {
+    // ... الكود الموجود
+},
+
+// ✅ أضف الدالة هنا
+updatePaymentButtons() {
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.mini-payment-btn');
+        if (!btn) return;
+
+        const orderId = parseInt(btn.getAttribute('data-order-id'));
+        const method = btn.getAttribute('data-method');
+
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .update({ payment_method: method })
+                .eq('id', orderId);
+
+            if (error) throw error;
+
+            const order = this.openOrders.find(o => o.id === orderId);
+            if (order) order.payment_method = method;
+
+            this.displayOpenOrders();
+
+            const labels = { 'cash': '💵 كاش', 'visa': '💳 فيزا', 'wallet': '📱 محفظة', 'instapay': '⚡ انستاباي' };
+            Utils.showNotification(`تم تحديد: ${labels[method]}`, 'success');
+
+        } catch (error) {
+            console.error('Error:', error);
+            Utils.showNotification('حدث خطأ', 'error');
+        }
+    });
+},
+
+// باقي الدوال...
+
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
