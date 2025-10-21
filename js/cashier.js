@@ -1389,7 +1389,10 @@ const CashierSystem = {
     });
 },
 
-  printReceipt(order) {
+ printReceipt(order) {
+    // البيانات من التوصيل
+    const deliveryInfo = order.order_type === 'delivery' ? order.deliveries[0] : null;
+    
     const receiptHTML = `
         <!DOCTYPE html>
         <html dir="rtl">
@@ -1451,6 +1454,9 @@ const CashierSystem = {
                     font-size: 12px;
                     margin-bottom: 10px;
                     font-weight: bold;
+                }
+                .info div {
+                    margin: 3px 0;
                 }
                 hr {
                     border: none;
@@ -1515,10 +1521,13 @@ const CashierSystem = {
             </div>
 
             <div class="info">
-                ${order.order_type === 'delivery'
-                    ? `العميل: ${order.deliveries[0]?.customer_name}`
-                    : `طاولة: ${order.table_number}`
-                }
+                ${order.order_type === 'delivery' ? `
+                    <div>العميل: ${deliveryInfo?.customer_name || '-'}</div>
+                    ${deliveryInfo?.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
+                    ${deliveryInfo?.delivery_address ? `<div>📍 ${deliveryInfo.delivery_address}</div>` : ''}
+                ` : `
+                    <div>طاولة: ${order.table_number}</div>
+                `}
             </div>
 
             <hr>
@@ -1541,10 +1550,14 @@ const CashierSystem = {
                 <span>المجموع:</span>
                 <span>${Utils.formatCurrency(order.subtotal)}</span>
             </div>
-            <div class="summary-item">
-                <span>الضريبة:</span>
-                <span>${Utils.formatCurrency(order.tax)}</span>
-            </div>
+            
+            ${order.order_type !== 'delivery' ? `
+                <div class="summary-item">
+                    <span>الضريبة (14%):</span>
+                    <span>${Utils.formatCurrency(order.tax)}</span>
+                </div>
+            ` : ''}
+            
             ${order.delivery_fee > 0 ? `
                 <div class="summary-item">
                     <span>التوصيل:</span>
@@ -1560,7 +1573,7 @@ const CashierSystem = {
             <div class="footer">
                 <p>شكراً لزيارتكم بلدي شيك</p>
                 <p>نتمنى لكم يوماً سعيداً</p>
-                 <p>بلدي شيك بلدي علي اصلة</p>
+                <p>بلدي شيك بلدي علي اصلة</p>
             </div>
         </body>
         </html>
@@ -1578,6 +1591,7 @@ const CashierSystem = {
         }, 250);
     };
 },
+
 
 
 
@@ -1832,6 +1846,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
