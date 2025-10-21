@@ -140,6 +140,9 @@ const CashierSystem = {
     container.innerHTML = orders.map(order => {
         const itemsCount = order.order_items?.length || 0;
         const isSelected = this.selectedOrder?.id === order.id;
+        
+        // ✅ حماية البيانات
+        const deliveryInfo = (order.deliveries && order.deliveries.length > 0) ? order.deliveries[0] : null;
 
         return `
             <div class="order-card ${isSelected ? 'selected' : ''}" 
@@ -150,7 +153,7 @@ const CashierSystem = {
                         <h3 style="margin: 0; font-size: 20px;">
                             ${order.order_type === 'delivery' ? '🛵' : '🍽️'} 
                             ${order.order_type === 'delivery'
-                                ? order.deliveries[0]?.customer_name
+                                ? (deliveryInfo ? deliveryInfo.customer_name : 'عميل')
                                 : `طاولة ${order.table_number}`}
                         </h3>
                         <small style="color: #666;">الطلب #${order.order_number}</small>
@@ -223,6 +226,7 @@ const CashierSystem = {
         `;
     }).join('');
 },
+
 
 
     getStatusClass(status) {
@@ -1116,92 +1120,93 @@ const CashierSystem = {
     },
 
     async sendNewOrder() {
-        if (this.newOrderCart.items.length === 0) {
-            Utils.showNotification('الطلب فارغ', 'error');
-            return;
-        }
+    if (this.newOrderCart.items.length === 0) {
+        Utils.showNotification('السلة فارغة', 'error');
+        return;
+    }
 
-        const customerName = document.getElementById('customerName').value;
-        const customerPhone = document.getElementById('customerPhone').value;
-        const customerAddress = document.getElementById('customerAddress').value;
+    const customerName = document.getElementById('customerName').value;
+    const customerPhone = document.getElementById('customerPhone').value;
+    const customerAddress = document.getElementById('customerAddress').value;
 
-        if (!customerName || !customerPhone || !customerAddress) {
-            Utils.showNotification('يرجى إدخال بيانات العميل كاملة', 'error');
-            return;
-        }
+    if (!customerName || !customerPhone || !customerAddress) {
+        Utils.showNotification('يرجى إدخال بيانات العميل كاملة', 'error');
+        return;
+    }
 
-        try {
-            const subtotal = this.newOrderCart.items.reduce((sum, item) => sum + item.total_price, 0);
-            const tax = Utils.calculateTax(subtotal);
-            const deliveryFee = SYSTEM_CONFIG.deliveryFee;
-            const total = subtotal + tax + deliveryFee;
+    try {
+        const subtotal = this.newOrderCart.items.reduce((sum, item) => sum + item.totalprice, 0);
+        const tax = 0; // ✅ لا ضريبة في التوصيل
+        const deliveryFee = SYSTEM_CONFIG.deliveryFee;
+        const total = subtotal + deliveryFee; // ✅ بدون ضريبة
 
-            const orderData = {
-                order_number: Utils.generateOrderNumber(),
-                order_type: 'delivery',
-                status: 'new',
-                cashier_id: this.currentUser.id,
-                payment_method: this.newOrderCart.payment_method,  // ✅ أضف هذا السطر
-                subtotal: subtotal,
-                tax: tax,
-                discount: 0,
-                delivery_fee: deliveryFee,
-                total: total
-            };
+        const orderData = {
+            order_number: Utils.generateOrderNumber(),
+            order_type: 'delivery',
+            status: 'new',
+            cashier_id: this.currentUser.id,
+            payment_method: this.newOrderCart.paymentmethod,
+            subtotal: subtotal,
+            tax: tax, // ✅ 0
+            discount: 0,
+            delivery_fee: deliveryFee,
+            total: total
+        };
 
-            const { data: order, error: orderError } = await supabase
-                .from('orders')
-                .insert([orderData])
-                .select()
-                .single();
+        const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .insert([orderData])
+            .select()
+            .single();
 
-            if (orderError) throw orderError;
+        if (orderError) throw orderError;
 
-            const orderItems = this.newOrderCart.items.map(item => ({
-                order_id: order.id,
-                menu_item_id: item.menu_item_id,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                total_price: item.total_price
-            }));
+        const orderItems = this.newOrderCart.items.map(item => ({
+            order_id: order.id,
+            menu_item_id: item.menuitemid,
+            quantity: item.quantity,
+            unit_price: item.unitprice,
+            total_price: item.totalprice
+        }));
 
-            const { error: itemsError } = await supabase
-                .from('order_items')
-                .insert(orderItems);
+        const { error: itemsError } = await supabase
+            .from('order_items')
+            .insert(orderItems);
 
-            if (itemsError) throw itemsError;
+        if (itemsError) throw itemsError;
 
-            const deliveryData = {
-                order_id: order.id,
-                customer_name: customerName,
-                customer_phone: customerPhone,
-                customer_address: customerAddress,
-                delivery_fee: deliveryFee,
-                delivery_status: 'preparing'
-            };
+        const deliveryData = {
+            order_id: order.id,
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            customer_address: customerAddress, // ✅ مهم!
+            delivery_fee: deliveryFee,
+            delivery_status: 'preparing'
+        };
 
-            const { error: deliveryError } = await supabase
-                .from('deliveries')
-                .insert([deliveryData]);
+        const { error: deliveryError } = await supabase
+            .from('deliveries')
+            .insert([deliveryData]);
 
-            if (deliveryError) throw deliveryError;
+        if (deliveryError) throw deliveryError;
 
-            await this.deductInventory(order.id, this.newOrderCart.items);
+        await this.deductInventory(order.id, this.newOrderCart.items);
 
-            Utils.showNotification('تم إرسال الطلب بنجاح', 'success');
+        Utils.showNotification('تم إرسال الطلب بنجاح', 'success');
 
-            this.newOrderCart.items = [];
-            this.updateNewOrderDisplay();
-            document.getElementById('customerName').value = '';
-            document.getElementById('customerPhone').value = '';
-            document.getElementById('customerAddress').value = '';
-            await this.loadOpenOrders();
+        this.newOrderCart.items = [];
+        this.updateNewOrderDisplay();
+        document.getElementById('customerName').value = '';
+        document.getElementById('customerPhone').value = '';
+        document.getElementById('customerAddress').value = '';
 
-        } catch (error) {
-            console.error('Error sending order:', error);
-            Utils.showNotification('حدث خطأ أثناء إرسال الطلب', 'error');
-        }
-    },
+        await this.loadOpenOrders();
+
+    } catch (error) {
+        console.error('Error sending order:', error);
+        Utils.showNotification('حدث خطأ في إرسال الطلب', 'error');
+    }
+},
 
     async closeAndPrintOrder(orderId) {
         const order = this.openOrders.find(o => o.id === orderId);
@@ -1399,6 +1404,8 @@ printReceipt(order) {
     }
     
     const deliveryInfo = order.order_type === 'delivery' ? order.deliveries[0] : null;
+    console.log('🚚 Delivery Info:', deliveryInfo); // ✅ للتشخيص
+
     
     const receiptHTML = `
         <!DOCTYPE html>
@@ -1858,6 +1865,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
