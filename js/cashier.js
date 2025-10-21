@@ -1431,11 +1431,11 @@ printReceipt(order) {
     console.log('📦 Order Data:', order);
     console.log('🚚 Delivery Info:', order.deliveries);
     if (order.deliveries && order.deliveries[0]) {
-        console.log('📍 Address:', order.deliveries[0].delivery_address);
+        console.log('📍 Address:', order.deliveries[0].delivery_address || order.deliveries[0].customer_address);
         console.log('📞 Phone:', order.deliveries[0].customer_phone);
+        console.log('👤 Name:', order.deliveries[0].customer_name);
     }
     
-    // ✅ التصحيح: order_type بدل ordertype
     const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
         ? order.deliveries[0] 
         : null;
@@ -1571,9 +1571,11 @@ printReceipt(order) {
 
             <div class="info">
                 ${order.order_type === 'delivery' && deliveryInfo ? `
-                    <div>📦 العميل: ${deliveryInfo.customer_name || '-'}</div>
+                    <div>📦 العميل: ${deliveryInfo.customer_name || 'غير محدد'}</div>
                     ${deliveryInfo.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
-                    ${deliveryInfo.delivery_address ? `<div>📍 ${deliveryInfo.delivery_address}</div>` : ''}
+                    ${(deliveryInfo.delivery_address || deliveryInfo.customer_address) ? 
+                        `<div>📍 ${deliveryInfo.delivery_address || deliveryInfo.customer_address}</div>` : 
+                        '<div>📍 لا يوجد عنوان</div>'}
                 ` : order.order_type === 'delivery' ? `
                     <div>📦 توصيل (لا توجد بيانات)</div>
                 ` : `
@@ -1899,6 +1901,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
