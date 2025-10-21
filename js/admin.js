@@ -765,36 +765,7 @@ filterOrders() {
     },
 
     // تصدير Excel
-    exportOrders() {
-        const data = this.filteredOrders.map(order => ({
-            'رقم الطلب': order.order_number,
-            'التاريخ': Utils.formatDate(order.created_at),
-            'النوع': order.order_type === 'dine_in' ? 'داخلي' : 'توصيل',
-            'الطاولة/العميل': order.order_type === 'dine_in' ? `طاولة ${order.table_number}` : order.deliveries[0]?.customer_name || '-',
-            'الموظف': order.staff?.full_name || 'كاشير',
-            'الإجمالي': order.total,
-            'الحالة': this.getStatusText(order.status)
-        }));
-
-        Utils.exportToExcel(data, 'الطلبات');
-        Utils.showNotification('تم تصدير البيانات', 'success');
-    },
-
-    exportInventory() {
-        const data = this.allInventory.map(item => ({
-            'المكون': item.name,
-            'الكمية الحالية': item.current_stock,
-            'الوحدة': item.unit,
-            'الحد الأدنى': item.min_stock,
-            'التكلفة/الوحدة': item.cost_per_unit,
-            'القيمة الإجمالية': (item.current_stock * item.cost_per_unit).toFixed(2),
-            'الحالة': this.getInventoryStatus(item)
-        }));
-
-        Utils.exportToExcel(data, 'المخزون');
-        Utils.showNotification('تم تصدير البيانات', 'success');
-    },
-
+    exportOrders
     // مستمعي الأحداث
     setupEventListeners() {
         const addUserForm = document.getElementById('addUserForm');
@@ -832,4 +803,5 @@ if (typeof window !== 'undefined') {
 }
 
 console.log('✅ Admin Dashboard loaded with live stats');
+
 
