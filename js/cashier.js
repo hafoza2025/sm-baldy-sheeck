@@ -1389,61 +1389,161 @@ const CashierSystem = {
     });
 },
 
-    printReceipt(order) {
-        const receiptHTML = `
-            <!DOCTYPE html>
-            <html dir="rtl">
-            <head>
-                <meta charset="UTF-8">
-                <title>فاتورة #${order.order_number}</title>
-                <style>
-                    body { font-family: Arial; width: 300px; margin: 20px auto; }
-                    .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 10px; margin-bottom: 10px; }
-                    .item { display: flex; justify-content: space-between; margin: 5px 0; }
-                    .total { font-size: 18px; font-weight: bold; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h2>${SYSTEM_CONFIG.restaurantName}</h2>
-                    <p>فاتورة: ${order.order_number}</p>
-                    <p>${Utils.formatDate(order.created_at)}</p>
-                </div>
-<div style="background: #f0f4ff; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">
-    💳 ${this.getPaymentMethodName(order.payment_method || this.selectedOrderPaymentMethod || this.newOrderCart.payment_method)}
-</div>
-
-                ${order.order_type === 'delivery'
-                    ? `<p>العميل: ${order.deliveries[0]?.customer_name}</p>`
-                    : `<p>طاولة: ${order.table_number}</p>`
+   printReceipt(order) {
+    const receiptHTML = `
+        <!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>فاتورة #${order.order_number}</title>
+            <style>
+                @page {
+                    size: 80mm auto;
+                    margin: 0;
                 }
-                <hr>
-                ${order.order_items.map(item => `
-                    <div class="item">
-                        <span>${item.menu_item?.name_ar} × ${item.quantity}</span>
-                        <span>${Utils.formatCurrency(item.total_price)}</span>
-                    </div>
-                `).join('')}
-                <hr>
-                <div class="item"><span>المجموع:</span><span>${Utils.formatCurrency(order.subtotal)}</span></div>
-                <div class="item"><span>الضريبة:</span><span>${Utils.formatCurrency(order.tax)}</span></div>
-                ${order.delivery_fee > 0 ? `<div class="item"><span>التوصيل:</span><span>${Utils.formatCurrency(order.delivery_fee)}</span></div>` : ''}
-                <div class="item total">
-                    <span>الإجمالي:</span>
-                    <span>${Utils.formatCurrency(order.total)}</span>
-                </div>
-                <div style="text-align: center; margin-top: 20px;">
-                    <p><strong>شكراً لزيارتكم</strong></p>
-                </div>
-            </body>
-            </html>
-        `;
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body { 
+                    font-family: 'Courier New', monospace;
+                    width: 72mm;
+                    font-size: 10px;
+                    line-height: 1.3;
+                    padding: 3mm;
+                    margin: 0 auto;
+                }
+                .header { 
+                    text-align: center;
+                    border-bottom: 1px dashed #333;
+                    padding-bottom: 8px;
+                    margin-bottom: 8px;
+                }
+                .header h2 {
+                    font-size: 14px;
+                    margin-bottom: 3px;
+                }
+                .header p {
+                    font-size: 9px;
+                    margin: 2px 0;
+                }
+                .payment-box {
+                    background: #f0f4ff;
+                    padding: 6px;
+                    border-radius: 3px;
+                    margin: 8px 0;
+                    text-align: center;
+                    font-weight: bold;
+                    font-size: 11px;
+                    color: #667eea;
+                    border: 1px solid #667eea;
+                }
+                .info {
+                    font-size: 9px;
+                    margin-bottom: 8px;
+                }
+                hr {
+                    border: none;
+                    border-top: 1px dashed #333;
+                    margin: 5px 0;
+                }
+                .item { 
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 3px 0;
+                    font-size: 9px;
+                }
+                .item span:first-child {
+                    flex: 1;
+                    padding-left: 5px;
+                }
+                .total { 
+                    font-size: 12px;
+                    font-weight: bold;
+                    border-top: 2px solid #333;
+                    padding-top: 6px;
+                    margin-top: 6px;
+                }
+                .footer {
+                    text-align: center;
+                    margin-top: 10px;
+                    font-size: 9px;
+                    border-top: 1px dashed #333;
+                    padding-top: 6px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>${SYSTEM_CONFIG.restaurantName}</h2>
+                <p>فاتورة: ${order.order_number}</p>
+                <p>${Utils.formatDate(order.created_at)}</p>
+            </div>
 
-        const printWindow = window.open('', '', 'height=600,width=400');
-        printWindow.document.write(receiptHTML);
-        printWindow.document.close();
-        setTimeout(() => printWindow.print(), 250);
-    },
+            <div class="payment-box">
+                💳 ${this.getPaymentMethodName(order.payment_method || this.selectedOrderPaymentMethod || this.newOrderCart.payment_method)}
+            </div>
+
+            <div class="info">
+                ${order.order_type === 'delivery'
+                    ? `العميل: ${order.deliveries[0]?.customer_name}`
+                    : `طاولة: ${order.table_number}`
+                }
+            </div>
+
+            <hr>
+
+            ${order.order_items.map(item => `
+                <div class="item">
+                    <span>${item.menu_item?.name_ar} × ${item.quantity}</span>
+                    <span>${Utils.formatCurrency(item.total_price)}</span>
+                </div>
+            `).join('')}
+
+            <hr>
+
+            <div class="item">
+                <span>المجموع:</span>
+                <span>${Utils.formatCurrency(order.subtotal)}</span>
+            </div>
+            <div class="item">
+                <span>الضريبة:</span>
+                <span>${Utils.formatCurrency(order.tax)}</span>
+            </div>
+            ${order.delivery_fee > 0 ? `
+                <div class="item">
+                    <span>التوصيل:</span>
+                    <span>${Utils.formatCurrency(order.delivery_fee)}</span>
+                </div>
+            ` : ''}
+
+            <div class="item total">
+                <span>الإجمالي:</span>
+                <span>${Utils.formatCurrency(order.total)}</span>
+            </div>
+
+            <div class="footer">
+                <p><strong>شكراً لزيارتكم</strong></p>
+                <p>نتمنى لكم يوماً سعيداً</p>
+            </div>
+        </body>
+        </html>
+    `;
+
+    const printWindow = window.open('', '', 'height=600,width=300');
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            setTimeout(() => printWindow.close(), 500);
+        }, 250);
+    };
+},
+
 
     async deductInventory(orderId, items) {
         try {
@@ -1696,6 +1796,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
