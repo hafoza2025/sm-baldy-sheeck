@@ -1192,21 +1192,13 @@ const CashierSystem = {
         this.selectedOrderPaymentMethod = order.payment_method || 'cash';
     }
 
-    // ✅ أظهر Loading
-    Utils.showLoading();
-
-    // ✅ انتظر قليلاً ثم اخفي Loading
-    await new Promise(resolve => setTimeout(resolve, 500));
-    Utils.hideLoading();
-
     // ✅ اعرض نافذة اختيار طريقة الدفع
     const paymentChoice = await showPaymentMethodDialog(order);
     if (!paymentChoice) return;
 
     this.selectedOrderPaymentMethod = paymentChoice;
 
-    // ✅ أظهر Loading مرة تانية
-    Utils.showLoading();
+
 
     try {
         const { error } = await supabase
