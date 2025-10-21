@@ -1390,7 +1390,14 @@ const CashierSystem = {
 },
 
  printReceipt(order) {
-    // البيانات من التوصيل
+    // ✅ طباعة البيانات للتشخيص
+    console.log('📦 Order Data:', order);
+    console.log('🚚 Delivery Info:', order.deliveries);
+    if (order.deliveries && order.deliveries[0]) {
+        console.log('📍 Address:', order.deliveries[0].delivery_address);
+        console.log('📞 Phone:', order.deliveries[0].customer_phone);
+    }
+    
     const deliveryInfo = order.order_type === 'delivery' ? order.deliveries[0] : null;
     
     const receiptHTML = `
@@ -1451,12 +1458,14 @@ const CashierSystem = {
                     border: 2px solid #000;
                 }
                 .info {
-                    font-size: 12px;
+                    font-size: 11px;
                     margin-bottom: 10px;
                     font-weight: bold;
+                    line-height: 1.6;
                 }
                 .info div {
                     margin: 3px 0;
+                    word-wrap: break-word;
                 }
                 hr {
                     border: none;
@@ -1521,12 +1530,14 @@ const CashierSystem = {
             </div>
 
             <div class="info">
-                ${order.order_type === 'delivery' ? `
-                    <div>العميل: ${deliveryInfo?.customer_name || '-'}</div>
-                    ${deliveryInfo?.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
-                    ${deliveryInfo?.delivery_address ? `<div>📍 ${deliveryInfo.delivery_address}</div>` : ''}
+                ${order.order_type === 'delivery' && deliveryInfo ? `
+                    <div>📦 العميل: ${deliveryInfo.customer_name || '-'}</div>
+                    ${deliveryInfo.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
+                    ${deliveryInfo.delivery_address ? `<div>📍 ${deliveryInfo.delivery_address}</div>` : '<div>📍 (لا يوجد عنوان)</div>'}
+                ` : order.order_type === 'delivery' ? `
+                    <div>📦 توصيل (لا توجد بيانات)</div>
                 ` : `
-                    <div>طاولة: ${order.table_number}</div>
+                    <div>🍽️ طاولة: ${order.table_number}</div>
                 `}
             </div>
 
@@ -1578,6 +1589,19 @@ const CashierSystem = {
         </body>
         </html>
     `;
+
+    const printWindow = window.open('', '', 'height=600,width=300');
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            setTimeout(() => printWindow.close(), 500);
+        }, 250);
+    };
+},
 
     const printWindow = window.open('', '', 'height=600,width=300');
     printWindow.document.write(receiptHTML);
@@ -1846,6 +1870,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
