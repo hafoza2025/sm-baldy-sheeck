@@ -1194,7 +1194,6 @@ const CashierSystem = {
     }
 
     // ✅ عرض نافذة اختيار طريقة الدفع
-     Utils.hideLoading();  // أضف هذا السطر
     const paymentChoice = await showPaymentMethodDialog(order);  // ✅ بدون this
     if (!paymentChoice) return; // المستخدم ألغى
 
@@ -1676,6 +1675,7 @@ async function showPaymentMethodDialog(order) {
         });
     });
 }
+
 
 
 
