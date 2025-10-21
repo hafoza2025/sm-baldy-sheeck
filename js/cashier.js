@@ -1136,19 +1136,32 @@ async sendNewOrder() {
 
     try {
         console.log('🚀 إرسال طلب جديد...');
+        console.log('📦 السلة:', this.newOrderCart.items);
         
-        const subtotal = this.newOrderCart.items.reduce((sum, item) => sum + item.totalprice, 0);
+        // ✅ حساب المجموع بشكل آمن
+        const subtotal = this.newOrderCart.items.reduce((sum, item) => {
+            const price = parseFloat(item.totalprice || item.total_price || 0);
+            console.log('Item:', item.name, 'Price:', price);
+            return sum + price;
+        }, 0);
+        
         const tax = 0; // ✅ لا ضريبة في التوصيل
-        const deliveryFee = SYSTEM_CONFIG.deliveryFee || 0;
+        const deliveryFee = parseFloat(SYSTEM_CONFIG.deliveryFee) || 0;
         const total = subtotal + deliveryFee;
 
         console.log('💰 الحسابات:', { subtotal, tax, deliveryFee, total });
+
+        // ✅ تأكد إن الأرقام صحيحة
+        if (isNaN(subtotal) || subtotal === 0) {
+            Utils.showNotification('خطأ في حساب المجموع', 'error');
+            return;
+        }
 
         const orderData = {
             order_number: Utils.generateOrderNumber(),
             order_type: 'delivery',
             status: 'new',
-            staff_id: this.currentUser.id, // ✅ staff_id مش cashier_id
+            staff_id: this.currentUser.id,
             payment_method: this.newOrderCart.paymentmethod || 'cash',
             subtotal: subtotal,
             tax: tax,
@@ -1174,10 +1187,10 @@ async sendNewOrder() {
 
         const orderItems = this.newOrderCart.items.map(item => ({
             order_id: order.id,
-            menu_item_id: item.menuitemid,
-            quantity: item.quantity,
-            unit_price: item.unitprice,
-            total_price: item.totalprice
+            menu_item_id: item.menuitemid || item.menu_item_id,
+            quantity: parseInt(item.quantity),
+            unit_price: parseFloat(item.unitprice || item.unit_price),
+            total_price: parseFloat(item.totalprice || item.total_price)
         }));
 
         console.log('🍽️ الأصناف:', orderItems);
@@ -1231,10 +1244,10 @@ async sendNewOrder() {
 
     } catch (error) {
         console.error('❌ خطأ في إرسال الطلب:', error);
-        console.error('تفاصيل الخطأ:', error.message);
         Utils.showNotification('❌ حدث خطأ: ' + error.message, 'error');
     }
 },
+
 
 
     async closeAndPrintOrder(orderId) {
@@ -1894,6 +1907,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
