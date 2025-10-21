@@ -10,7 +10,7 @@ const CashierSystem = {
     newOrderCart: {
         type: 'delivery',
         items: [],
-        customer_info: {}
+        customer_info: {},
         payment_method: 'cash'  // ✅ طريقة الدفع الافتراضية للطلب الجديد
     },
         selectedOrderPaymentMethod: 'cash',  // ✅ طريقة الدفع للطلبات الموجودة
@@ -1483,4 +1483,5 @@ if (typeof protectAsync !== 'undefined') {
 }
 
 console.log('✅ Cashier System loaded with full control');
+
 
