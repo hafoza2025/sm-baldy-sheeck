@@ -1628,7 +1628,8 @@ if (typeof protectAsync !== 'undefined') {
 console.log('✅ Cashier System loaded with full control');
 
 // عرض نافذة اختيار طريقة الدفع
-  showPaymentMethodDialog(order) {
+// عرض نافذة اختيار طريقة الدفع
+showPaymentMethodDialog(order) {
     return new Promise((resolve) => {
         // إنشاء النافذة المنبثقة
         const modalHTML = `
@@ -1762,6 +1763,7 @@ console.log('✅ Cashier System loaded with full control');
         });
     });
 },
+
 
 
 
