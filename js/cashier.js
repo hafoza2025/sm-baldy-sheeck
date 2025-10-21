@@ -1636,7 +1636,7 @@ if (typeof protectAsync !== 'undefined') {
         const original = CashierSystem.confirmReplace.bind(CashierSystem);
         CashierSystem.confirmReplace = protectAsync(original, 'replace-item', true);
     }
-},
+}
 
 setupEventListeners() {
     // ... الكود الموجود
@@ -1678,6 +1678,7 @@ updatePaymentButtons() {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
