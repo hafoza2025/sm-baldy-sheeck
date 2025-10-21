@@ -1241,7 +1241,7 @@ const CashierSystem = {
     }
 },
     // عرض نافذة اختيار طريقة الدفع
-async showPaymentMethodDialog(order) {
+ showPaymentMethodDialog(order) {
     return new Promise((resolve) => {
         // إنشاء النافذة المنبثقة
         const modalHTML = `
@@ -1762,6 +1762,7 @@ async showPaymentMethodDialog(order) {
         });
     });
 },
+
 
 
 
