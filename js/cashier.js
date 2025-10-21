@@ -1184,21 +1184,29 @@ const CashierSystem = {
         }
     },
 
-   async closeAndPrintOrder(orderId) {
+ async closeAndPrintOrder(orderId) {
     const order = this.openOrders.find(o => o.id === orderId);
     if (!order) return;
 
-    // ✅ إذا لم يتم اختيار طريقة دفع من قبل، اعرض نافذة الاختيار
     if (!this.selectedOrder || this.selectedOrder.id !== orderId) {
         this.selectedOrderPaymentMethod = order.payment_method || 'cash';
     }
 
-    // ✅ عرض نافذة اختيار طريقة الدفع
-    const paymentChoice = await showPaymentMethodDialog(order);  // ✅ بدون this
-    if (!paymentChoice) return; // المستخدم ألغى
+    // ✅ أظهر Loading
+    Utils.showLoading();
+
+    // ✅ انتظر قليلاً ثم اخفي Loading
+    await new Promise(resolve => setTimeout(resolve, 500));
+    Utils.hideLoading();
+
+    // ✅ اعرض نافذة اختيار طريقة الدفع
+    const paymentChoice = await showPaymentMethodDialog(order);
+    if (!paymentChoice) return;
 
     this.selectedOrderPaymentMethod = paymentChoice;
 
+    // ✅ أظهر Loading مرة تانية
+    Utils.showLoading();
 
     try {
         const { error } = await supabase
@@ -1212,6 +1220,7 @@ const CashierSystem = {
 
         if (error) throw error;
 
+        // باقي الكود العادي...
         if (order.order_type === 'delivery') {
             await supabase
                 .from('deliveries')
@@ -1239,8 +1248,11 @@ const CashierSystem = {
     } catch (error) {
         console.error('Error closing order:', error);
         Utils.showNotification('حدث خطأ', 'error');
+    } finally {
+        Utils.hideLoading();
     }
 },
+
     // عرض نافذة اختيار طريقة الدفع
  showPaymentMethodDialog(order) {
     return new Promise((resolve) => {
@@ -1688,6 +1700,7 @@ async function showPaymentMethodDialog(order) {
         });
     });
 }
+
 
 
 
