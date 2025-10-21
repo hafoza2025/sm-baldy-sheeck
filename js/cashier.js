@@ -1253,10 +1253,10 @@ const CashierSystem = {
                     <p>فاتورة: ${order.order_number}</p>
                     <p>${Utils.formatDate(order.created_at)}</p>
                 </div>
-                <!-- طريقة الدفع -->
 <div style="background: #f0f4ff; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-weight: bold; font-size: 16px; color: #667eea;">
     💳 ${this.getPaymentMethodName(order.payment_method || this.selectedOrderPaymentMethod || this.newOrderCart.payment_method)}
 </div>
+
                 ${order.order_type === 'delivery'
                     ? `<p>العميل: ${order.deliveries[0]?.customer_name}</p>`
                     : `<p>طاولة: ${order.table_number}</p>`
@@ -1483,6 +1483,7 @@ if (typeof protectAsync !== 'undefined') {
 }
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
