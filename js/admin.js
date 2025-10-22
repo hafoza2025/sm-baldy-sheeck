@@ -843,17 +843,23 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
 
 // ========================================
-// ✅ كود الطباعة المُحسّن - يعمل بدون مشاكل
+// ✅ كود الطباعة الآمن - يعمل بدون أخطاء
 // ========================================
 
 (function() {
     console.log('🖨️ جاري تفعيل ميزة الطباعة...');
 
-    // ✅ دالة الطباعة
+    // ✅ دالة الطباعة الآمنة
     window.printOrderReceipt = function(orderData) {
         console.log('📦 طباعة فاتورة:', orderData);
         
         try {
+            // ✅ التحقق من وجود البيانات
+            if (!orderData || !orderData.order_number) {
+                alert('⚠️ لا توجد بيانات كافية للطباعة');
+                return;
+            }
+
             const deliveryInfo = (orderData.order_type === 'delivery' && orderData.deliveries && orderData.deliveries.length > 0) 
                 ? orderData.deliveries[0] 
                 : null;
@@ -867,6 +873,9 @@ console.log('✅ Admin Dashboard loaded with live stats');
             };
             
             const paymentMethod = paymentMethods[orderData.payment_method] || 'كاش';
+            
+            // ✅ التحقق من order_items
+            const items = orderData.order_items || [];
             
             const receiptHTML = `
                 <!DOCTYPE html>
@@ -952,12 +961,17 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
                     <hr>
 
-                    ${orderData.order_items.map(item => `
-                        <div class="item">
-                            <span>${item.menu_item?.name_ar || 'صنف'} × ${item.quantity}</span>
-                            <span>${(item.total_price || 0).toFixed(2)} ج.م</span>
-                        </div>
-                    `).join('')}
+                    ${items.length > 0 ? items.map(item => {
+                        const itemName = item.menu_item?.name_ar || item.name_ar || 'صنف';
+                        const itemQty = item.quantity || 1;
+                        const itemPrice = item.total_price || 0;
+                        return `
+                            <div class="item">
+                                <span>${itemName} × ${itemQty}</span>
+                                <span>${itemPrice.toFixed(2)} ج.م</span>
+                            </div>
+                        `;
+                    }).join('') : '<div class="item"><span>لا توجد أصناف</span></div>'}
 
                     <hr>
 
@@ -966,17 +980,17 @@ console.log('✅ Admin Dashboard loaded with live stats');
                         <span>${(orderData.subtotal || 0).toFixed(2)} ج.م</span>
                     </div>
                     
-                    ${orderData.tax > 0 ? `
+                    ${(orderData.tax || 0) > 0 ? `
                         <div class="item">
                             <span>الضريبة (14%):</span>
-                            <span>${(orderData.tax || 0).toFixed(2)} ج.م</span>
+                            <span>${(orderData.tax).toFixed(2)} ج.م</span>
                         </div>
                     ` : ''}
                     
-                    ${orderData.delivery_fee > 0 ? `
+                    ${(orderData.delivery_fee || 0) > 0 ? `
                         <div class="item">
                             <span>التوصيل:</span>
-                            <span>${(orderData.delivery_fee || 0).toFixed(2)} ج.م</span>
+                            <span>${(orderData.delivery_fee).toFixed(2)} ج.م</span>
                         </div>
                     ` : ''}
 
@@ -1012,11 +1026,11 @@ console.log('✅ Admin Dashboard loaded with live stats');
             
         } catch (error) {
             console.error('❌ خطأ في الطباعة:', error);
-            alert('حدث خطأ في الطباعة: ' + error.message);
+            alert('حدث خطأ في الطباعة. يرجى المحاولة مرة أخرى.');
         }
     };
 
-    // ✅ تعديل displayOrders
+    // ✅ تعديل displayOrders بشكل آمن
     const originalDisplay = AdminDashboard.displayOrders;
     AdminDashboard.displayOrders = function(orders) {
         const tbody = document.getElementById('ordersBody');
@@ -1036,8 +1050,24 @@ console.log('✅ Admin Dashboard loaded with live stats');
             };
             const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
 
-            // حفظ البيانات في attribute
-            const orderDataStr = btoa(encodeURIComponent(JSON.stringify(order)));
+            // ✅ حفظ البيانات بشكل آمن
+            const safeOrder = {
+                id: order.id,
+                order_number: order.order_number,
+                created_at: order.created_at,
+                order_type: order.order_type,
+                table_number: order.table_number,
+                payment_method: order.payment_method,
+                status: order.status,
+                subtotal: order.subtotal || 0,
+                tax: order.tax || 0,
+                delivery_fee: order.delivery_fee || 0,
+                total: order.total || 0,
+                order_items: order.order_items || [],
+                deliveries: order.deliveries || []
+            };
+
+            const orderDataStr = btoa(encodeURIComponent(JSON.stringify(safeOrder)));
 
             return `
                 <tr>
@@ -1067,8 +1097,3 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
     console.log('✅ تم تفعيل ميزة الطباعة بنجاح!');
 })();
-
-
-
-
-
