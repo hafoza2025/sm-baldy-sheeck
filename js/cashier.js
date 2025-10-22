@@ -21,6 +21,7 @@ const CashierSystem = {
     // ======================================
 // 🔒 دالة التحقق من صلاحية الأدمن
 // ======================================
+// ✅ دالة التحقق من صلاحية الأدمن - النسخة النهائية الاحترافية
 async verifyAdminAccess() {
     return new Promise((resolve) => {
         const modal = document.createElement('div');
@@ -30,7 +31,6 @@ async verifyAdminAccess() {
             justify-content: center; align-items: center; z-index: 10000;
         `;
 
-        // ✅ استخدام <form> علشان نلغي التحذير
         modal.innerHTML = `
             <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; width: 90%;">
                 <h2 style="text-align: center; color: #667eea; margin-bottom: 20px; font-size: 22px;">🔒 تحقق من صلاحية الأدمن</h2>
@@ -38,19 +38,19 @@ async verifyAdminAccess() {
                 
                 <form id="adminVerifyForm" style="margin: 0;">
                     <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">اسم المستخدم</label>
-                        <input type="text" id="adminUsername" name="username" autocomplete="username" placeholder="أدخل اسم المستخدم" 
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">البريد الإلكتروني</label>
+                        <input type="email" id="adminEmail" autocomplete="email" placeholder="أدخل البريد الإلكتروني" 
                             style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
                     </div>
                     
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">كلمة المرور</label>
-                        <input type="password" id="adminPassword" name="password" autocomplete="current-password" placeholder="أدخل كلمة المرور"
+                        <input type="password" id="adminPassword" autocomplete="current-password" placeholder="أدخل كلمة المرور"
                             style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
                     </div>
                     
                     <div style="display: flex; gap: 10px;">
-                        <button type="submit" id="adminVerifyBtn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">✅ تحقق</button>
+                        <button type="submit" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">✅ تحقق</button>
                         <button type="button" id="adminCancelBtn" style="flex: 1; padding: 12px; background: #e53e3e; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">❌ إلغاء</button>
                     </div>
                 </form>
@@ -60,66 +60,77 @@ async verifyAdminAccess() {
         document.body.appendChild(modal);
 
         const form = document.getElementById('adminVerifyForm');
-        const usernameInput = document.getElementById('adminUsername');
+        const emailInput = document.getElementById('adminEmail');
         const passwordInput = document.getElementById('adminPassword');
         const cancelBtn = document.getElementById('adminCancelBtn');
 
-        usernameInput.focus();
+        emailInput.focus();
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const username = usernameInput.value.trim();
+            const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
 
-            if (!username || !password) {
-                Utils.showNotification('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
+            if (!email || !password) {
+                Utils.showNotification('يرجى إدخال البريد الإلكتروني وكلمة المرور', 'error');
                 return;
             }
 
             try {
-                // ✅ استخدام جدول employees
-                const { data: employeeData, error: fetchError } = await supabase
-                    .from('employees')
-                    .select('id, username, password, role, full_name')
-                    .eq('username', username)
-                    .maybeSingle();
+                // ✅ الخطوة 1: التحقق من المستخدم في Supabase Auth
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
 
-                console.log('📊 النتيجة:', employeeData, fetchError);
-
-                if (fetchError) {
-                    console.error('❌ خطأ Supabase:', fetchError);
-                    Utils.showNotification('❌ خطأ: ' + fetchError.message, 'error');
-                    return;
-                }
-
-                if (!employeeData) {
-                    Utils.showNotification('❌ اسم المستخدم غير موجود', 'error');
-                    usernameInput.focus();
-                    return;
-                }
-
-                if (employeeData.password !== password) {
-                    Utils.showNotification('❌ كلمة المرور غير صحيحة', 'error');
+                if (authError || !authData.user) {
+                    Utils.showNotification('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error');
                     passwordInput.value = '';
                     passwordInput.focus();
                     return;
                 }
 
-                // ✅ التحقق من role (admin أو manager)
-                const userRole = employeeData.role ? employeeData.role.toLowerCase() : '';
-                if (userRole !== 'admin' && userRole !== 'manager') {
-                    Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
+                // ✅ الخطوة 2: التحقق من صلاحية المستخدم في جدول users
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('id, email, role, full_name')
+                    .eq('email', email)
+                    .maybeSingle();
+
+                if (userError) {
+                    console.error('خطأ في جلب بيانات المستخدم:', userError);
+                    Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
+                    await supabase.auth.signOut();
                     return;
                 }
 
-                Utils.showNotification('✅ تم التحقق بنجاح', 'success');
+                if (!userData) {
+                    Utils.showNotification('❌ المستخدم غير موجود في النظام', 'error');
+                    await supabase.auth.signOut();
+                    return;
+                }
+
+                // ✅ الخطوة 3: التحقق من الصلاحية (admin أو manager)
+                const userRole = userData.role ? userData.role.toLowerCase() : '';
+                if (userRole !== 'admin' && userRole !== 'manager') {
+                    Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
+                    await supabase.auth.signOut();
+                    return;
+                }
+
+                // ✅ نجح التحقق
+                Utils.showNotification('✅ تم التحقق بنجاح - مرحباً ' + userData.full_name, 'success');
                 document.body.removeChild(modal);
+                
+                // ✅ تسجيل خروج بعد التحقق (اختياري)
+                await supabase.auth.signOut();
+                
                 resolve(true);
 
             } catch (error) {
                 console.error('❌ خطأ غير متوقع:', error);
-                Utils.showNotification('❌ خطأ غير متوقع', 'error');
+                Utils.showNotification('❌ حدث خطأ غير متوقع', 'error');
                 resolve(false);
             }
         });
@@ -137,6 +148,7 @@ async verifyAdminAccess() {
         });
     });
 },
+
 
 
 
@@ -2032,6 +2044,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
