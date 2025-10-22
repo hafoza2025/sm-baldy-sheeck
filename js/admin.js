@@ -447,39 +447,28 @@ const AdminDashboard = {
     },
 
     // تحميل جميع الطلبات
-   // تحميل جميع الطلبات
-async loadOrders() {
-    try {
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-                *,
-                staff:staff_id(full_name),
-                order_items (
+ async loadOrders() {
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
                     *,
-                    menu_item:menu_items(name_ar, name_en)
-                ),
-                deliveries(
-                    customer_name,
-                    customer_phone,
-                    customer_address,
-                    delivery_address
-                )
-            `)
-            .order('created_at', { ascending: false })
-            .limit(100);
+                    staff:staff_id(full_name),
+                    deliveries(customer_name)
+                `)
+                .order('created_at', { ascending: false })
+                .limit(100);
 
-        if (error) throw error;
+            if (error) throw error;
 
-        this.allOrders = data;
-        this.filteredOrders = data;
-        this.displayOrders(data);
+            this.allOrders = data;
+            this.filteredOrders = data;
+            this.displayOrders(data);
 
-    } catch (error) {
-        console.error('Error loading orders:', error);
-    }
-},
-
+        } catch (error) {
+            console.error('Error loading orders:', error);
+        }
+    },
 
    displayOrders(orders) {
     const tbody = document.getElementById('ordersBody');
@@ -1145,4 +1134,5 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
     console.log('✅ تم تفعيل ميزة الطباعة بنجاح!');
 })();
+
 
