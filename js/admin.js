@@ -844,160 +844,174 @@ if (typeof window !== 'undefined') {
 
 console.log('✅ Admin Dashboard loaded with live stats');
 
-
 // ================================================================================
-// 🖨️ نظام طباعة الفواتير - النسخة النهائية الكاملة
+// 🖨️ نظام طباعة الفواتير - النسخة النهائية الصحيحة 100%
 // ================================================================================
 
 (function() {
     console.log('🖨️ جاري تفعيل نظام الطباعة...');
 
-    // ✅ دالة استرجاع البيانات الكاملة
-    async function fetchFullOrderData(orderId) {
+    // ✅ دالة الطباعة - تجيب البيانات من Supabase مباشرة
+    async function printOrderReceipt(orderId) {
+        console.log('📦 جاري جلب بيانات الطلب:', orderId);
+        
         try {
-            const { data, error } = await supabase
+            // ✅ جلب البيانات من Supabase
+            const { data: order, error } = await supabase
                 .from('orders')
                 .select(`
-                    *,
+                    id,
+                    order_number,
+                    created_at,
+                    order_type,
+                    table_number,
+                    payment_method,
+                    status,
+                    subtotal,
+                    tax,
+                    delivery_fee,
+                    total,
                     order_items (
-                        *,
-                        menu_item:menu_items (name_ar, name_en)
+                        id,
+                        quantity,
+                        total_price,
+                        menu_item:menu_items (
+                            name_ar
+                        )
                     ),
                     deliveries (
                         customer_name,
                         customer_phone,
-                        customer_address,
-                        delivery_address
+                        customer_address
                     )
                 `)
                 .eq('id', orderId)
                 .single();
 
-            if (error) throw error;
-            return data;
+            if (error) {
+                console.error('❌ خطأ في Supabase:', error);
+                alert('⚠️ حدث خطأ: ' + error.message);
+                return;
+            }
+
+            if (!order) {
+                alert('⚠️ لم يتم العثور على بيانات الطلب');
+                return;
+            }
+
+            console.log('✅ تم جلب البيانات بنجاح:', order);
+
+            // ✅ معالجة البيانات
+            const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
+                ? order.deliveries[0] 
+                : null;
+            
+            const paymentMethods = {
+                'cash': 'كاش',
+                'visa': 'فيزا',
+                'card': 'بطاقة',
+                'wallet': 'محفظة',
+                'instapay': 'انستاباي'
+            };
+            
+            // ✅ إنشاء HTML الفاتورة
+            const receiptHTML = `
+                <!DOCTYPE html>
+                <html dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>فاتورة #${order.order_number}</title>
+                    <style>
+                        @page { size: 80mm auto; margin: 0; }
+                        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { font-family: Arial, Tahoma, sans-serif; width: 72mm; font-size: 13px; font-weight: bold; line-height: 1.5; padding: 5mm; margin: 0 auto; color: #000; }
+                        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
+                        .header h2 { font-size: 18px; margin-bottom: 5px; }
+                        .header p { font-size: 12px; margin: 3px 0; }
+                        .payment-box { background: #000; color: #fff; padding: 8px; margin: 10px 0; text-align: center; font-weight: bold; font-size: 14px; }
+                        .info { font-size: 11px; margin-bottom: 10px; line-height: 1.6; }
+                        .info div { margin: 3px 0; word-wrap: break-word; }
+                        hr { border: none; border-top: 2px solid #000; margin: 8px 0; }
+                        .item { display: flex; justify-content: space-between; margin: 5px 0; font-size: 12px; }
+                        .summary-item { display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px; }
+                        .total { font-size: 16px; border-top: 3px double #000; border-bottom: 3px double #000; padding: 10px 0; margin: 10px 0; background: #f0f0f0; }
+                        .footer { text-align: center; margin-top: 15px; border-top: 2px solid #000; padding-top: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>مطعم بلدي شيك</h2>
+                        <p>فاتورة: ${order.order_number}</p>
+                        <p>${new Date(order.created_at).toLocaleString('ar-EG')}</p>
+                    </div>
+                    <div class="payment-box">💳 ${paymentMethods[order.payment_method] || 'كاش'}</div>
+                    <div class="info">
+                        ${order.order_type === 'delivery' && deliveryInfo ? `
+                            <div>📦 العميل: ${deliveryInfo.customer_name || 'غير محدد'}</div>
+                            ${deliveryInfo.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
+                            ${deliveryInfo.customer_address ? `<div>📍 ${deliveryInfo.customer_address}</div>` : ''}
+                        ` : order.order_type === 'dine_in' ? `
+                            <div>🍽️ طاولة: ${order.table_number || 'غير محدد'}</div>
+                        ` : ''}
+                    </div>
+                    <hr>
+                    ${(order.order_items || []).map(item => `
+                        <div class="item">
+                            <span>${item.menu_item?.name_ar || 'صنف'} × ${item.quantity || 1}</span>
+                            <span>${(item.total_price || 0).toFixed(2)} ج.م</span>
+                        </div>
+                    `).join('')}
+                    <hr>
+                    <div class="summary-item">
+                        <span>المجموع:</span>
+                        <span>${(order.subtotal || 0).toFixed(2)} ج.م</span>
+                    </div>
+                    ${order.order_type !== 'delivery' && order.tax > 0 ? `
+                        <div class="summary-item">
+                            <span>الضريبة (14%):</span>
+                            <span>${(order.tax).toFixed(2)} ج.م</span>
+                        </div>
+                    ` : ''}
+                    ${(order.delivery_fee || 0) > 0 ? `
+                        <div class="summary-item">
+                            <span>التوصيل:</span>
+                            <span>${order.delivery_fee.toFixed(2)} ج.م</span>
+                        </div>
+                    ` : ''}
+                    <div class="summary-item total">
+                        <span>الإجمالي:</span>
+                        <span>${(order.total || 0).toFixed(2)} ج.م</span>
+                    </div>
+                    <div class="footer">
+                        <p>شكراً لزيارتكم بلدي شيك</p>
+                        <p>بلدي شيك بلدي علي اصلة</p>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            // ✅ فتح نافذة الطباعة
+            const printWindow = window.open('', '', 'height=600,width=300');
+            if (!printWindow) {
+                alert('⚠️ يرجى السماح بالنوافذ المنبثقة');
+                return;
+            }
+            
+            printWindow.document.write(receiptHTML);
+            printWindow.document.close();
+            printWindow.onload = () => {
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    setTimeout(() => printWindow.close(), 500);
+                }, 250);
+            };
+
         } catch (error) {
             console.error('❌ خطأ:', error);
-            return null;
+            alert('⚠️ حدث خطأ: ' + error.message);
         }
-    }
-
-    // ✅ دالة الطباعة
-    async function printOrderReceipt(orderId) {
-        const order = await fetchFullOrderData(orderId);
-        
-        if (!order) {
-            alert('⚠️ لم يتم العثور على بيانات الطلب');
-            return;
-        }
-
-        const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
-            ? order.deliveries[0] 
-            : null;
-        
-        const paymentMethods = {
-            'cash': 'كاش',
-            'visa': 'فيزا',
-            'card': 'بطاقة',
-            'wallet': 'محفظة',
-            'instapay': 'انستاباي'
-        };
-        
-        const receiptHTML = `
-            <!DOCTYPE html>
-            <html dir="rtl">
-            <head>
-                <meta charset="UTF-8">
-                <title>فاتورة #${order.order_number}</title>
-                <style>
-                    @page { size: 80mm auto; margin: 0; }
-                    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { 
-                        font-family: Arial, Tahoma, sans-serif;
-                        width: 72mm; font-size: 13px; font-weight: bold;
-                        line-height: 1.5; padding: 5mm; margin: 0 auto; color: #000;
-                    }
-                    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
-                    .header h2 { font-size: 18px; margin-bottom: 5px; }
-                    .header p { font-size: 12px; margin: 3px 0; }
-                    .payment-box { background: #000; color: #fff; padding: 8px; margin: 10px 0; text-align: center; font-weight: bold; font-size: 14px; }
-                    .info { font-size: 11px; margin-bottom: 10px; line-height: 1.6; }
-                    .info div { margin: 3px 0; word-wrap: break-word; }
-                    hr { border: none; border-top: 2px solid #000; margin: 8px 0; }
-                    .item { display: flex; justify-content: space-between; margin: 5px 0; font-size: 12px; }
-                    .summary-item { display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px; }
-                    .total { font-size: 16px; border-top: 3px double #000; border-bottom: 3px double #000; padding: 10px 0; margin: 10px 0; background: #f0f0f0; }
-                    .footer { text-align: center; margin-top: 15px; border-top: 2px solid #000; padding-top: 10px; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h2>مطعم بلدي شيك</h2>
-                    <p>فاتورة: ${order.order_number}</p>
-                    <p>${new Date(order.created_at).toLocaleString('ar-EG')}</p>
-                </div>
-                <div class="payment-box">💳 ${paymentMethods[order.payment_method] || 'كاش'}</div>
-                <div class="info">
-                    ${order.order_type === 'delivery' && deliveryInfo ? `
-                        <div>📦 العميل: ${deliveryInfo.customer_name || 'غير محدد'}</div>
-                        ${deliveryInfo.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
-                        ${(deliveryInfo.delivery_address || deliveryInfo.customer_address) ? 
-                            `<div>📍 ${deliveryInfo.delivery_address || deliveryInfo.customer_address}</div>` : ''}
-                    ` : order.order_type === 'dine_in' ? `
-                        <div>🍽️ طاولة: ${order.table_number || 'غير محدد'}</div>
-                    ` : ''}
-                </div>
-                <hr>
-                ${(order.order_items || []).map(item => `
-                    <div class="item">
-                        <span>${item.menu_item?.name_ar || 'صنف'} × ${item.quantity || 1}</span>
-                        <span>${(item.total_price || 0).toFixed(2)} ج.م</span>
-                    </div>
-                `).join('')}
-                <hr>
-                <div class="summary-item">
-                    <span>المجموع:</span>
-                    <span>${(order.subtotal || 0).toFixed(2)} ج.م</span>
-                </div>
-                ${order.order_type !== 'delivery' && order.tax > 0 ? `
-                    <div class="summary-item">
-                        <span>الضريبة (14%):</span>
-                        <span>${(order.tax).toFixed(2)} ج.م</span>
-                    </div>
-                ` : ''}
-                ${(order.delivery_fee || 0) > 0 ? `
-                    <div class="summary-item">
-                        <span>التوصيل:</span>
-                        <span>${order.delivery_fee.toFixed(2)} ج.م</span>
-                    </div>
-                ` : ''}
-                <div class="summary-item total">
-                    <span>الإجمالي:</span>
-                    <span>${(order.total || 0).toFixed(2)} ج.م</span>
-                </div>
-                <div class="footer">
-                    <p>شكراً لزيارتكم بلدي شيك</p>
-                    <p>بلدي شيك بلدي علي اصلة</p>
-                </div>
-            </body>
-            </html>
-        `;
-
-        const printWindow = window.open('', '', 'height=600,width=300');
-        if (!printWindow) {
-            alert('⚠️ يرجى السماح بالنوافذ المنبثقة');
-            return;
-        }
-        
-        printWindow.document.write(receiptHTML);
-        printWindow.document.close();
-        printWindow.onload = () => {
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                setTimeout(() => printWindow.close(), 500);
-            }, 250);
-        };
     }
 
     window.printOrderReceipt = printOrderReceipt;
@@ -1038,10 +1052,8 @@ console.log('✅ Admin Dashboard loaded with live stats');
                             ${order.status === 'completed' ? `
                                 <button 
                                     onclick="printOrderReceipt(${order.id})"
-                                    style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s;"
-                                    onmouseover="this.style.background='#5568d3'"
-                                    onmouseout="this.style.background='#667eea'"
-                                    title="طباعة الفاتورة">
+                                    style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;"
+                                    title="طباعة">
                                     🖨️
                                 </button>
                             ` : '-'}
