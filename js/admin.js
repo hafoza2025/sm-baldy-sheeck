@@ -447,28 +447,34 @@ const AdminDashboard = {
     },
 
     // تحميل جميع الطلبات
-    async loadOrders() {
-        try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
+   // تحميل جميع الطلبات
+async loadOrders() {
+    try {
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                staff:staff_id(full_name),
+                order_items (
                     *,
-                    staff:staff_id(full_name),
-                    deliveries(customer_name)
-                `)
-                .order('created_at', { ascending: false })
-                .limit(100);
+                    menu_item:menu_items(name_ar, name_en)
+                ),
+                deliveries(customer_name, customer_phone, customer_address, delivery_address)
+            `)
+            .order('created_at', { ascending: false })
+            .limit(100);
 
-            if (error) throw error;
+        if (error) throw error;
 
-            this.allOrders = data;
-            this.filteredOrders = data;
-            this.displayOrders(data);
+        this.allOrders = data;
+        this.filteredOrders = data;
+        this.displayOrders(data);
 
-        } catch (error) {
-            console.error('Error loading orders:', error);
-        }
-    },
+    } catch (error) {
+        console.error('Error loading orders:', error);
+    }
+},
+
 
    displayOrders(orders) {
     const tbody = document.getElementById('ordersBody');
@@ -843,11 +849,11 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
 
 // ========================================
-// ✅ طباعة الفاتورة - مع استرجاع كامل البيانات
+// ✅ طباعة الفاتورة - نسخة طبق الأصل
 // ========================================
 
 (function() {
-    console.log('🖨️ جاري تفعيل ميزة الطباعة المحسّنة...');
+    console.log('🖨️ جاري تفعيل ميزة الطباعة...');
 
     // ✅ دالة مساعدة لطريقة الدفع
     function getPaymentMethodName(method) {
@@ -856,63 +862,20 @@ console.log('✅ Admin Dashboard loaded with live stats');
             'visa': 'فيزا',
             'card': 'بطاقة',
             'wallet': 'محفظة',
-            'instapay': 'انستاباي',
-            'credit': 'بطاقة ائتمان'
+            'instapay': 'انستاباي'
         };
         return methods[method] || 'كاش';
     }
 
-    // ✅ دالة استرجاع البيانات الكاملة من Database
-    async function fetchFullOrderData(orderId) {
-        try {
-            const { data, error } = await supabase
-                .from('orders')
-                .select(`
-                    *,
-                    order_items (
-                        *,
-                        menu_item:menu_items (
-                            name_ar,
-                            name_en
-                        )
-                    ),
-                    deliveries (
-                        customer_name,
-                        customer_phone,
-                        customer_address,
-                        delivery_address
-                    )
-                `)
-                .eq('id', orderId)
-                .single();
-
-            if (error) {
-                console.error('❌ خطأ في جلب البيانات:', error);
-                return null;
-            }
-
-            return data;
-        } catch (error) {
-            console.error('❌ خطأ:', error);
-            return null;
-        }
-    }
-
-    // ✅ دالة الطباعة - نفس الكاشير تماماً
-    async function printOrderReceipt(orderId) {
-        console.log('📦 جاري استرجاع بيانات الطلب:', orderId);
+    // ✅ دالة الطباعة - تستخدم البيانات الموجودة
+    window.printOrderReceipt = function(order) {
+        console.log('📦 Order Data:', order);
         
-        // ✅ جلب البيانات الكاملة من Database
-        const order = await fetchFullOrderData(orderId);
-        
-        if (!order) {
-            alert('⚠️ لم يتم العثور على بيانات الطلب');
+        if (!order || !order.order_number) {
+            alert('⚠️ لا توجد بيانات للطلب');
             return;
         }
 
-        console.log('📦 Order Data:', order);
-        console.log('🚚 Delivery Info:', order.deliveries);
-        
         const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
             ? order.deliveries[0] 
             : null;
@@ -1125,10 +1088,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
                 setTimeout(() => printWindow.close(), 500);
             }, 250);
         };
-    }
-
-    // تعريف الدالة globally
-    window.printOrderReceipt = printOrderReceipt;
+    };
 
     // ✅ تعديل displayOrders
     const originalDisplay = AdminDashboard.displayOrders;
@@ -1150,6 +1110,9 @@ console.log('✅ Admin Dashboard loaded with live stats');
             };
             const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
 
+            // حفظ البيانات الكاملة
+            const orderStr = JSON.stringify(order).replace(/"/g, '&quot;');
+
             return `
                 <tr>
                     <td><strong>#${order.order_number}</strong></td>
@@ -1163,7 +1126,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
                     <td style="text-align: center;">
                         ${order.status === 'completed' ? `
                             <button 
-                                onclick="printOrderReceipt(${order.id})"
+                                onclick='printOrderReceipt(${orderStr})'
                                 style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;"
                                 title="طباعة">
                                 🖨️
@@ -1175,8 +1138,5 @@ console.log('✅ Admin Dashboard loaded with live stats');
         }).join('');
     };
 
-    console.log('✅ تم تفعيل ميزة الطباعة مع استرجاع كامل البيانات!');
+    console.log('✅ تم تفعيل ميزة الطباعة بنجاح!');
 })();
-
-
-
