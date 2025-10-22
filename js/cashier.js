@@ -23,18 +23,6 @@ const CashierSystem = {
 // ======================================
 async verifyAdminAccess() {
     return new Promise(async (resolve) => {
-        // ✅ أول حاجة: اطبع كل البيانات من staff
-        try {
-            const { data: testData, error: testError } = await supabase
-                .from('staff')
-                .select('*');
-            
-            console.log('🔥 TEST - كل الموظفين:', testData);
-            console.log('🔥 TEST - الخطأ:', testError);
-        } catch (e) {
-            console.error('🔥 TEST - خطأ غير متوقع:', e);
-        }
-
         const modal = document.createElement('div');
         modal.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -80,57 +68,42 @@ async verifyAdminAccess() {
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
 
-            console.log('🔍 محاولة الدخول بـ:', username);
-
             if (!username || !password) {
                 Utils.showNotification('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
                 return;
             }
 
-            // ✅ تجربة يدوية: admin / 123456
-            if (username.toLowerCase() === 'admin' && password === '123456') {
-                Utils.showNotification('✅ تم التحقق بنجاح (Test Mode)', 'success');
-                document.body.removeChild(modal);
-                resolve(true);
-                return;
-            }
-
             try {
-                const { data: allStaff, error: fetchError } = await supabase
+                // ✅ الحل: جلب كل البيانات من staff
+                const { data: allStaff, error } = await supabase
                     .from('staff')
                     .select('*');
 
-                console.log('📊 النتيجة:', allStaff);
-                console.log('❌ الخطأ:', fetchError);
-
-                if (fetchError) {
-                    console.error('❌ خطأ:', fetchError);
-                    // لو فيه خطأ في الصلاحيات - قبول مؤقت
-                    if (username === 'admin') {
-                        Utils.showNotification('✅ تم التحقق (Bypass Mode)', 'success');
-                        document.body.removeChild(modal);
-                        resolve(true);
-                        return;
-                    }
+                if (error) {
+                    console.error('Error:', error);
                     Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
                     return;
                 }
 
+                // ✅ البحث عن المستخدم يدوياً
                 const user = allStaff?.find(s => 
-                    s.username.toLowerCase() === username.toLowerCase()
+                    s.username && s.username.toLowerCase() === username.toLowerCase()
                 );
 
                 if (!user) {
                     Utils.showNotification('❌ اسم المستخدم غير موجود', 'error');
+                    usernameInput.focus();
                     return;
                 }
 
                 if (user.password !== password) {
                     Utils.showNotification('❌ كلمة المرور غير صحيحة', 'error');
+                    passwordInput.value = '';
+                    passwordInput.focus();
                     return;
                 }
 
-                if (user.role.toLowerCase() !== 'admin') {
+                if (user.role && user.role.toLowerCase() !== 'admin') {
                     Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
                     return;
                 }
@@ -140,8 +113,8 @@ async verifyAdminAccess() {
                 resolve(true);
 
             } catch (error) {
-                console.error('❌ خطأ:', error);
-                Utils.showNotification('❌ حدث خطأ', 'error');
+                console.error('Unexpected Error:', error);
+                Utils.showNotification('❌ حدث خطأ غير متوقع', 'error');
                 resolve(false);
             }
         });
@@ -149,6 +122,13 @@ async verifyAdminAccess() {
         cancelBtn.addEventListener('click', () => {
             document.body.removeChild(modal);
             resolve(false);
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+                resolve(false);
+            }
         });
     });
 },
@@ -2047,6 +2027,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
