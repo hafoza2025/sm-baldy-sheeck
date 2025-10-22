@@ -842,3 +842,282 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
 
 
+// ========================================
+// ✅ إضافة زر الطباعة للفواتير - كود جاهز
+// ========================================
+
+// ✅ إضافة دالة الطباعة
+AdminDashboard.printReceipt = function(order) {
+    console.log('📦 طباعة فاتورة:', order.order_number);
+    
+    const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
+        ? order.deliveries[0] 
+        : null;
+    
+    const receiptHTML = `
+        <!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>فاتورة #${order.order_number}</title>
+            <style>
+                @page {
+                    size: 80mm auto;
+                    margin: 0;
+                }
+                @media print {
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                }
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                body { 
+                    font-family: Arial, 'Tahoma', sans-serif;
+                    width: 72mm;
+                    font-size: 13px;
+                    font-weight: bold;
+                    line-height: 1.5;
+                    padding: 5mm;
+                    margin: 0 auto;
+                    color: #000;
+                }
+                .header { 
+                    text-align: center;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 10px;
+                    margin-bottom: 10px;
+                }
+                .header h2 {
+                    font-size: 18px;
+                    margin-bottom: 5px;
+                    font-weight: bold;
+                }
+                .header p {
+                    font-size: 12px;
+                    margin: 3px 0;
+                }
+                .payment-box {
+                    background: #000;
+                    color: #fff;
+                    padding: 8px;
+                    margin: 10px 0;
+                    text-align: center;
+                    font-weight: bold;
+                    font-size: 14px;
+                    border: 2px solid #000;
+                }
+                .info {
+                    font-size: 11px;
+                    margin-bottom: 10px;
+                    font-weight: bold;
+                    line-height: 1.6;
+                }
+                .info div {
+                    margin: 3px 0;
+                    word-wrap: break-word;
+                }
+                hr {
+                    border: none;
+                    border-top: 2px solid #000;
+                    margin: 8px 0;
+                }
+                .items-header {
+                    display: flex;
+                    justify-content: space-between;
+                    font-weight: bold;
+                    font-size: 12px;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 5px;
+                    margin-bottom: 5px;
+                }
+                .item { 
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 5px 0;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
+                .item span:first-child {
+                    flex: 1;
+                    padding-left: 8px;
+                }
+                .summary-item {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 6px 0;
+                    font-size: 13px;
+                    font-weight: bold;
+                }
+                .total { 
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-top: 3px double #000;
+                    border-bottom: 3px double #000;
+                    padding: 10px 0;
+                    margin: 10px 0;
+                    background: #f0f0f0;
+                }
+                .footer {
+                    text-align: center;
+                    margin-top: 15px;
+                    font-size: 13px;
+                    font-weight: bold;
+                    border-top: 2px solid #000;
+                    padding-top: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h2>مطعم بلدي شيك</h2>
+                <p>فاتورة: ${order.order_number}</p>
+                <p>${Utils.formatDate(order.created_at)}</p>
+            </div>
+
+            <div class="payment-box">
+                💳 ${AdminDashboard.getPaymentMethodName(order.payment_method)}
+            </div>
+
+            <div class="info">
+                ${order.order_type === 'delivery' && deliveryInfo ? `
+                    <div>📦 العميل: ${deliveryInfo.customer_name || 'غير محدد'}</div>
+                    ${deliveryInfo.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
+                    ${(deliveryInfo.delivery_address || deliveryInfo.customer_address) ? 
+                        `<div>📍 ${deliveryInfo.delivery_address || deliveryInfo.customer_address}</div>` : 
+                        '<div>📍 لا يوجد عنوان</div>'}
+                ` : order.order_type === 'delivery' ? `
+                    <div>📦 توصيل (لا توجد بيانات)</div>
+                ` : `
+                    <div>🍽️ طاولة: ${order.table_number || 'غير محدد'}</div>
+                `}
+            </div>
+
+            <hr>
+
+            <div class="items-header">
+                <span>الصنف</span>
+                <span>السعر</span>
+            </div>
+
+            ${order.order_items.map(item => `
+                <div class="item">
+                    <span>${item.menu_item?.name_ar || item.name_ar || 'صنف'} × ${item.quantity}</span>
+                    <span>${Utils.formatCurrency(item.total_price)}</span>
+                </div>
+            `).join('')}
+
+            <hr>
+
+            <div class="summary-item">
+                <span>المجموع:</span>
+                <span>${Utils.formatCurrency(order.subtotal)}</span>
+            </div>
+            
+            ${order.order_type !== 'delivery' ? `
+                <div class="summary-item">
+                    <span>الضريبة (14%):</span>
+                    <span>${Utils.formatCurrency(order.tax || 0)}</span>
+                </div>
+            ` : ''}
+            
+            ${order.delivery_fee > 0 ? `
+                <div class="summary-item">
+                    <span>التوصيل:</span>
+                    <span>${Utils.formatCurrency(order.delivery_fee)}</span>
+                </div>
+            ` : ''}
+
+            <div class="summary-item total">
+                <span>الإجمالي:</span>
+                <span>${Utils.formatCurrency(order.total)}</span>
+            </div>
+
+            <div class="footer">
+                <p>شكراً لزيارتكم بلدي شيك</p>
+                <p>نتمنى لكم يوماً سعيداً</p>
+                <p>بلدي شيك بلدي علي اصلة</p>
+            </div>
+        </body>
+        </html>
+    `;
+
+    const printWindow = window.open('', '', 'height=600,width=300');
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            setTimeout(() => printWindow.close(), 500);
+        }, 250);
+    };
+};
+
+// ✅ دالة مساعدة لأسماء طرق الدفع
+AdminDashboard.getPaymentMethodName = function(method) {
+    const methods = {
+        'cash': 'كاش',
+        'visa': 'فيزا',
+        'card': 'بطاقة',
+        'wallet': 'محفظة',
+        'instapay': 'انستاباي',
+        'credit': 'بطاقة ائتمان'
+    };
+    return methods[method] || 'كاش';
+};
+
+// ✅ تعديل دالة displayOrders لإضافة زر الطباعة
+const originalDisplayOrders = AdminDashboard.displayOrders;
+AdminDashboard.displayOrders = function(orders) {
+    const tbody = document.getElementById('ordersBody');
+    if (!tbody) return;
+
+    if (!orders || orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">لا توجد طلبات</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = orders.map(order => {
+        const paymentIcons = {
+            'cash': '💵 كاش',
+            'visa': '💳 فيزا',
+            'wallet': '📱 محفظة',
+            'instapay': '⚡ انستاباي'
+        };
+        const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
+
+        return `
+            <tr>
+                <td><strong>#${order.order_number}</strong></td>
+                <td>${Utils.formatDate(order.created_at)}</td>
+                <td>${order.order_type === 'dine_in' ? '🍽️ داخلي' : '🛵 توصيل'}</td>
+                <td>${order.order_type === 'dine_in' ? `طاولة ${order.table_number}` : order.deliveries?.[0]?.customer_name || '-'}</td>
+                <td>${order.staff?.full_name || 'كاشير'}</td>
+                <td><strong>${Utils.formatCurrency(order.total)}</strong></td>
+                <td style="text-align: center; font-size: 13px;">${paymentMethod}</td>
+                <td><span class="badge ${this.getStatusClass(order.status)}">${this.getStatusText(order.status)}</span></td>
+                <td style="text-align: center;">
+                    ${order.status === 'completed' ? `
+                        <button onclick='AdminDashboard.printReceipt(${JSON.stringify(order).replace(/'/g, "&#39;")})' 
+                                style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;"
+                                title="طباعة">
+                            🖨️ طباعة
+                        </button>
+                    ` : '-'}
+                </td>
+            </tr>
+        `;
+    }).join('');
+};
+
+console.log('✅ تم إضافة ميزة طباعة الفواتير بنجاح');
+
+
+
+
