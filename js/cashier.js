@@ -22,6 +22,7 @@ const CashierSystem = {
 // 🔒 دالة التحقق من صلاحية الأدمن
 // ======================================
 // ✅ دالة التحقق من صلاحية الأدمن - النسخة النهائية الاحترافية
+// ✅ دالة التحقق من صلاحية الأدمن - تعمل مع Username + Password
 async verifyAdminAccess() {
     return new Promise((resolve) => {
         const modal = document.createElement('div');
@@ -38,8 +39,8 @@ async verifyAdminAccess() {
                 
                 <form id="adminVerifyForm" style="margin: 0;">
                     <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">البريد الإلكتروني</label>
-                        <input type="email" id="adminEmail" autocomplete="email" placeholder="أدخل البريد الإلكتروني" 
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">اسم المستخدم</label>
+                        <input type="text" id="adminUsername" autocomplete="username" placeholder="أدخل اسم المستخدم" 
                             style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
                     </div>
                     
@@ -60,72 +61,63 @@ async verifyAdminAccess() {
         document.body.appendChild(modal);
 
         const form = document.getElementById('adminVerifyForm');
-        const emailInput = document.getElementById('adminEmail');
+        const usernameInput = document.getElementById('adminUsername');
         const passwordInput = document.getElementById('adminPassword');
         const cancelBtn = document.getElementById('adminCancelBtn');
 
-        emailInput.focus();
+        usernameInput.focus();
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const email = emailInput.value.trim();
+            const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
 
-            if (!email || !password) {
-                Utils.showNotification('يرجى إدخال البريد الإلكتروني وكلمة المرور', 'error');
+            if (!username || !password) {
+                Utils.showNotification('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
                 return;
             }
 
             try {
-                // ✅ الخطوة 1: التحقق من المستخدم في Supabase Auth
-                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
+                // ✅ البحث في جدول users باستخدام username
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('username', username)
+                    .maybeSingle();
 
-                if (authError || !authData.user) {
-                    Utils.showNotification('❌ البريد الإلكتروني أو كلمة المرور غير صحيحة', 'error');
+                console.log('📊 النتيجة:', userData, userError);
+
+                if (userError) {
+                    console.error('❌ خطأ:', userError);
+                    Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
+                    return;
+                }
+
+                if (!userData) {
+                    Utils.showNotification('❌ اسم المستخدم غير موجود', 'error');
+                    usernameInput.focus();
+                    return;
+                }
+
+                // ✅ التحقق من كلمة المرور
+                if (userData.password !== password) {
+                    Utils.showNotification('❌ كلمة المرور غير صحيحة', 'error');
                     passwordInput.value = '';
                     passwordInput.focus();
                     return;
                 }
 
-                // ✅ الخطوة 2: التحقق من صلاحية المستخدم في جدول users
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('id, email, role, full_name')
-                    .eq('email', email)
-                    .maybeSingle();
-
-                if (userError) {
-                    console.error('خطأ في جلب بيانات المستخدم:', userError);
-                    Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
-                    await supabase.auth.signOut();
-                    return;
-                }
-
-                if (!userData) {
-                    Utils.showNotification('❌ المستخدم غير موجود في النظام', 'error');
-                    await supabase.auth.signOut();
-                    return;
-                }
-
-                // ✅ الخطوة 3: التحقق من الصلاحية (admin أو manager)
+                // ✅ التحقق من الصلاحية (admin أو manager)
                 const userRole = userData.role ? userData.role.toLowerCase() : '';
                 if (userRole !== 'admin' && userRole !== 'manager') {
                     Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
-                    await supabase.auth.signOut();
                     return;
                 }
 
                 // ✅ نجح التحقق
-                Utils.showNotification('✅ تم التحقق بنجاح - مرحباً ' + userData.full_name, 'success');
+                Utils.showNotification('✅ تم التحقق بنجاح - مرحباً ' + (userData.full_name || username), 'success');
                 document.body.removeChild(modal);
-                
-                // ✅ تسجيل خروج بعد التحقق (اختياري)
-                await supabase.auth.signOut();
-                
                 resolve(true);
 
             } catch (error) {
@@ -148,6 +140,7 @@ async verifyAdminAccess() {
         });
     });
 },
+
 
 
 
@@ -2044,6 +2037,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
