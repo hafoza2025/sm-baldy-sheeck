@@ -843,194 +843,251 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
 
 // ========================================
-// ✅ كود الطباعة الآمن - يعمل بدون أخطاء
+// ✅ طباعة الفاتورة - نسخة طبق الأصل من الكاشير
 // ========================================
 
 (function() {
     console.log('🖨️ جاري تفعيل ميزة الطباعة...');
 
-    // ✅ دالة الطباعة الآمنة
-    window.printOrderReceipt = function(orderData) {
-        console.log('📦 طباعة فاتورة:', orderData);
+    // ✅ دالة مساعدة لطريقة الدفع
+    function getPaymentMethodName(method) {
+        const methods = {
+            'cash': 'كاش',
+            'visa': 'فيزا',
+            'card': 'بطاقة',
+            'wallet': 'محفظة',
+            'instapay': 'انستاباي',
+            'credit': 'بطاقة ائتمان'
+        };
+        return methods[method] || 'كاش';
+    }
+
+    // ✅ دالة الطباعة - نفس الكاشير تماماً
+    window.printOrderReceipt = function(order) {
+        console.log('📦 Order Data:', order);
+        console.log('🚚 Delivery Info:', order.deliveries);
         
-        try {
-            // ✅ التحقق من وجود البيانات
-            if (!orderData || !orderData.order_number) {
-                alert('⚠️ لا توجد بيانات كافية للطباعة');
-                return;
-            }
-
-            const deliveryInfo = (orderData.order_type === 'delivery' && orderData.deliveries && orderData.deliveries.length > 0) 
-                ? orderData.deliveries[0] 
-                : null;
-            
-            const paymentMethods = {
-                'cash': 'كاش',
-                'visa': 'فيزا',
-                'card': 'بطاقة',
-                'wallet': 'محفظة',
-                'instapay': 'انستاباي'
-            };
-            
-            const paymentMethod = paymentMethods[orderData.payment_method] || 'كاش';
-            
-            // ✅ التحقق من order_items
-            const items = orderData.order_items || [];
-            
-            const receiptHTML = `
-                <!DOCTYPE html>
-                <html dir="rtl">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>فاتورة #${orderData.order_number}</title>
-                    <style>
-                        @page { size: 80mm auto; margin: 0; }
-                        @media print {
-                            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                        }
-                        * { margin: 0; padding: 0; box-sizing: border-box; }
-                        body { 
-                            font-family: Arial, Tahoma, sans-serif;
-                            width: 72mm;
-                            font-size: 13px;
-                            font-weight: bold;
-                            line-height: 1.5;
-                            padding: 5mm;
-                            margin: 0 auto;
-                            color: #000;
-                        }
-                        .header { 
-                            text-align: center;
-                            border-bottom: 2px solid #000;
-                            padding-bottom: 10px;
-                            margin-bottom: 10px;
-                        }
-                        .header h2 { font-size: 18px; margin-bottom: 5px; }
-                        .header p { font-size: 12px; margin: 3px 0; }
-                        .payment-box {
-                            background: #000;
-                            color: #fff;
-                            padding: 8px;
-                            margin: 10px 0;
-                            text-align: center;
-                            font-weight: bold;
-                        }
-                        .info { font-size: 11px; margin-bottom: 10px; line-height: 1.6; }
-                        .info div { margin: 3px 0; word-wrap: break-word; }
-                        hr { border: none; border-top: 2px solid #000; margin: 8px 0; }
-                        .item { 
-                            display: flex;
-                            justify-content: space-between;
-                            margin: 5px 0;
-                            font-size: 12px;
-                        }
-                        .total { 
-                            font-size: 16px;
-                            border-top: 3px double #000;
-                            padding: 10px 0;
-                            margin: 10px 0;
-                            display: flex;
-                            justify-content: space-between;
-                        }
-                        .footer {
-                            text-align: center;
-                            margin-top: 15px;
-                            border-top: 2px solid #000;
-                            padding-top: 10px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h2>مطعم بلدي شيك</h2>
-                        <p>فاتورة: ${orderData.order_number}</p>
-                        <p>${new Date(orderData.created_at).toLocaleString('ar-EG')}</p>
-                    </div>
-
-                    <div class="payment-box">💳 ${paymentMethod}</div>
-
-                    <div class="info">
-                        ${orderData.order_type === 'delivery' && deliveryInfo ? `
-                            <div>📦 العميل: ${deliveryInfo.customer_name || 'غير محدد'}</div>
-                            ${deliveryInfo.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
-                            ${deliveryInfo.customer_address ? `<div>📍 ${deliveryInfo.customer_address}</div>` : ''}
-                        ` : orderData.order_type === 'dine_in' ? `
-                            <div>🍽️ طاولة: ${orderData.table_number || 'غير محدد'}</div>
-                        ` : ''}
-                    </div>
-
-                    <hr>
-
-                    ${items.length > 0 ? items.map(item => {
-                        const itemName = item.menu_item?.name_ar || item.name_ar || 'صنف';
-                        const itemQty = item.quantity || 1;
-                        const itemPrice = item.total_price || 0;
-                        return `
-                            <div class="item">
-                                <span>${itemName} × ${itemQty}</span>
-                                <span>${itemPrice.toFixed(2)} ج.م</span>
-                            </div>
-                        `;
-                    }).join('') : '<div class="item"><span>لا توجد أصناف</span></div>'}
-
-                    <hr>
-
-                    <div class="item">
-                        <span>المجموع:</span>
-                        <span>${(orderData.subtotal || 0).toFixed(2)} ج.م</span>
-                    </div>
-                    
-                    ${(orderData.tax || 0) > 0 ? `
-                        <div class="item">
-                            <span>الضريبة (14%):</span>
-                            <span>${(orderData.tax).toFixed(2)} ج.م</span>
-                        </div>
-                    ` : ''}
-                    
-                    ${(orderData.delivery_fee || 0) > 0 ? `
-                        <div class="item">
-                            <span>التوصيل:</span>
-                            <span>${(orderData.delivery_fee).toFixed(2)} ج.م</span>
-                        </div>
-                    ` : ''}
-
-                    <div class="total">
-                        <span>الإجمالي:</span>
-                        <span>${(orderData.total || 0).toFixed(2)} ج.م</span>
-                    </div>
-
-                    <div class="footer">
-                        <p>شكراً لزيارتكم بلدي شيك</p>
-                        <p>نتمنى لكم يوماً سعيداً</p>
-                    </div>
-                </body>
-                </html>
-            `;
-
-            const printWindow = window.open('', '_blank', 'height=600,width=300');
-            if (!printWindow) {
-                alert('⚠️ يرجى السماح بالنوافذ المنبثقة للطباعة');
-                return;
-            }
-            
-            printWindow.document.write(receiptHTML);
-            printWindow.document.close();
-            
-            printWindow.onload = function() {
-                printWindow.focus();
-                setTimeout(() => {
-                    printWindow.print();
-                    setTimeout(() => printWindow.close(), 500);
-                }, 250);
-            };
-            
-        } catch (error) {
-            console.error('❌ خطأ في الطباعة:', error);
-            alert('حدث خطأ في الطباعة. يرجى المحاولة مرة أخرى.');
+        if (order.deliveries && order.deliveries[0]) {
+            console.log('📍 Address:', order.deliveries[0].delivery_address || order.deliveries[0].customer_address);
+            console.log('📞 Phone:', order.deliveries[0].customer_phone);
+            console.log('👤 Name:', order.deliveries[0].customer_name);
         }
+        
+        const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
+            ? order.deliveries[0] 
+            : null;
+        
+        const receiptHTML = `
+            <!DOCTYPE html>
+            <html dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>فاتورة #${order.order_number}</title>
+                <style>
+                    @page {
+                        size: 80mm auto;
+                        margin: 0;
+                    }
+                    @media print {
+                        body {
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                    }
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    body { 
+                        font-family: Arial, 'Tahoma', sans-serif;
+                        width: 72mm;
+                        font-size: 13px;
+                        font-weight: bold;
+                        line-height: 1.5;
+                        padding: 5mm;
+                        margin: 0 auto;
+                        color: #000;
+                    }
+                    .header { 
+                        text-align: center;
+                        border-bottom: 2px solid #000;
+                        padding-bottom: 10px;
+                        margin-bottom: 10px;
+                    }
+                    .header h2 {
+                        font-size: 18px;
+                        margin-bottom: 5px;
+                        font-weight: bold;
+                    }
+                    .header p {
+                        font-size: 12px;
+                        margin: 3px 0;
+                    }
+                    .payment-box {
+                        background: #000;
+                        color: #fff;
+                        padding: 8px;
+                        margin: 10px 0;
+                        text-align: center;
+                        font-weight: bold;
+                        font-size: 14px;
+                        border: 2px solid #000;
+                    }
+                    .info {
+                        font-size: 11px;
+                        margin-bottom: 10px;
+                        font-weight: bold;
+                        line-height: 1.6;
+                    }
+                    .info div {
+                        margin: 3px 0;
+                        word-wrap: break-word;
+                    }
+                    hr {
+                        border: none;
+                        border-top: 2px solid #000;
+                        margin: 8px 0;
+                    }
+                    .items-header {
+                        display: flex;
+                        justify-content: space-between;
+                        font-weight: bold;
+                        font-size: 12px;
+                        border-bottom: 1px solid #000;
+                        padding-bottom: 5px;
+                        margin-bottom: 5px;
+                    }
+                    .item { 
+                        display: flex;
+                        justify-content: space-between;
+                        margin: 5px 0;
+                        font-size: 12px;
+                        font-weight: bold;
+                    }
+                    .item span:first-child {
+                        flex: 1;
+                        padding-left: 8px;
+                    }
+                    .summary-item {
+                        display: flex;
+                        justify-content: space-between;
+                        margin: 6px 0;
+                        font-size: 13px;
+                        font-weight: bold;
+                    }
+                    .total { 
+                        font-size: 16px;
+                        font-weight: bold;
+                        border-top: 3px double #000;
+                        border-bottom: 3px double #000;
+                        padding: 10px 0;
+                        margin: 10px 0;
+                        background: #f0f0f0;
+                    }
+                    .footer {
+                        text-align: center;
+                        margin-top: 15px;
+                        font-size: 13px;
+                        font-weight: bold;
+                        border-top: 2px solid #000;
+                        padding-top: 10px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>مطعم بلدي شيك</h2>
+                    <p>فاتورة: ${order.order_number}</p>
+                    <p>${new Date(order.created_at).toLocaleString('ar-EG')}</p>
+                </div>
+
+                <div class="payment-box">
+                    💳 ${getPaymentMethodName(order.payment_method)}
+                </div>
+
+                <div class="info">
+                    ${order.order_type === 'delivery' && deliveryInfo ? `
+                        <div>📦 العميل: ${deliveryInfo.customer_name || 'غير محدد'}</div>
+                        ${deliveryInfo.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
+                        ${(deliveryInfo.delivery_address || deliveryInfo.customer_address) ? 
+                            `<div>📍 ${deliveryInfo.delivery_address || deliveryInfo.customer_address}</div>` : 
+                            '<div>📍 لا يوجد عنوان</div>'}
+                    ` : order.order_type === 'delivery' ? `
+                        <div>📦 توصيل (لا توجد بيانات)</div>
+                    ` : `
+                        <div>🍽️ طاولة: ${order.table_number || 'غير محدد'}</div>
+                    `}
+                </div>
+
+                <hr>
+
+                <div class="items-header">
+                    <span>الصنف</span>
+                    <span>السعر</span>
+                </div>
+
+                ${(order.order_items || []).map(item => `
+                    <div class="item">
+                        <span>${item.menu_item?.name_ar || item.name_ar || 'صنف'} × ${item.quantity || 1}</span>
+                        <span>${(item.total_price || 0).toFixed(2)} ج.م</span>
+                    </div>
+                `).join('')}
+
+                <hr>
+
+                <div class="summary-item">
+                    <span>المجموع:</span>
+                    <span>${(order.subtotal || 0).toFixed(2)} ج.م</span>
+                </div>
+                
+                ${order.order_type !== 'delivery' ? `
+                    <div class="summary-item">
+                        <span>الضريبة (14%):</span>
+                        <span>${(order.tax || 0).toFixed(2)} ج.م</span>
+                    </div>
+                ` : ''}
+                
+                ${(order.delivery_fee || 0) > 0 ? `
+                    <div class="summary-item">
+                        <span>التوصيل:</span>
+                        <span>${order.delivery_fee.toFixed(2)} ج.م</span>
+                    </div>
+                ` : ''}
+
+                <div class="summary-item total">
+                    <span>الإجمالي:</span>
+                    <span>${(order.total || 0).toFixed(2)} ج.م</span>
+                </div>
+
+                <div class="footer">
+                    <p>شكراً لزيارتكم بلدي شيك</p>
+                    <p>نتمنى لكم يوماً سعيداً</p>
+                    <p>بلدي شيك بلدي علي اصلة</p>
+                </div>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '', 'height=600,width=300');
+        if (!printWindow) {
+            alert('⚠️ يرجى السماح بالنوافذ المنبثقة للطباعة');
+            return;
+        }
+        
+        printWindow.document.write(receiptHTML);
+        printWindow.document.close();
+        
+        printWindow.onload = function() {
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                setTimeout(() => printWindow.close(), 500);
+            }, 250);
+        };
     };
 
-    // ✅ تعديل displayOrders بشكل آمن
+    // ✅ تعديل displayOrders
     const originalDisplay = AdminDashboard.displayOrders;
     AdminDashboard.displayOrders = function(orders) {
         const tbody = document.getElementById('ordersBody');
@@ -1041,7 +1098,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
             return;
         }
 
-        tbody.innerHTML = orders.map((order, index) => {
+        tbody.innerHTML = orders.map((order) => {
             const paymentIcons = {
                 'cash': '💵 كاش',
                 'visa': '💳 فيزا',
@@ -1095,5 +1152,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
         }).join('');
     };
 
-    console.log('✅ تم تفعيل ميزة الطباعة بنجاح!');
+    console.log('✅ تم تفعيل ميزة الطباعة - نسخة طبق الأصل من الكاشير!');
 })();
+
+
