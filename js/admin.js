@@ -450,49 +450,32 @@ const AdminDashboard = {
 // ======================================
 // ✅ تحميل جميع الطلبات - مع البيانات الكاملة
 // ======================================
-async loadOrders() {
-    try {
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-                *,
-                staff:staff_id(full_name),
-                order_items (
+ async loadOrders() {
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
                     *,
-                    menu_item:menu_items(name_ar, name_en)
-                ),
-                deliveries(
-                    customer_name,
-                    customer_phone,
-                    customer_address,
-                    delivery_address
-                )
-            `)
-            .order('created_at', { ascending: false })
-            .limit(100);
+                    staff:staff_id(full_name),
+                    deliveries(customer_name)
+                `)
+                .order('created_at', { ascending: false })
+                .limit(100);
 
-        if (error) throw error;
+            if (error) throw error;
 
-        this.allOrders = data;
-        this.filteredOrders = data;
-        this.displayOrders(data);
+            this.allOrders = data;
+            this.filteredOrders = data;
+            this.displayOrders(data);
 
-    } catch (error) {
-        console.error('Error loading orders:', error);
-    }
-},
+        } catch (error) {
+            console.error('Error loading orders:', error);
+        }
+    },
 
-// ======================================
-// ✅ عرض الطلبات - لن يتغير تلقائياً!
-// ======================================
-displayOrders(orders) {
+   displayOrders(orders) {
     const tbody = document.getElementById('ordersBody');
     if (!tbody) return;
-
-    if (!orders || orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">لا توجد طلبات</td></tr>';
-        return;
-    }
 
     tbody.innerHTML = orders.map(order => {
         // ✅ تحديد أيقونة طريقة الدفع
@@ -509,28 +492,15 @@ displayOrders(orders) {
                 <td><strong>#${order.order_number}</strong></td>
                 <td>${Utils.formatDate(order.created_at)}</td>
                 <td>${order.order_type === 'dine_in' ? '🍽️ داخلي' : '🛵 توصيل'}</td>
-                <td>${order.order_type === 'dine_in' ? `طاولة ${order.table_number}` : order.deliveries?.[0]?.customer_name || '-'}</td>
+                <td>${order.order_type === 'dine_in' ? `طاولة ${order.table_number}` : order.deliveries[0]?.customer_name || '-'}</td>
                 <td>${order.staff?.full_name || 'كاشير'}</td>
                 <td><strong>${Utils.formatCurrency(order.total)}</strong></td>
                 <td style="text-align: center; font-size: 13px;">${paymentMethod}</td>
                 <td><span class="badge ${this.getStatusClass(order.status)}">${this.getStatusText(order.status)}</span></td>
-                <td style="text-align: center;">
-                    ${order.status === 'completed' ? `
-                        <button 
-                            onclick="printOrderReceipt(${order.id})"
-                            style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s;"
-                            onmouseover="this.style.background='#5568d3'; this.style.transform='translateY(-2px)'"
-                            onmouseout="this.style.background='#667eea'; this.style.transform='translateY(0)'"
-                            title="طباعة الفاتورة">
-                            🖨️ طباعة
-                        </button>
-                    ` : '<span style="color: #999;">-</span>'}
-                </td>
             </tr>
         `;
     }).join('');
 },
-
 
 filterOrders() {
     const dateFrom = document.getElementById('orderDateFrom').value;
@@ -1237,4 +1207,5 @@ console.log('✅ Admin Dashboard loaded with live stats');
 // ================================================================================
 // ✅ انتهى كود نظام الطباعة - لا تضف أي شيء بعد هذا السطر
 // ================================================================================
+
 
