@@ -459,7 +459,12 @@ async loadOrders() {
                     *,
                     menu_item:menu_items(name_ar, name_en)
                 ),
-                deliveries(customer_name, customer_phone, customer_address, delivery_address)
+                deliveries(
+                    customer_name,
+                    customer_phone,
+                    customer_address,
+                    delivery_address
+                )
             `)
             .order('created_at', { ascending: false })
             .limit(100);
@@ -1140,3 +1145,4 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
     console.log('✅ تم تفعيل ميزة الطباعة بنجاح!');
 })();
+
