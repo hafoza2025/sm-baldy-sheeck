@@ -846,7 +846,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
 
 // ================================================================================
-// 🖨️ نظام طباعة الفواتير - النسخة النهائية
+// 🖨️ نظام طباعة الفواتير - النسخة النهائية الكاملة
 // ================================================================================
 
 (function() {
@@ -914,60 +914,20 @@ console.log('✅ Admin Dashboard loaded with live stats');
                     * { margin: 0; padding: 0; box-sizing: border-box; }
                     body { 
                         font-family: Arial, Tahoma, sans-serif;
-                        width: 72mm;
-                        font-size: 13px;
-                        font-weight: bold;
-                        line-height: 1.5;
-                        padding: 5mm;
-                        margin: 0 auto;
-                        color: #000;
+                        width: 72mm; font-size: 13px; font-weight: bold;
+                        line-height: 1.5; padding: 5mm; margin: 0 auto; color: #000;
                     }
-                    .header { 
-                        text-align: center;
-                        border-bottom: 2px solid #000;
-                        padding-bottom: 10px;
-                        margin-bottom: 10px;
-                    }
+                    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
                     .header h2 { font-size: 18px; margin-bottom: 5px; }
                     .header p { font-size: 12px; margin: 3px 0; }
-                    .payment-box {
-                        background: #000;
-                        color: #fff;
-                        padding: 8px;
-                        margin: 10px 0;
-                        text-align: center;
-                        font-weight: bold;
-                        font-size: 14px;
-                    }
+                    .payment-box { background: #000; color: #fff; padding: 8px; margin: 10px 0; text-align: center; font-weight: bold; font-size: 14px; }
                     .info { font-size: 11px; margin-bottom: 10px; line-height: 1.6; }
                     .info div { margin: 3px 0; word-wrap: break-word; }
                     hr { border: none; border-top: 2px solid #000; margin: 8px 0; }
-                    .item { 
-                        display: flex;
-                        justify-content: space-between;
-                        margin: 5px 0;
-                        font-size: 12px;
-                    }
-                    .summary-item {
-                        display: flex;
-                        justify-content: space-between;
-                        margin: 6px 0;
-                        font-size: 13px;
-                    }
-                    .total { 
-                        font-size: 16px;
-                        border-top: 3px double #000;
-                        border-bottom: 3px double #000;
-                        padding: 10px 0;
-                        margin: 10px 0;
-                        background: #f0f0f0;
-                    }
-                    .footer {
-                        text-align: center;
-                        margin-top: 15px;
-                        border-top: 2px solid #000;
-                        padding-top: 10px;
-                    }
+                    .item { display: flex; justify-content: space-between; margin: 5px 0; font-size: 12px; }
+                    .summary-item { display: flex; justify-content: space-between; margin: 6px 0; font-size: 13px; }
+                    .total { font-size: 16px; border-top: 3px double #000; border-bottom: 3px double #000; padding: 10px 0; margin: 10px 0; background: #f0f0f0; }
+                    .footer { text-align: center; margin-top: 15px; border-top: 2px solid #000; padding-top: 10px; }
                 </style>
             </head>
             <body>
@@ -976,9 +936,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
                     <p>فاتورة: ${order.order_number}</p>
                     <p>${new Date(order.created_at).toLocaleString('ar-EG')}</p>
                 </div>
-
                 <div class="payment-box">💳 ${paymentMethods[order.payment_method] || 'كاش'}</div>
-
                 <div class="info">
                     ${order.order_type === 'delivery' && deliveryInfo ? `
                         <div>📦 العميل: ${deliveryInfo.customer_name || 'غير محدد'}</div>
@@ -989,42 +947,34 @@ console.log('✅ Admin Dashboard loaded with live stats');
                         <div>🍽️ طاولة: ${order.table_number || 'غير محدد'}</div>
                     ` : ''}
                 </div>
-
                 <hr>
-
                 ${(order.order_items || []).map(item => `
                     <div class="item">
                         <span>${item.menu_item?.name_ar || 'صنف'} × ${item.quantity || 1}</span>
                         <span>${(item.total_price || 0).toFixed(2)} ج.م</span>
                     </div>
                 `).join('')}
-
                 <hr>
-
                 <div class="summary-item">
                     <span>المجموع:</span>
                     <span>${(order.subtotal || 0).toFixed(2)} ج.م</span>
                 </div>
-                
                 ${order.order_type !== 'delivery' && order.tax > 0 ? `
                     <div class="summary-item">
                         <span>الضريبة (14%):</span>
                         <span>${(order.tax).toFixed(2)} ج.م</span>
                     </div>
                 ` : ''}
-                
                 ${(order.delivery_fee || 0) > 0 ? `
                     <div class="summary-item">
                         <span>التوصيل:</span>
                         <span>${order.delivery_fee.toFixed(2)} ج.م</span>
                     </div>
                 ` : ''}
-
                 <div class="summary-item total">
                     <span>الإجمالي:</span>
                     <span>${(order.total || 0).toFixed(2)} ج.م</span>
                 </div>
-
                 <div class="footer">
                     <p>شكراً لزيارتكم بلدي شيك</p>
                     <p>بلدي شيك بلدي علي اصلة</p>
@@ -1051,5 +1001,56 @@ console.log('✅ Admin Dashboard loaded with live stats');
     }
 
     window.printOrderReceipt = printOrderReceipt;
+
+    // ✅ تعديل displayOrders لإضافة زر الطباعة
+    if (typeof AdminDashboard !== 'undefined' && AdminDashboard.displayOrders) {
+        const originalDisplay = AdminDashboard.displayOrders;
+        
+        AdminDashboard.displayOrders = function(orders) {
+            const tbody = document.getElementById('ordersBody');
+            if (!tbody) return;
+
+            if (!orders || orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">لا توجد طلبات</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = orders.map(order => {
+                const paymentIcons = {
+                    'cash': '💵 كاش',
+                    'visa': '💳 فيزا',
+                    'wallet': '📱 محفظة',
+                    'instapay': '⚡ انستاباي'
+                };
+                const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
+
+                return `
+                    <tr>
+                        <td><strong>#${order.order_number}</strong></td>
+                        <td>${Utils.formatDate(order.created_at)}</td>
+                        <td>${order.order_type === 'dine_in' ? '🍽️ داخلي' : '🛵 توصيل'}</td>
+                        <td>${order.order_type === 'dine_in' ? `طاولة ${order.table_number}` : order.deliveries?.[0]?.customer_name || '-'}</td>
+                        <td>${order.staff?.full_name || 'كاشير'}</td>
+                        <td><strong>${Utils.formatCurrency(order.total)}</strong></td>
+                        <td style="text-align: center; font-size: 13px;">${paymentMethod}</td>
+                        <td><span class="badge ${this.getStatusClass(order.status)}">${this.getStatusText(order.status)}</span></td>
+                        <td style="text-align: center;">
+                            ${order.status === 'completed' ? `
+                                <button 
+                                    onclick="printOrderReceipt(${order.id})"
+                                    style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s;"
+                                    onmouseover="this.style.background='#5568d3'"
+                                    onmouseout="this.style.background='#667eea'"
+                                    title="طباعة الفاتورة">
+                                    🖨️
+                                </button>
+                            ` : '-'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+    }
+
     console.log('✅ تم تفعيل نظام الطباعة بنجاح!');
 })();
