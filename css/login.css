@@ -501,3 +501,304 @@ body::after {
         transform: translate(-50%, -50%) rotate(360deg);
     }
 }
+
+/* ===============================
+   التابلت - جميع المقاسات
+   =============================== */
+
+/* تابلت صغير - وضع عمودي (Portrait) */
+/* iPad Mini, Galaxy Tab, Tablets 7-8 inch */
+@media only screen and (min-width: 601px) and (max-width: 768px) {
+    .login-container {
+        padding: 45px 40px;
+        max-width: 500px;
+        margin: 20px auto;
+    }
+
+    .logo h1 {
+        font-size: 36px;
+        letter-spacing: 2px;
+    }
+
+    .logo h1::before {
+        font-size: 44px;
+    }
+
+    .logo p {
+        font-size: 15px;
+    }
+
+    .login-container .form-group input {
+        padding: 15px 18px;
+        font-size: 15.5px;
+    }
+
+    .login-container .btn-login {
+        font-size: 19px;
+        padding: 17px;
+    }
+
+    body::after {
+        font-size: 140px;
+        letter-spacing: 50px;
+    }
+
+    .login-container::before,
+    .login-container::after {
+        width: 45px;
+        height: 45px;
+    }
+}
+
+/* تابلت كبير - وضع عمودي (Portrait) */
+/* iPad 9.7", iPad Air, iPad Pro 10.5" */
+@media only screen and (min-width: 769px) and (max-width: 834px) and (orientation: portrait) {
+    .login-container {
+        padding: 50px 45px;
+        max-width: 550px;
+        margin: 30px auto;
+    }
+
+    .logo {
+        margin-bottom: 45px;
+        padding-bottom: 35px;
+    }
+
+    .logo h1 {
+        font-size: 40px;
+        letter-spacing: 3px;
+    }
+
+    .logo h1::before {
+        font-size: 50px;
+    }
+
+    .logo p {
+        font-size: 17px;
+    }
+
+    .login-container .form-group {
+        margin-bottom: 28px;
+    }
+
+    .login-container .form-group input {
+        padding: 17px 20px;
+        font-size: 16.5px;
+    }
+
+    .login-container .btn-login {
+        font-size: 20px;
+        padding: 19px;
+        margin-top: 20px;
+    }
+
+    body::after {
+        font-size: 160px;
+        letter-spacing: 60px;
+    }
+}
+
+/* تابلت - وضع أفقي (Landscape) */
+/* iPad, iPad Air, Galaxy Tab في الوضع الأفقي */
+@media only screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    body {
+        padding: 20px 0;
+    }
+
+    .login-container {
+        padding: 40px 50px;
+        max-width: 600px;
+        margin: 20px auto;
+    }
+
+    .logo {
+        margin-bottom: 35px;
+        padding-bottom: 25px;
+    }
+
+    .logo h1 {
+        font-size: 38px;
+        margin-bottom: 12px;
+    }
+
+    .logo h1::before {
+        font-size: 46px;
+        margin-bottom: 8px;
+    }
+
+    .logo p {
+        font-size: 16px;
+    }
+
+    .login-container .form-group {
+        margin-bottom: 22px;
+    }
+
+    .login-container .form-group label {
+        margin-bottom: 8px;
+        font-size: 13.5px;
+    }
+
+    .login-container .form-group input {
+        padding: 15px 18px;
+        font-size: 15.5px;
+    }
+
+    .login-container .btn-login {
+        font-size: 19px;
+        padding: 16px;
+        margin-top: 18px;
+    }
+
+    body::after {
+        font-size: 150px;
+        letter-spacing: 55px;
+    }
+
+    .login-container::before,
+    .login-container::after {
+        width: 45px;
+        height: 45px;
+        border-width: 4px;
+    }
+}
+
+/* تابلت كبير جداً - وضع عمودي */
+/* iPad Pro 11", iPad Pro 12.9" */
+@media only screen and (min-width: 835px) and (max-width: 1024px) and (orientation: portrait) {
+    .login-container {
+        padding: 55px 50px;
+        max-width: 600px;
+        margin: 40px auto;
+    }
+
+    .logo {
+        margin-bottom: 50px;
+        padding-bottom: 40px;
+    }
+
+    .logo h1 {
+        font-size: 42px;
+        letter-spacing: 3.5px;
+    }
+
+    .logo h1::before {
+        font-size: 52px;
+        margin-bottom: 12px;
+    }
+
+    .logo p {
+        font-size: 18px;
+    }
+
+    .login-container .form-group {
+        margin-bottom: 30px;
+    }
+
+    .login-container .form-group label {
+        font-size: 15px;
+        margin-bottom: 12px;
+    }
+
+    .login-container .form-group input {
+        padding: 18px 22px;
+        font-size: 17px;
+        border-width: 3px;
+    }
+
+    .login-container .btn-login {
+        font-size: 21px;
+        padding: 20px;
+        margin-top: 22px;
+    }
+
+    body::after {
+        font-size: 180px;
+        letter-spacing: 70px;
+    }
+
+    .login-container::before,
+    .login-container::after {
+        width: 50px;
+        height: 50px;
+        border-width: 5px;
+    }
+}
+
+/* iPad Pro 12.9" - وضع أفقي */
+@media only screen and (min-width: 1025px) and (max-width: 1366px) and (orientation: landscape) {
+    body {
+        padding: 30px 0;
+    }
+
+    .login-container {
+        padding: 50px 60px;
+        max-width: 650px;
+        margin: 30px auto;
+    }
+
+    .logo {
+        margin-bottom: 45px;
+        padding-bottom: 35px;
+    }
+
+    .logo h1 {
+        font-size: 40px;
+    }
+
+    .logo h1::before {
+        font-size: 50px;
+    }
+
+    .login-container .form-group {
+        margin-bottom: 28px;
+    }
+
+    .login-container .form-group input {
+        padding: 17px 22px;
+        font-size: 16.5px;
+    }
+
+    .login-container .btn-login {
+        font-size: 20px;
+        padding: 19px;
+    }
+
+    body::after {
+        font-size: 170px;
+        letter-spacing: 65px;
+    }
+}
+
+/* تحسينات إضافية لجميع التابلت */
+@media only screen and (min-width: 601px) and (max-width: 1366px) {
+    /* تحسين الانتقالات للمس */
+    .login-container .btn-login:hover {
+        transform: translateY(-3px);
+    }
+
+    .login-container .btn-login:active {
+        transform: translateY(-1px);
+    }
+
+    /* تحسين حقول الإدخال للمس */
+    .login-container input:focus {
+        transform: none;
+    }
+
+    /* تحسين الزخارف */
+    body::before {
+        opacity: 0.7;
+    }
+
+    /* تحسين المسافات للتنقل السهل */
+    .login-container .alert {
+        padding: 16px 18px;
+        font-size: 14.5px;
+    }
+
+    .login-container small {
+        font-size: 13.5px;
+        margin-top: 10px;
+    }
+}
