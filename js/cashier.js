@@ -23,6 +23,11 @@ const CashierSystem = {
 // ======================================
 async verifyAdminAccess() {
     return new Promise((resolve) => {
+        // ✅ إنشاء iframe خفي لخداع المتصفح
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
         const modal = document.createElement('div');
         modal.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -35,39 +40,68 @@ async verifyAdminAccess() {
                 <h2 style="text-align: center; color: #667eea; margin-bottom: 20px; font-size: 22px;">🔒 تحقق من صلاحية الأدمن</h2>
                 <p style="text-align: center; color: #666; margin-bottom: 20px; font-size: 14px;">يجب إدخال بيانات الأدمن للمتابعة</p>
                 
-                <form id="adminVerifyForm" style="margin: 0;">
+                <div style="margin: 0;">
                     <div style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">اسم المستخدم</label>
-                        <input type="text" id="adminUsername" autocomplete="username" placeholder="أدخل اسم المستخدم" 
-                            style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                        <input type="text" 
+                               id="adminUsername" 
+                               readonly
+                               onfocus="this.removeAttribute('readonly');"
+                               autocomplete="off" 
+                               autocorrect="off" 
+                               autocapitalize="off" 
+                               spellcheck="false"
+                               placeholder="أدخل اسم المستخدم" 
+                               style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
                     </div>
                     
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">كلمة المرور</label>
-                        <input type="password" id="adminPassword" autocomplete="current-password" placeholder="أدخل كلمة المرور"
-                            style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                        <input type="password" 
+                               id="adminPassword" 
+                               readonly
+                               onfocus="this.removeAttribute('readonly');"
+                               autocomplete="off" 
+                               autocorrect="off" 
+                               autocapitalize="off" 
+                               spellcheck="false"
+                               placeholder="أدخل كلمة المرور"
+                               style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
                     </div>
                     
                     <div style="display: flex; gap: 10px;">
-                        <button type="submit" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">✅ تحقق</button>
+                        <button type="button" id="adminVerifyBtn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">✅ تحقق</button>
                         <button type="button" id="adminCancelBtn" style="flex: 1; padding: 12px; background: #e53e3e; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">❌ إلغاء</button>
                     </div>
-                </form>
+                </div>
             </div>
         `;
 
         document.body.appendChild(modal);
 
-        const form = document.getElementById('adminVerifyForm');
         const usernameInput = document.getElementById('adminUsername');
         const passwordInput = document.getElementById('adminPassword');
+        const verifyBtn = document.getElementById('adminVerifyBtn');
         const cancelBtn = document.getElementById('adminCancelBtn');
+
+        // ✅ منع أي أحداث متعلقة بـ form submission
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                passwordInput.focus();
+            }
+        });
+
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyBtn.click();
+            }
+        });
 
         usernameInput.focus();
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
+        verifyBtn.addEventListener('click', async () => {
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
 
@@ -77,7 +111,6 @@ async verifyAdminAccess() {
             }
 
             try {
-                // ✅ البحث في جدول users
                 const { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('*')
@@ -98,14 +131,21 @@ async verifyAdminAccess() {
                     return;
                 }
 
-                // ✅ التحقق من الصلاحية
                 if (userData.role !== 'admin') {
                     Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
                     return;
                 }
 
+                // ✅ مسح القيم فوراً
+                usernameInput.value = '';
+                passwordInput.value = '';
+
                 Utils.showNotification('✅ تم التحقق بنجاح', 'success');
+                
+                // ✅ إزالة العناصر
                 document.body.removeChild(modal);
+                document.body.removeChild(iframe);
+                
                 resolve(true);
 
             } catch (error) {
@@ -116,13 +156,19 @@ async verifyAdminAccess() {
         });
 
         cancelBtn.addEventListener('click', () => {
+            usernameInput.value = '';
+            passwordInput.value = '';
             document.body.removeChild(modal);
+            document.body.removeChild(iframe);
             resolve(false);
         });
 
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
+                usernameInput.value = '';
+                passwordInput.value = '';
                 document.body.removeChild(modal);
+                document.body.removeChild(iframe);
                 resolve(false);
             }
         });
@@ -2025,6 +2071,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
