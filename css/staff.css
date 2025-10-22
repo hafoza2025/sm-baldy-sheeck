@@ -665,3 +665,917 @@
         justify-content: space-between;
     }
 }
+
+
+/* ===============================
+   تحسينات خاصة بالأجهزة اللوحية
+   Tablet Optimization for Staff Page
+   =============================== */
+
+/* الأجهزة اللوحية الصغيرة - الوضع الرأسي (Portrait)
+   مثل: iPad Mini, Samsung Galaxy Tab A (601px - 768px) */
+@media screen and (min-width: 601px) and (max-width: 768px) and (orientation: portrait) {
+    .staff-header {
+        padding: 30px 25px;
+    }
+
+    .staff-header h1 {
+        font-size: 30px;
+        margin-bottom: 14px;
+    }
+
+    .table-selector {
+        padding: 22px;
+        gap: 18px;
+        flex-wrap: wrap;
+    }
+
+    .table-selector select {
+        min-width: 240px;
+        padding: 15px 22px;
+        font-size: 17px;
+    }
+
+    .menu-container {
+        padding: 28px;
+    }
+
+    .search-box input {
+        padding: 17px 22px;
+        font-size: 18px;
+    }
+
+    .categories {
+        gap: 14px;
+        padding-bottom: 18px;
+    }
+
+    .category-btn {
+        padding: 15px 30px;
+        font-size: 16px;
+    }
+
+    .menu-items {
+        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        gap: 22px;
+    }
+
+    .menu-item-card img {
+        height: 170px;
+    }
+
+    .menu-item-card .info {
+        padding: 20px;
+    }
+
+    .menu-item-card h3 {
+        font-size: 17px;
+        margin-bottom: 12px;
+    }
+
+    .menu-item-card .price {
+        font-size: 21px;
+        margin-bottom: 14px;
+    }
+
+    .menu-item-card .add-btn {
+        padding: 14px;
+        font-size: 16px;
+    }
+
+    .cart-fab {
+        width: 75px;
+        height: 75px;
+        font-size: 30px;
+        bottom: 28px;
+        left: 28px;
+    }
+
+    .cart-badge {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+        top: -10px;
+        right: -10px;
+    }
+
+    .cart-modal {
+        max-height: 70vh;
+    }
+
+    .cart-header {
+        padding: 28px;
+    }
+
+    .cart-header h2 {
+        font-size: 24px;
+    }
+
+    .cart-items {
+        padding: 28px;
+    }
+
+    .cart-item {
+        padding: 20px;
+        margin-bottom: 14px;
+    }
+
+    .cart-item-info h4 {
+        font-size: 17px;
+        margin-bottom: 8px;
+    }
+
+    .cart-item-controls button {
+        width: 38px;
+        height: 38px;
+        font-size: 19px;
+    }
+
+    .cart-item-controls span {
+        min-width: 38px;
+        font-size: 19px;
+    }
+
+    .cart-footer {
+        padding: 28px;
+    }
+
+    .cart-total {
+        font-size: 24px;
+        margin-bottom: 22px;
+    }
+
+    .send-order-btn {
+        padding: 19px;
+        font-size: 21px;
+    }
+}
+
+/* الأجهزة اللوحية المتوسطة - الوضع الرأسي (Portrait)
+   مثل: iPad, iPad Air, Samsung Galaxy Tab S (769px - 834px) */
+@media screen and (min-width: 769px) and (max-width: 834px) and (orientation: portrait) {
+    .staff-header {
+        padding: 32px 28px;
+    }
+
+    .staff-header h1 {
+        font-size: 32px;
+        margin-bottom: 16px;
+    }
+
+    .table-selector {
+        padding: 24px;
+        gap: 20px;
+    }
+
+    .table-selector select {
+        min-width: 260px;
+        padding: 16px 24px;
+        font-size: 18px;
+    }
+
+    .menu-container {
+        padding: 30px;
+        max-width: 100%;
+    }
+
+    .search-box {
+        margin-bottom: 28px;
+    }
+
+    .search-box input {
+        padding: 18px 24px;
+        font-size: 19px;
+    }
+
+    .categories {
+        gap: 15px;
+        padding-bottom: 20px;
+        margin-bottom: 28px;
+    }
+
+    .category-btn {
+        padding: 16px 32px;
+        font-size: 17px;
+    }
+
+    .menu-items {
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 24px;
+    }
+
+    .menu-item-card img {
+        height: 180px;
+    }
+
+    .menu-item-card .info {
+        padding: 22px;
+    }
+
+    .menu-item-card h3 {
+        font-size: 18px;
+        margin-bottom: 12px;
+    }
+
+    .menu-item-card .price {
+        font-size: 22px;
+        margin-bottom: 15px;
+    }
+
+    .menu-item-card .add-btn {
+        padding: 15px;
+        font-size: 17px;
+        margin-top: 14px;
+    }
+
+    .cart-fab {
+        width: 80px;
+        height: 80px;
+        font-size: 32px;
+        bottom: 30px;
+        left: 30px;
+    }
+
+    .cart-badge {
+        width: 32px;
+        height: 32px;
+        font-size: 15px;
+        top: -10px;
+        right: -10px;
+    }
+
+    .cart-modal {
+        max-height: 68vh;
+    }
+
+    .cart-header {
+        padding: 30px;
+    }
+
+    .cart-header h2 {
+        font-size: 26px;
+    }
+
+    .cart-items {
+        padding: 30px;
+    }
+
+    .cart-item {
+        padding: 22px;
+        margin-bottom: 16px;
+        border-right-width: 6px;
+    }
+
+    .cart-item-info h4 {
+        font-size: 18px;
+        margin-bottom: 8px;
+    }
+
+    .cart-item-controls {
+        gap: 14px;
+    }
+
+    .cart-item-controls button {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+
+    .cart-item-controls span {
+        min-width: 40px;
+        font-size: 20px;
+    }
+
+    .cart-footer {
+        padding: 30px;
+    }
+
+    .cart-total {
+        font-size: 26px;
+        margin-bottom: 24px;
+    }
+
+    .send-order-btn {
+        padding: 20px;
+        font-size: 22px;
+    }
+}
+
+/* الأجهزة اللوحية الكبيرة - الوضع الرأسي (Portrait)
+   مثل: iPad Pro 11", iPad Pro 12.9" (835px - 1024px) */
+@media screen and (min-width: 835px) and (max-width: 1024px) and (orientation: portrait) {
+    .staff-header {
+        padding: 35px 30px;
+    }
+
+    .staff-header h1 {
+        font-size: 34px;
+        margin-bottom: 18px;
+        letter-spacing: 3px;
+    }
+
+    .staff-header::before,
+    .staff-header::after {
+        height: 4px;
+    }
+
+    .table-selector {
+        padding: 26px;
+        gap: 22px;
+    }
+
+    .table-selector select {
+        min-width: 280px;
+        padding: 17px 25px;
+        font-size: 19px;
+        border-width: 4px;
+    }
+
+    .menu-container {
+        padding: 32px;
+        max-width: 100%;
+    }
+
+    .search-box {
+        margin-bottom: 30px;
+    }
+
+    .search-box input {
+        padding: 19px 25px;
+        font-size: 20px;
+        border-width: 4px;
+    }
+
+    .categories {
+        gap: 16px;
+        padding-bottom: 22px;
+        margin-bottom: 30px;
+    }
+
+    .categories::-webkit-scrollbar {
+        height: 10px;
+    }
+
+    .category-btn {
+        padding: 17px 34px;
+        font-size: 18px;
+        border-width: 4px;
+    }
+
+    .menu-items {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 26px;
+    }
+
+    .menu-item-card {
+        border-width: 4px;
+    }
+
+    .menu-item-card::before {
+        width: 25px;
+        height: 25px;
+        border-width: 3px;
+    }
+
+    .menu-item-card img {
+        height: 200px;
+        border-bottom-width: 4px;
+    }
+
+    .menu-item-card .info {
+        padding: 24px;
+    }
+
+    .menu-item-card h3 {
+        font-size: 19px;
+        margin-bottom: 14px;
+    }
+
+    .menu-item-card .price {
+        font-size: 24px;
+        margin-bottom: 16px;
+    }
+
+    .menu-item-card .add-btn {
+        padding: 16px;
+        font-size: 18px;
+        margin-top: 15px;
+        border-width: 4px;
+    }
+
+    .cart-fab {
+        width: 85px;
+        height: 85px;
+        font-size: 34px;
+        bottom: 32px;
+        left: 32px;
+        border-width: 5px;
+    }
+
+    .cart-badge {
+        width: 34px;
+        height: 34px;
+        font-size: 16px;
+        top: -12px;
+        right: -12px;
+        border-width: 4px;
+    }
+
+    .cart-modal {
+        max-height: 65vh;
+        border-top-width: 6px;
+    }
+
+    .cart-header {
+        padding: 32px;
+        border-bottom-width: 4px;
+    }
+
+    .cart-header h2 {
+        font-size: 28px;
+        letter-spacing: 3px;
+    }
+
+    .cart-items {
+        padding: 32px;
+    }
+
+    .cart-item {
+        padding: 24px;
+        margin-bottom: 18px;
+        border-width: 3px;
+        border-right-width: 6px;
+    }
+
+    .cart-item-info h4 {
+        font-size: 19px;
+        margin-bottom: 10px;
+    }
+
+    .cart-item-controls {
+        gap: 16px;
+    }
+
+    .cart-item-controls button {
+        width: 42px;
+        height: 42px;
+        font-size: 21px;
+        border-width: 4px;
+    }
+
+    .cart-item-controls span {
+        min-width: 42px;
+        font-size: 21px;
+    }
+
+    .cart-footer {
+        padding: 32px;
+        border-top-width: 5px;
+    }
+
+    .cart-total {
+        font-size: 28px;
+        margin-bottom: 26px;
+    }
+
+    .send-order-btn {
+        padding: 22px;
+        font-size: 24px;
+        border-width: 5px;
+    }
+}
+
+/* الأجهزة اللوحية الصغيرة - الوضع الأفقي (Landscape)
+   مثل: iPad Mini, Small Tablets (769px - 1024px) */
+@media screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    .staff-header {
+        padding: 24px 26px;
+    }
+
+    .staff-header h1 {
+        font-size: 26px;
+        margin-bottom: 10px;
+    }
+
+    .table-selector {
+        padding: 18px;
+        gap: 16px;
+    }
+
+    .table-selector select {
+        min-width: 200px;
+        padding: 14px 20px;
+        font-size: 16px;
+    }
+
+    .menu-container {
+        padding: 22px;
+        max-width: 100%;
+    }
+
+    .search-box {
+        margin-bottom: 20px;
+    }
+
+    .search-box input {
+        padding: 15px 20px;
+        font-size: 17px;
+    }
+
+    .categories {
+        gap: 10px;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+    }
+
+    .category-btn {
+        padding: 12px 24px;
+        font-size: 15px;
+    }
+
+    .menu-items {
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 18px;
+    }
+
+    .menu-item-card img {
+        height: 150px;
+    }
+
+    .menu-item-card .info {
+        padding: 16px;
+    }
+
+    .menu-item-card h3 {
+        font-size: 15px;
+        margin-bottom: 8px;
+    }
+
+    .menu-item-card .price {
+        font-size: 19px;
+        margin-bottom: 10px;
+    }
+
+    .menu-item-card .add-btn {
+        padding: 11px;
+        font-size: 15px;
+        margin-top: 10px;
+    }
+
+    .cart-fab {
+        width: 65px;
+        height: 65px;
+        font-size: 26px;
+        bottom: 22px;
+        left: 22px;
+    }
+
+    .cart-badge {
+        width: 26px;
+        height: 26px;
+        font-size: 13px;
+    }
+
+    .cart-modal {
+        max-height: 85vh;
+    }
+
+    .cart-header {
+        padding: 22px;
+    }
+
+    .cart-header h2 {
+        font-size: 20px;
+    }
+
+    .cart-items {
+        padding: 22px;
+    }
+
+    .cart-item {
+        padding: 16px;
+        margin-bottom: 10px;
+    }
+
+    .cart-item-info h4 {
+        font-size: 15px;
+        margin-bottom: 6px;
+    }
+
+    .cart-item-controls {
+        gap: 10px;
+    }
+
+    .cart-item-controls button {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    .cart-item-controls span {
+        min-width: 32px;
+        font-size: 16px;
+    }
+
+    .cart-footer {
+        padding: 22px;
+    }
+
+    .cart-total {
+        font-size: 20px;
+        margin-bottom: 18px;
+    }
+
+    .send-order-btn {
+        padding: 16px;
+        font-size: 18px;
+    }
+}
+
+/* الأجهزة اللوحية الكبيرة - الوضع الأفقي (Landscape)
+   مثل: iPad Pro, Samsung Galaxy Tab S (1025px - 1366px) */
+@media screen and (min-width: 1025px) and (max-width: 1366px) and (orientation: landscape) {
+    .staff-header {
+        padding: 28px;
+    }
+
+    .staff-header h1 {
+        font-size: 28px;
+        margin-bottom: 12px;
+    }
+
+    .table-selector {
+        padding: 20px;
+        gap: 16px;
+    }
+
+    .table-selector select {
+        min-width: 220px;
+        padding: 14px 20px;
+        font-size: 16px;
+    }
+
+    .menu-container {
+        padding: 25px;
+        max-width: 1250px;
+    }
+
+    .search-box {
+        margin-bottom: 22px;
+    }
+
+    .search-box input {
+        padding: 16px 20px;
+        font-size: 17px;
+    }
+
+    .categories {
+        gap: 12px;
+        margin-bottom: 22px;
+    }
+
+    .category-btn {
+        padding: 13px 26px;
+        font-size: 15px;
+    }
+
+    .menu-items {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .menu-item-card img {
+        height: 160px;
+    }
+
+    .menu-item-card .info {
+        padding: 18px;
+    }
+
+    .menu-item-card h3 {
+        font-size: 16px;
+    }
+
+    .menu-item-card .price {
+        font-size: 20px;
+    }
+
+    .menu-item-card .add-btn {
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    .cart-fab {
+        width: 70px;
+        height: 70px;
+        font-size: 28px;
+        bottom: 25px;
+        left: 25px;
+    }
+
+    .cart-badge {
+        width: 28px;
+        height: 28px;
+        font-size: 13px;
+    }
+
+    .cart-modal {
+        max-height: 72vh;
+    }
+
+    .cart-header {
+        padding: 24px;
+    }
+
+    .cart-header h2 {
+        font-size: 22px;
+    }
+
+    .cart-items {
+        padding: 24px;
+    }
+
+    .cart-item {
+        padding: 18px;
+    }
+
+    .cart-footer {
+        padding: 24px;
+    }
+
+    .cart-total {
+        font-size: 22px;
+        margin-bottom: 20px;
+    }
+
+    .send-order-btn {
+        padding: 18px;
+        font-size: 20px;
+    }
+}
+
+/* تحسينات إضافية لجميع الأجهزة اللوحية */
+@media screen and (min-width: 600px) and (max-width: 1366px) {
+    /* تحسين الأداء للأجهزة القديمة */
+    .menu-item-card,
+    .cart-fab,
+    .cart-modal {
+        will-change: transform;
+    }
+
+    .category-btn::before {
+        will-change: left;
+    }
+
+    /* تحسين مساحات اللمس - Touch Target Optimization */
+    .menu-item-card .add-btn,
+    .cart-item-controls button,
+    .send-order-btn,
+    .cart-fab {
+        min-height: 44px;
+        min-width: 44px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(212, 175, 55, 0.2);
+    }
+
+    .table-selector select,
+    .search-box input,
+    .category-btn {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+
+    /* تحسين التمرير السلس */
+    .categories,
+    .cart-modal {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+
+    /* تحسين قابلية القراءة */
+    .menu-item-card h3,
+    .cart-item-info h4 {
+        line-height: 1.4;
+    }
+
+    .menu-item-card .price,
+    .cart-total {
+        line-height: 1.3;
+    }
+
+    /* تحسين التباعد بين العناصر التفاعلية */
+    .cart-item-controls button {
+        margin: 0 4px;
+    }
+
+    .category-btn {
+        margin: 0 2px;
+    }
+
+    /* تحسين الانتقالات */
+    .menu-item-card,
+    .category-btn,
+    .cart-fab {
+        transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+    }
+}
+
+/* دعم الأجهزة اللوحية بكثافة عالية (Retina Display) */
+@media screen and (min-width: 600px) and (max-width: 1366px) and (-webkit-min-device-pixel-ratio: 2),
+       screen and (min-width: 600px) and (max-width: 1366px) and (min-resolution: 192dpi) {
+    .staff-header {
+        border-bottom-width: 6px;
+    }
+
+    .menu-item-card {
+        border-width: 4px;
+    }
+
+    .menu-item-card img {
+        border-bottom-width: 4px;
+    }
+
+    .cart-fab {
+        border-width: 5px;
+    }
+
+    .cart-modal {
+        border-top-width: 6px;
+    }
+
+    .category-btn {
+        border-width: 4px;
+    }
+
+    .send-order-btn {
+        border-width: 5px;
+    }
+}
+
+/* تحسينات خاصة للأجهزة اللوحية القديمة ذات الأداء المحدود */
+@media screen and (min-width: 600px) and (max-width: 1024px) {
+    /* تقليل التأثيرات الحركية للأداء الأفضل */
+    .category-btn::before,
+    .menu-item-card::before {
+        display: none;
+    }
+
+    /* تبسيط الظلال */
+    .menu-item-card:hover {
+        box-shadow: 0 6px 16px rgba(139, 115, 85, 0.25);
+    }
+
+    .cart-fab:hover {
+        box-shadow: 0 6px 18px rgba(90, 138, 116, 0.5);
+    }
+
+    /* تحسين التمرير */
+    .categories::-webkit-scrollbar {
+        display: block;
+    }
+}
+
+/* دعم الأجهزة اللوحية ذات نسب العرض إلى الارتفاع غير القياسية */
+@media screen and (min-width: 600px) and (max-width: 1366px) and (min-aspect-ratio: 16/10) {
+    .menu-container {
+        max-width: 90%;
+        margin: 0 auto;
+    }
+
+    .cart-modal {
+        max-height: 78vh;
+    }
+}
+
+/* تحسين عرض الشبكة Grid للأجهزة اللوحية */
+@media screen and (min-width: 600px) and (max-width: 834px) {
+    .menu-items {
+        justify-items: center;
+    }
+
+    .menu-item-card {
+        max-width: 280px;
+        width: 100%;
+    }
+}
+
+@media screen and (min-width: 835px) and (max-width: 1024px) {
+    .menu-items {
+        justify-items: stretch;
+    }
+}
+
+/* تحسين عرض المودال على الأجهزة اللوحية الكبيرة */
+@media screen and (min-width: 1025px) and (max-width: 1366px) {
+    .cart-modal {
+        max-width: 700px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100%);
+        border-radius: 0;
+    }
+
+    .cart-modal.active {
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
