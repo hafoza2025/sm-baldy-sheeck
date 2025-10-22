@@ -846,32 +846,13 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
 
 // ================================================================================
-// 🖨️ نظام طباعة الفواتير من الأدمن - نسخة طبق الأصل من الكاشير
-// ================================================================================
-// ✅ ضع هذا الكود في نهاية ملف admin.js - لا تعدل أي شيء آخر
+// 🖨️ نظام طباعة الفواتير - النسخة النهائية
 // ================================================================================
 
 (function() {
-    console.log('🖨️ جاري تفعيل نظام طباعة الفواتير...');
+    console.log('🖨️ جاري تفعيل نظام الطباعة...');
 
-    // ======================================
-    // ✅ دالة مساعدة لطريقة الدفع
-    // ======================================
-    function getPaymentMethodName(method) {
-        const methods = {
-            'cash': 'كاش',
-            'visa': 'فيزا',
-            'card': 'بطاقة',
-            'wallet': 'محفظة',
-            'instapay': 'انستاباي',
-            'credit': 'بطاقة ائتمان'
-        };
-        return methods[method] || 'كاش';
-    }
-
-    // ======================================
-    // ✅ دالة استرجاع بيانات الطلب الكاملة
-    // ======================================
+    // ✅ دالة استرجاع البيانات الكاملة
     async function fetchFullOrderData(orderId) {
         try {
             const { data, error } = await supabase
@@ -880,10 +861,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
                     *,
                     order_items (
                         *,
-                        menu_item:menu_items (
-                            name_ar,
-                            name_en
-                        )
+                        menu_item:menu_items (name_ar, name_en)
                     ),
                     deliveries (
                         customer_name,
@@ -895,11 +873,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
                 .eq('id', orderId)
                 .single();
 
-            if (error) {
-                console.error('❌ خطأ في جلب البيانات:', error);
-                return null;
-            }
-
+            if (error) throw error;
             return data;
         } catch (error) {
             console.error('❌ خطأ:', error);
@@ -907,13 +881,8 @@ console.log('✅ Admin Dashboard loaded with live stats');
         }
     }
 
-    // ======================================
-    // ✅ دالة الطباعة - نفس الكاشير تماماً
-    // ======================================
+    // ✅ دالة الطباعة
     async function printOrderReceipt(orderId) {
-        console.log('📦 جاري استرجاع بيانات الطلب:', orderId);
-        
-        // ✅ جلب البيانات الكاملة من Database
         const order = await fetchFullOrderData(orderId);
         
         if (!order) {
@@ -921,18 +890,17 @@ console.log('✅ Admin Dashboard loaded with live stats');
             return;
         }
 
-        console.log('📦 Order Data:', order);
-        console.log('🚚 Delivery Info:', order.deliveries);
-        
-        if (order.deliveries && order.deliveries[0]) {
-            console.log('📍 Address:', order.deliveries[0].delivery_address || order.deliveries[0].customer_address);
-            console.log('📞 Phone:', order.deliveries[0].customer_phone);
-            console.log('👤 Name:', order.deliveries[0].customer_name);
-        }
-        
         const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
             ? order.deliveries[0] 
             : null;
+        
+        const paymentMethods = {
+            'cash': 'كاش',
+            'visa': 'فيزا',
+            'card': 'بطاقة',
+            'wallet': 'محفظة',
+            'instapay': 'انستاباي'
+        };
         
         const receiptHTML = `
             <!DOCTYPE html>
@@ -941,23 +909,11 @@ console.log('✅ Admin Dashboard loaded with live stats');
                 <meta charset="UTF-8">
                 <title>فاتورة #${order.order_number}</title>
                 <style>
-                    @page {
-                        size: 80mm auto;
-                        margin: 0;
-                    }
-                    @media print {
-                        body {
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                        }
-                    }
-                    * {
-                        margin: 0;
-                        padding: 0;
-                        box-sizing: border-box;
-                    }
+                    @page { size: 80mm auto; margin: 0; }
+                    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
                     body { 
-                        font-family: Arial, 'Tahoma', sans-serif;
+                        font-family: Arial, Tahoma, sans-serif;
                         width: 72mm;
                         font-size: 13px;
                         font-weight: bold;
@@ -972,15 +928,8 @@ console.log('✅ Admin Dashboard loaded with live stats');
                         padding-bottom: 10px;
                         margin-bottom: 10px;
                     }
-                    .header h2 {
-                        font-size: 18px;
-                        margin-bottom: 5px;
-                        font-weight: bold;
-                    }
-                    .header p {
-                        font-size: 12px;
-                        margin: 3px 0;
-                    }
+                    .header h2 { font-size: 18px; margin-bottom: 5px; }
+                    .header p { font-size: 12px; margin: 3px 0; }
                     .payment-box {
                         background: #000;
                         color: #fff;
@@ -989,53 +938,24 @@ console.log('✅ Admin Dashboard loaded with live stats');
                         text-align: center;
                         font-weight: bold;
                         font-size: 14px;
-                        border: 2px solid #000;
                     }
-                    .info {
-                        font-size: 11px;
-                        margin-bottom: 10px;
-                        font-weight: bold;
-                        line-height: 1.6;
-                    }
-                    .info div {
-                        margin: 3px 0;
-                        word-wrap: break-word;
-                    }
-                    hr {
-                        border: none;
-                        border-top: 2px solid #000;
-                        margin: 8px 0;
-                    }
-                    .items-header {
-                        display: flex;
-                        justify-content: space-between;
-                        font-weight: bold;
-                        font-size: 12px;
-                        border-bottom: 1px solid #000;
-                        padding-bottom: 5px;
-                        margin-bottom: 5px;
-                    }
+                    .info { font-size: 11px; margin-bottom: 10px; line-height: 1.6; }
+                    .info div { margin: 3px 0; word-wrap: break-word; }
+                    hr { border: none; border-top: 2px solid #000; margin: 8px 0; }
                     .item { 
                         display: flex;
                         justify-content: space-between;
                         margin: 5px 0;
                         font-size: 12px;
-                        font-weight: bold;
-                    }
-                    .item span:first-child {
-                        flex: 1;
-                        padding-left: 8px;
                     }
                     .summary-item {
                         display: flex;
                         justify-content: space-between;
                         margin: 6px 0;
                         font-size: 13px;
-                        font-weight: bold;
                     }
                     .total { 
                         font-size: 16px;
-                        font-weight: bold;
                         border-top: 3px double #000;
                         border-bottom: 3px double #000;
                         padding: 10px 0;
@@ -1045,8 +965,6 @@ console.log('✅ Admin Dashboard loaded with live stats');
                     .footer {
                         text-align: center;
                         margin-top: 15px;
-                        font-size: 13px;
-                        font-weight: bold;
                         border-top: 2px solid #000;
                         padding-top: 10px;
                     }
@@ -1059,30 +977,20 @@ console.log('✅ Admin Dashboard loaded with live stats');
                     <p>${new Date(order.created_at).toLocaleString('ar-EG')}</p>
                 </div>
 
-                <div class="payment-box">
-                    💳 ${getPaymentMethodName(order.payment_method)}
-                </div>
+                <div class="payment-box">💳 ${paymentMethods[order.payment_method] || 'كاش'}</div>
 
                 <div class="info">
                     ${order.order_type === 'delivery' && deliveryInfo ? `
                         <div>📦 العميل: ${deliveryInfo.customer_name || 'غير محدد'}</div>
                         ${deliveryInfo.customer_phone ? `<div>📞 ${deliveryInfo.customer_phone}</div>` : ''}
                         ${(deliveryInfo.delivery_address || deliveryInfo.customer_address) ? 
-                            `<div>📍 ${deliveryInfo.delivery_address || deliveryInfo.customer_address}</div>` : 
-                            '<div>📍 لا يوجد عنوان</div>'}
-                    ` : order.order_type === 'delivery' ? `
-                        <div>📦 توصيل (لا توجد بيانات)</div>
-                    ` : `
+                            `<div>📍 ${deliveryInfo.delivery_address || deliveryInfo.customer_address}</div>` : ''}
+                    ` : order.order_type === 'dine_in' ? `
                         <div>🍽️ طاولة: ${order.table_number || 'غير محدد'}</div>
-                    `}
+                    ` : ''}
                 </div>
 
                 <hr>
-
-                <div class="items-header">
-                    <span>الصنف</span>
-                    <span>السعر</span>
-                </div>
 
                 ${(order.order_items || []).map(item => `
                     <div class="item">
@@ -1098,10 +1006,10 @@ console.log('✅ Admin Dashboard loaded with live stats');
                     <span>${(order.subtotal || 0).toFixed(2)} ج.م</span>
                 </div>
                 
-                ${order.order_type !== 'delivery' ? `
+                ${order.order_type !== 'delivery' && order.tax > 0 ? `
                     <div class="summary-item">
                         <span>الضريبة (14%):</span>
-                        <span>${(order.tax || 0).toFixed(2)} ج.م</span>
+                        <span>${(order.tax).toFixed(2)} ج.م</span>
                     </div>
                 ` : ''}
                 
@@ -1119,7 +1027,6 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
                 <div class="footer">
                     <p>شكراً لزيارتكم بلدي شيك</p>
-                    <p>نتمنى لكم يوماً سعيداً</p>
                     <p>بلدي شيك بلدي علي اصلة</p>
                 </div>
             </body>
@@ -1128,14 +1035,13 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
         const printWindow = window.open('', '', 'height=600,width=300');
         if (!printWindow) {
-            alert('⚠️ يرجى السماح بالنوافذ المنبثقة للطباعة');
+            alert('⚠️ يرجى السماح بالنوافذ المنبثقة');
             return;
         }
         
         printWindow.document.write(receiptHTML);
         printWindow.document.close();
-        
-        printWindow.onload = function() {
+        printWindow.onload = () => {
             printWindow.focus();
             setTimeout(() => {
                 printWindow.print();
@@ -1144,71 +1050,6 @@ console.log('✅ Admin Dashboard loaded with live stats');
         };
     }
 
-    // تعريف الدالة globally
     window.printOrderReceipt = printOrderReceipt;
-
-    // ======================================
-    // ✅ تعديل displayOrders لإضافة زر الطباعة
-    // ======================================
-    if (typeof AdminDashboard !== 'undefined' && AdminDashboard.displayOrders) {
-        const originalDisplay = AdminDashboard.displayOrders;
-        
-        AdminDashboard.displayOrders = function(orders) {
-            const tbody = document.getElementById('ordersBody');
-            if (!tbody) return;
-
-            if (!orders || orders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">لا توجد طلبات</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = orders.map((order) => {
-                const paymentIcons = {
-                    'cash': '💵 كاش',
-                    'visa': '💳 فيزا',
-                    'wallet': '📱 محفظة',
-                    'instapay': '⚡ انستاباي'
-                };
-                const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
-
-                return `
-                    <tr>
-                        <td><strong>#${order.order_number}</strong></td>
-                        <td>${new Date(order.created_at).toLocaleDateString('ar-EG')}</td>
-                        <td>${order.order_type === 'dine_in' ? '🍽️ داخلي' : '🛵 توصيل'}</td>
-                        <td>${order.order_type === 'dine_in' ? `طاولة ${order.table_number || '-'}` : order.deliveries?.[0]?.customer_name || '-'}</td>
-                        <td>${order.staff?.full_name || 'كاشير'}</td>
-                        <td><strong>${(order.total || 0).toFixed(2)} ج.م</strong></td>
-                        <td style="text-align: center;">${paymentMethod}</td>
-                        <td><span class="badge ${this.getStatusClass(order.status)}">${this.getStatusText(order.status)}</span></td>
-                        <td style="text-align: center;">
-                            ${order.status === 'completed' ? `
-                                <button 
-                                    onclick="printOrderReceipt(${order.id})"
-                                    style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s;"
-                                    onmouseover="this.style.background='#5568d3'; this.style.transform='translateY(-2px)'"
-                                    onmouseout="this.style.background='#667eea'; this.style.transform='translateY(0)'"
-                                    title="طباعة الفاتورة">
-                                    🖨️ طباعة
-                                </button>
-                            ` : '<span style="color: #999;">-</span>'}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        };
-        
-        console.log('✅ تم تعديل displayOrders بنجاح');
-    }
-
-    console.log('✅ تم تفعيل نظام طباعة الفواتير بنجاح!');
-    console.log('🎉 يمكنك الآن طباعة أي فاتورة مكتملة من جميع الطلبات');
+    console.log('✅ تم تفعيل نظام الطباعة بنجاح!');
 })();
-
-// ================================================================================
-// ✅ انتهى كود نظام الطباعة - لا تضف أي شيء بعد هذا السطر
-// ================================================================================
-
-
-
-
