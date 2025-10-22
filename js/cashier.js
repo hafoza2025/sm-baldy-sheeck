@@ -22,7 +22,7 @@ const CashierSystem = {
 // 🔒 دالة التحقق من صلاحية الأدمن
 // ======================================
 async verifyAdminAccess() {
-    return new Promise(async (resolve) => {
+    return new Promise((resolve) => {
         const modal = document.createElement('div');
         modal.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -30,41 +30,45 @@ async verifyAdminAccess() {
             justify-content: center; align-items: center; z-index: 10000;
         `;
 
+        // ✅ استخدام <form> علشان نلغي التحذير
         modal.innerHTML = `
             <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; width: 90%;">
                 <h2 style="text-align: center; color: #667eea; margin-bottom: 20px; font-size: 22px;">🔒 تحقق من صلاحية الأدمن</h2>
                 <p style="text-align: center; color: #666; margin-bottom: 20px; font-size: 14px;">يجب إدخال بيانات الأدمن للمتابعة</p>
                 
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">اسم المستخدم</label>
-                    <input type="text" id="adminUsername" placeholder="أدخل اسم المستخدم" 
-                        style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">كلمة المرور</label>
-                    <input type="password" id="adminPassword" placeholder="أدخل كلمة المرور" autocomplete="off"
-                        style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
-                </div>
-                
-                <div style="display: flex; gap: 10px;">
-                    <button id="adminVerifyBtn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">✅ تحقق</button>
-                    <button id="adminCancelBtn" style="flex: 1; padding: 12px; background: #e53e3e; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">❌ إلغاء</button>
-                </div>
+                <form id="adminVerifyForm" style="margin: 0;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">اسم المستخدم</label>
+                        <input type="text" id="adminUsername" name="username" autocomplete="username" placeholder="أدخل اسم المستخدم" 
+                            style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">كلمة المرور</label>
+                        <input type="password" id="adminPassword" name="password" autocomplete="current-password" placeholder="أدخل كلمة المرور"
+                            style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; box-sizing: border-box;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" id="adminVerifyBtn" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">✅ تحقق</button>
+                        <button type="button" id="adminCancelBtn" style="flex: 1; padding: 12px; background: #e53e3e; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">❌ إلغاء</button>
+                    </div>
+                </form>
             </div>
         `;
 
         document.body.appendChild(modal);
 
+        const form = document.getElementById('adminVerifyForm');
         const usernameInput = document.getElementById('adminUsername');
         const passwordInput = document.getElementById('adminPassword');
-        const verifyBtn = document.getElementById('adminVerifyBtn');
         const cancelBtn = document.getElementById('adminCancelBtn');
 
         usernameInput.focus();
-        passwordInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyBtn.click(); });
 
-        verifyBtn.addEventListener('click', async () => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
 
@@ -74,18 +78,18 @@ async verifyAdminAccess() {
             }
 
             try {
-                // ✅ استخدام جدول employees بدلاً من staff
+                // ✅ استخدام جدول employees
                 const { data: employeeData, error: fetchError } = await supabase
                     .from('employees')
-                    .select('*')
+                    .select('id, username, password, role, full_name')
                     .eq('username', username)
                     .maybeSingle();
 
                 console.log('📊 النتيجة:', employeeData, fetchError);
 
                 if (fetchError) {
-                    console.error('❌ خطأ:', fetchError);
-                    Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
+                    console.error('❌ خطأ Supabase:', fetchError);
+                    Utils.showNotification('❌ خطأ: ' + fetchError.message, 'error');
                     return;
                 }
 
@@ -102,7 +106,9 @@ async verifyAdminAccess() {
                     return;
                 }
 
-                if (employeeData.role && employeeData.role.toLowerCase() !== 'admin') {
+                // ✅ التحقق من role (admin أو manager)
+                const userRole = employeeData.role ? employeeData.role.toLowerCase() : '';
+                if (userRole !== 'admin' && userRole !== 'manager') {
                     Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
                     return;
                 }
@@ -112,8 +118,8 @@ async verifyAdminAccess() {
                 resolve(true);
 
             } catch (error) {
-                console.error('❌ خطأ:', error);
-                Utils.showNotification('❌ حدث خطأ غير متوقع', 'error');
+                console.error('❌ خطأ غير متوقع:', error);
+                Utils.showNotification('❌ خطأ غير متوقع', 'error');
                 resolve(false);
             }
         });
@@ -2026,6 +2032,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
