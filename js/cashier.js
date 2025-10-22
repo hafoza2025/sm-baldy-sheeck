@@ -21,7 +21,6 @@ const CashierSystem = {
     // ======================================
 // 🔒 دالة التحقق من صلاحية الأدمن
 // ======================================
-// ✅ دالة التحقق من صلاحية الأدمن - النسخة النهائية الاحترافية
 async verifyAdminAccess() {
     return new Promise((resolve) => {
         const modal = document.createElement('div');
@@ -72,67 +71,35 @@ async verifyAdminAccess() {
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
 
-            console.log('🚀 بدء التحقق...');
-            console.log('👤 Username المدخل:', username);
-            console.log('🔑 Password المدخل:', password);
-
             if (!username || !password) {
                 Utils.showNotification('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
                 return;
             }
 
             try {
-                console.log('📡 جاري الاتصال بـ Supabase...');
-                
-                // ✅ جلب كل المستخدمين أولاً
-                const { data: allUsers, error: allError } = await supabase
+                // ✅ البحث في جدول users
+                const { data: userData, error: userError } = await supabase
                     .from('users')
-                    .select('*');
+                    .select('*')
+                    .eq('username', username)
+                    .eq('password_hash', password)
+                    .maybeSingle();
 
-                console.log('📊 كل المستخدمين:', allUsers);
-                console.log('❌ الخطأ (إن وجد):', allError);
-
-                if (allError) {
-                    console.error('❌ خطأ Supabase:', allError);
-                    Utils.showNotification('❌ خطأ: ' + allError.message, 'error');
+                if (userError) {
+                    console.error('❌ خطأ:', userError);
+                    Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
                     return;
                 }
-
-                if (!allUsers || allUsers.length === 0) {
-                    Utils.showNotification('❌ لا يوجد مستخدمين في النظام', 'error');
-                    return;
-                }
-
-                // ✅ البحث عن المستخدم يدوياً
-                const userData = allUsers.find(u => 
-                    u.username && u.username.toLowerCase() === username.toLowerCase()
-                );
-
-                console.log('🔍 المستخدم المطلوب:', userData);
 
                 if (!userData) {
-                    Utils.showNotification('❌ اسم المستخدم غير موجود', 'error');
-                    return;
-                }
-
-                // ✅ طباعة البيانات للمقارنة
-                console.log('🔑 كلمة المرور المدخلة:', password);
-                console.log('🔑 كلمة المرور في DB:', userData.password);
-                console.log('✅ نتيجة المقارنة:', userData.password === password);
-
-                // ✅ التحقق من كلمة المرور
-                if (userData.password !== password) {
-                    Utils.showNotification('❌ كلمة المرور غير صحيحة', 'error');
+                    Utils.showNotification('❌ اسم المستخدم أو كلمة المرور غير صحيحة', 'error');
                     passwordInput.value = '';
                     passwordInput.focus();
                     return;
                 }
 
                 // ✅ التحقق من الصلاحية
-                const userRole = userData.role ? userData.role.toLowerCase() : '';
-                console.log('👔 الصلاحية:', userRole);
-                
-                if (userRole !== 'admin' && userRole !== 'manager') {
+                if (userData.role !== 'admin') {
                     Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
                     return;
                 }
@@ -142,7 +109,7 @@ async verifyAdminAccess() {
                 resolve(true);
 
             } catch (error) {
-                console.error('❌ خطأ غير متوقع:', error);
+                console.error('❌ خطأ:', error);
                 Utils.showNotification('❌ حدث خطأ غير متوقع', 'error');
                 resolve(false);
             }
@@ -2058,6 +2025,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
