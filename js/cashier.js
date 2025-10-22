@@ -22,7 +22,6 @@ const CashierSystem = {
 // 🔒 دالة التحقق من صلاحية الأدمن
 // ======================================
 // ✅ دالة التحقق من صلاحية الأدمن - النسخة النهائية الاحترافية
-// ✅ دالة التحقق من صلاحية الأدمن - تعمل مع Username + Password
 async verifyAdminAccess() {
     return new Promise((resolve) => {
         const modal = document.createElement('div');
@@ -79,14 +78,18 @@ async verifyAdminAccess() {
             }
 
             try {
-                // ✅ البحث في جدول users باستخدام username
                 const { data: userData, error: userError } = await supabase
                     .from('users')
                     .select('*')
                     .eq('username', username)
                     .maybeSingle();
 
-                console.log('📊 النتيجة:', userData, userError);
+                // ✅ طباعة البيانات للتشخيص
+                console.log('📊 بيانات المستخدم:', userData);
+                console.log('🔑 كلمة المرور المدخلة:', password);
+                console.log('🔑 كلمة المرور في Database:', userData?.password);
+                console.log('🔑 نوع كلمة المرور:', typeof userData?.password);
+                console.log('✅ المقارنة:', userData?.password === password);
 
                 if (userError) {
                     console.error('❌ خطأ:', userError);
@@ -96,7 +99,6 @@ async verifyAdminAccess() {
 
                 if (!userData) {
                     Utils.showNotification('❌ اسم المستخدم غير موجود', 'error');
-                    usernameInput.focus();
                     return;
                 }
 
@@ -108,20 +110,19 @@ async verifyAdminAccess() {
                     return;
                 }
 
-                // ✅ التحقق من الصلاحية (admin أو manager)
+                // ✅ التحقق من الصلاحية
                 const userRole = userData.role ? userData.role.toLowerCase() : '';
                 if (userRole !== 'admin' && userRole !== 'manager') {
                     Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
                     return;
                 }
 
-                // ✅ نجح التحقق
-                Utils.showNotification('✅ تم التحقق بنجاح - مرحباً ' + (userData.full_name || username), 'success');
+                Utils.showNotification('✅ تم التحقق بنجاح', 'success');
                 document.body.removeChild(modal);
                 resolve(true);
 
             } catch (error) {
-                console.error('❌ خطأ غير متوقع:', error);
+                console.error('❌ خطأ:', error);
                 Utils.showNotification('❌ حدث خطأ غير متوقع', 'error');
                 resolve(false);
             }
@@ -140,6 +141,7 @@ async verifyAdminAccess() {
         });
     });
 },
+
 
 
 
@@ -2037,6 +2039,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
