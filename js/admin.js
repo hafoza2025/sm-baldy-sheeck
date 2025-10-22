@@ -457,16 +457,7 @@ async loadOrders() {
             .select(`
                 *,
                 staff:staff_id(full_name),
-                order_items (
-                    *,
-                    menu_item:menu_items(name_ar, name_en)
-                ),
-                deliveries(
-                    customer_name,
-                    customer_phone,
-                    customer_address,
-                    delivery_address
-                )
+                deliveries(customer_name)
             `)
             .order('created_at', { ascending: false })
             .limit(100);
@@ -481,6 +472,7 @@ async loadOrders() {
         console.error('Error loading orders:', error);
     }
 },
+
 
    displayOrders(orders) {
     const tbody = document.getElementById('ordersBody');
@@ -1216,6 +1208,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
 // ================================================================================
 // ✅ انتهى كود نظام الطباعة - لا تضف أي شيء بعد هذا السطر
 // ================================================================================
+
 
 
 
