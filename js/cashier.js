@@ -74,36 +74,35 @@ async verifyAdminAccess() {
             }
 
             try {
-                // ✅ الحل: جلب كل البيانات من staff
-                const { data: allStaff, error } = await supabase
-                    .from('staff')
-                    .select('*');
+                // ✅ استخدام جدول employees بدلاً من staff
+                const { data: employeeData, error: fetchError } = await supabase
+                    .from('employees')
+                    .select('*')
+                    .eq('username', username)
+                    .maybeSingle();
 
-                if (error) {
-                    console.error('Error:', error);
+                console.log('📊 النتيجة:', employeeData, fetchError);
+
+                if (fetchError) {
+                    console.error('❌ خطأ:', fetchError);
                     Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
                     return;
                 }
 
-                // ✅ البحث عن المستخدم يدوياً
-                const user = allStaff?.find(s => 
-                    s.username && s.username.toLowerCase() === username.toLowerCase()
-                );
-
-                if (!user) {
+                if (!employeeData) {
                     Utils.showNotification('❌ اسم المستخدم غير موجود', 'error');
                     usernameInput.focus();
                     return;
                 }
 
-                if (user.password !== password) {
+                if (employeeData.password !== password) {
                     Utils.showNotification('❌ كلمة المرور غير صحيحة', 'error');
                     passwordInput.value = '';
                     passwordInput.focus();
                     return;
                 }
 
-                if (user.role && user.role.toLowerCase() !== 'admin') {
+                if (employeeData.role && employeeData.role.toLowerCase() !== 'admin') {
                     Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
                     return;
                 }
@@ -113,7 +112,7 @@ async verifyAdminAccess() {
                 resolve(true);
 
             } catch (error) {
-                console.error('Unexpected Error:', error);
+                console.error('❌ خطأ:', error);
                 Utils.showNotification('❌ حدث خطأ غير متوقع', 'error');
                 resolve(false);
             }
@@ -2027,6 +2026,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
