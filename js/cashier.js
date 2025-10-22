@@ -25,25 +25,13 @@ async verifyAdminAccess() {
     return new Promise((resolve) => {
         const modal = document.createElement('div');
         modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            animation: fadeIn 0.3s;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 10000;
         `;
 
         modal.innerHTML = `
-            <style>
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-            </style>
-            <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; width: 90%; animation: slideIn 0.3s;">
+            <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px; width: 90%;">
                 <h2 style="text-align: center; color: #667eea; margin-bottom: 20px; font-size: 22px;">🔒 تحقق من صلاحية الأدمن</h2>
                 <p style="text-align: center; color: #666; margin-bottom: 20px; font-size: 14px;">يجب إدخال بيانات الأدمن للمتابعة</p>
                 
@@ -86,46 +74,53 @@ async verifyAdminAccess() {
             }
 
             try {
-                // ✅ استخدام نفس طريقة تسجيل دخول الأدمن
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: username + '@restaurant.com', // إضافة domain لو الـ username بدون @
-                    password: password
-                });
-
-                // لو فشل، نجرب بدون domain
-                if (error || !data.user) {
-                    const { data: data2, error: error2 } = await supabase.auth.signInWithPassword({
-                        email: username,
-                        password: password
-                    });
-
-                    if (error2 || !data2.user) {
-                        Utils.showNotification('❌ اسم المستخدم أو كلمة المرور غير صحيحة', 'error');
-                        passwordInput.value = '';
-                        passwordInput.focus();
-                        return;
-                    }
-                }
-
-                // ✅ التحقق من أن المستخدم أدمن
-                const { data: staffData } = await supabase
+                // ✅ البحث في جدول staff مباشرة
+                const { data: allStaff, error: fetchError } = await supabase
                     .from('staff')
-                    .select('role')
-                    .eq('username', username)
-                    .single();
+                    .select('*');
 
-                if (!staffData || staffData.role.toLowerCase() !== 'admin') {
-                    Utils.showNotification('❌ هذا الحساب ليس لديه صلاحية أدمن', 'error');
-                    await supabase.auth.signOut(); // تسجيل خروج
+                console.log('🔍 كل الموظفين:', allStaff);
+
+                if (fetchError) {
+                    console.error('❌ خطأ في جلب البيانات:', fetchError);
+                    Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
                     return;
                 }
 
+                // ✅ البحث يدوياً عن المستخدم
+                const user = allStaff.find(s => 
+                    s.username.toLowerCase() === username.toLowerCase()
+                );
+
+                console.log('👤 المستخدم الموجود:', user);
+
+                if (!user) {
+                    Utils.showNotification('❌ اسم المستخدم غير موجود', 'error');
+                    usernameInput.focus();
+                    return;
+                }
+
+                // ✅ التحقق من كلمة المرور
+                if (user.password !== password) {
+                    Utils.showNotification('❌ كلمة المرور غير صحيحة', 'error');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    return;
+                }
+
+                // ✅ التحقق من صلاحية admin
+                if (user.role.toLowerCase() !== 'admin') {
+                    Utils.showNotification('❌ هذا الحساب ليس لديه صلاحية أدمن', 'error');
+                    return;
+                }
+
+                // ✅ نجح التحقق
                 Utils.showNotification('✅ تم التحقق بنجاح', 'success');
                 document.body.removeChild(modal);
                 resolve(true);
 
             } catch (error) {
-                console.error('❌ خطأ في التحقق:', error);
+                console.error('❌ خطأ غير متوقع:', error);
                 Utils.showNotification('❌ حدث خطأ: ' + error.message, 'error');
                 resolve(false);
             }
@@ -144,6 +139,7 @@ async verifyAdminAccess() {
         });
     });
 },
+
 
 
 
@@ -2038,6 +2034,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
