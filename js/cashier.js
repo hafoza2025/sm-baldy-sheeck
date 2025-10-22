@@ -18,6 +18,196 @@ const CashierSystem = {
     currentEditCart: {
         items: []
     },
+    // ======================================
+// 🔒 دالة التحقق من صلاحية الأدمن
+// ======================================
+async verifyAdminAccess() {
+    return new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s;
+        `;
+
+        modal.innerHTML = `
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideIn {
+                    from { transform: translateY(-50px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+            </style>
+            <div style="
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                max-width: 400px;
+                width: 90%;
+                animation: slideIn 0.3s;
+            ">
+                <h2 style="text-align: center; color: #667eea; margin-bottom: 20px; font-size: 22px;">
+                    🔒 تحقق من صلاحية الأدمن
+                </h2>
+                <p style="text-align: center; color: #666; margin-bottom: 20px; font-size: 14px;">
+                    يجب إدخال بيانات الأدمن للمتابعة
+                </p>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">
+                        اسم المستخدم
+                    </label>
+                    <input 
+                        type="text" 
+                        id="adminUsername" 
+                        placeholder="أدخل اسم المستخدم"
+                        style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid #ddd;
+                            border-radius: 8px;
+                            font-size: 15px;
+                            box-sizing: border-box;
+                        "
+                    >
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #333;">
+                        كلمة المرور
+                    </label>
+                    <input 
+                        type="password" 
+                        id="adminPassword" 
+                        placeholder="أدخل كلمة المرور"
+                        style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid #ddd;
+                            border-radius: 8px;
+                            font-size: 15px;
+                            box-sizing: border-box;
+                        "
+                    >
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button 
+                        id="adminVerifyBtn"
+                        style="
+                            flex: 1;
+                            padding: 12px;
+                            background: #667eea;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: bold;
+                            cursor: pointer;
+                        "
+                    >
+                        ✅ تحقق
+                    </button>
+                    <button 
+                        id="adminCancelBtn"
+                        style="
+                            flex: 1;
+                            padding: 12px;
+                            background: #e53e3e;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 16px;
+                            font-weight: bold;
+                            cursor: pointer;
+                        "
+                    >
+                        ❌ إلغاء
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const usernameInput = document.getElementById('adminUsername');
+        const passwordInput = document.getElementById('adminPassword');
+        const verifyBtn = document.getElementById('adminVerifyBtn');
+        const cancelBtn = document.getElementById('adminCancelBtn');
+
+        usernameInput.focus();
+
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') verifyBtn.click();
+        });
+
+        verifyBtn.addEventListener('click', async () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                Utils.showNotification('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('staff')
+                    .select('id, username, password, role')
+                    .eq('username', username)
+                    .eq('role', 'admin')
+                    .single();
+
+                if (error || !data) {
+                    Utils.showNotification('❌ اسم المستخدم غير صحيح', 'error');
+                    usernameInput.focus();
+                    return;
+                }
+
+                if (data.password !== password) {
+                    Utils.showNotification('❌ كلمة المرور غير صحيحة', 'error');
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                    return;
+                }
+
+                Utils.showNotification('✅ تم التحقق بنجاح', 'success');
+                document.body.removeChild(modal);
+                resolve(true);
+
+            } catch (error) {
+                console.error('Admin verification error:', error);
+                Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
+                resolve(false);
+            }
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(modal);
+            resolve(false);
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+                resolve(false);
+            }
+        });
+    });
+},
+
 
     // التهيئة
     async init() {
@@ -356,9 +546,18 @@ const CashierSystem = {
 
     // ==================== التحكم الكامل في الفاتورة ====================
 
-    async selectOrderForFullEdit(orderId) {
-        const order = this.openOrders.find(o => o.id === orderId);
-        if (!order) return;
+  async selectOrderForFullEdit(orderId) {
+    // ✅ التحقق من صلاحية الأدمن أولاً
+    const hasAccess = await this.verifyAdminAccess();
+    
+    if (!hasAccess) {
+        Utils.showNotification('❌ لم يتم التحقق من الصلاحية', 'error');
+        return;
+    }
+
+    const order = this.openOrders.find(o => o.id === orderId);
+    if (!order) return;
+
 
         this.selectedOrder = order;
         this.currentEditCart.items = [];
@@ -1901,6 +2100,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
