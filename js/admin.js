@@ -843,11 +843,11 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
 
 // ========================================
-// ✅ طباعة الفاتورة - نسخة طبق الأصل من الكاشير
+// ✅ طباعة الفاتورة - مع استرجاع كامل البيانات
 // ========================================
 
 (function() {
-    console.log('🖨️ جاري تفعيل ميزة الطباعة...');
+    console.log('🖨️ جاري تفعيل ميزة الطباعة المحسّنة...');
 
     // ✅ دالة مساعدة لطريقة الدفع
     function getPaymentMethodName(method) {
@@ -862,16 +862,56 @@ console.log('✅ Admin Dashboard loaded with live stats');
         return methods[method] || 'كاش';
     }
 
+    // ✅ دالة استرجاع البيانات الكاملة من Database
+    async function fetchFullOrderData(orderId) {
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    *,
+                    order_items (
+                        *,
+                        menu_item:menu_items (
+                            name_ar,
+                            name_en
+                        )
+                    ),
+                    deliveries (
+                        customer_name,
+                        customer_phone,
+                        customer_address,
+                        delivery_address
+                    )
+                `)
+                .eq('id', orderId)
+                .single();
+
+            if (error) {
+                console.error('❌ خطأ في جلب البيانات:', error);
+                return null;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('❌ خطأ:', error);
+            return null;
+        }
+    }
+
     // ✅ دالة الطباعة - نفس الكاشير تماماً
-    window.printOrderReceipt = function(order) {
+    async function printOrderReceipt(orderId) {
+        console.log('📦 جاري استرجاع بيانات الطلب:', orderId);
+        
+        // ✅ جلب البيانات الكاملة من Database
+        const order = await fetchFullOrderData(orderId);
+        
+        if (!order) {
+            alert('⚠️ لم يتم العثور على بيانات الطلب');
+            return;
+        }
+
         console.log('📦 Order Data:', order);
         console.log('🚚 Delivery Info:', order.deliveries);
-        
-        if (order.deliveries && order.deliveries[0]) {
-            console.log('📍 Address:', order.deliveries[0].delivery_address || order.deliveries[0].customer_address);
-            console.log('📞 Phone:', order.deliveries[0].customer_phone);
-            console.log('👤 Name:', order.deliveries[0].customer_name);
-        }
         
         const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
             ? order.deliveries[0] 
@@ -1029,7 +1069,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
                 ${(order.order_items || []).map(item => `
                     <div class="item">
-                        <span>${item.menu_item?.name_ar || item.name_ar || 'صنف'} × ${item.quantity || 1}</span>
+                        <span>${item.menu_item?.name_ar || 'صنف'} × ${item.quantity || 1}</span>
                         <span>${(item.total_price || 0).toFixed(2)} ج.م</span>
                     </div>
                 `).join('')}
@@ -1085,7 +1125,10 @@ console.log('✅ Admin Dashboard loaded with live stats');
                 setTimeout(() => printWindow.close(), 500);
             }, 250);
         };
-    };
+    }
+
+    // تعريف الدالة globally
+    window.printOrderReceipt = printOrderReceipt;
 
     // ✅ تعديل displayOrders
     const originalDisplay = AdminDashboard.displayOrders;
@@ -1107,25 +1150,6 @@ console.log('✅ Admin Dashboard loaded with live stats');
             };
             const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
 
-            // ✅ حفظ البيانات بشكل آمن
-            const safeOrder = {
-                id: order.id,
-                order_number: order.order_number,
-                created_at: order.created_at,
-                order_type: order.order_type,
-                table_number: order.table_number,
-                payment_method: order.payment_method,
-                status: order.status,
-                subtotal: order.subtotal || 0,
-                tax: order.tax || 0,
-                delivery_fee: order.delivery_fee || 0,
-                total: order.total || 0,
-                order_items: order.order_items || [],
-                deliveries: order.deliveries || []
-            };
-
-            const orderDataStr = btoa(encodeURIComponent(JSON.stringify(safeOrder)));
-
             return `
                 <tr>
                     <td><strong>#${order.order_number}</strong></td>
@@ -1139,8 +1163,7 @@ console.log('✅ Admin Dashboard loaded with live stats');
                     <td style="text-align: center;">
                         ${order.status === 'completed' ? `
                             <button 
-                                data-order="${orderDataStr}" 
-                                onclick="printOrderReceipt(JSON.parse(decodeURIComponent(atob(this.getAttribute('data-order')))))"
+                                onclick="printOrderReceipt(${order.id})"
                                 style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;"
                                 title="طباعة">
                                 🖨️
@@ -1152,7 +1175,8 @@ console.log('✅ Admin Dashboard loaded with live stats');
         }).join('');
     };
 
-    console.log('✅ تم تفعيل ميزة الطباعة - نسخة طبق الأصل من الكاشير!');
+    console.log('✅ تم تفعيل ميزة الطباعة مع استرجاع كامل البيانات!');
 })();
+
 
 
