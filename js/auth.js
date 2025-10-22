@@ -24,13 +24,13 @@ const Auth = {
         const user = this.getCurrentUser();
 
         if (!user) {
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
             return null;
         }
 
         if (!allowedRoles.includes(user.role)) {
             Utils.showNotification('ليس لديك صلاحية الوصول لهذه الصفحة', 'error');
-            setTimeout(() => window.location.href = 'login.html', 2000);
+            setTimeout(() => window.location.href = 'index.html', 2000);
             return null;
         }
 
@@ -103,7 +103,7 @@ Auth.checkRecipeAccess = function() {
   
   if (!user) {
     alert('يجب تسجيل الدخول أولاً');
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
     return null;
   }
   
@@ -117,5 +117,6 @@ Auth.checkRecipeAccess = function() {
   
   return user;
 };
+
 
 
