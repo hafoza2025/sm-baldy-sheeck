@@ -735,4 +735,1150 @@
   flex: 1;
 }
 
+/* ===============================
+   تحسينات خاصة بالأجهزة اللوحية
+   Tablet Optimization for Kitchen Page
+   =============================== */
+
+/* الأجهزة اللوحية الصغيرة - الوضع الرأسي (Portrait)
+   مثل: iPad Mini, Samsung Galaxy Tab A (601px - 768px) */
+@media screen and (min-width: 601px) and (max-width: 768px) and (orientation: portrait) {
+    .kitchen-header {
+        padding: 30px 25px;
+    }
+
+    .kitchen-header h1 {
+        font-size: 34px;
+        margin-bottom: 10px;
+        letter-spacing: 3.5px;
+    }
+
+    .kitchen-header h1::before,
+    .kitchen-header h1::after {
+        font-size: 32px;
+    }
+
+    .status-tabs {
+        padding: 22px;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .status-tab {
+        padding: 15px 30px;
+        font-size: 15px;
+        min-width: 140px;
+        border-width: 4px;
+    }
+
+    .orders-container {
+        padding: 28px;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 28px;
+    }
+
+    .order-card {
+        padding: 28px;
+        border-width: 5px;
+        border-right-width: 9px;
+    }
+
+    .order-card::before {
+        width: 28px;
+        height: 28px;
+        border-width: 3px;
+    }
+
+    .order-header-info {
+        margin-bottom: 22px;
+        padding-bottom: 20px;
+        border-bottom-width: 4px;
+    }
+
+    .order-number {
+        font-size: 30px;
+        letter-spacing: 2.5px;
+    }
+
+    .order-type-badge {
+        padding: 8px 18px;
+        font-size: 13px;
+        border-width: 3px;
+    }
+
+    .order-time {
+        font-size: 21px;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .timer {
+        font-size: 23px;
+        padding: 7px 16px;
+        border-width: 3px;
+    }
+
+    .order-items-list {
+        margin-bottom: 20px;
+    }
+
+    .order-item-row {
+        padding: 16px;
+        margin-bottom: 12px;
+        border-width: 3px;
+        border-right-width: 5px;
+    }
+
+    .item-name {
+        font-size: 16px;
+    }
+
+    .item-quantity {
+        padding: 5px 16px;
+        font-size: 15px;
+        border-width: 3px;
+    }
+
+    .order-item-card {
+        padding: 20px;
+        margin-bottom: 20px;
+        border-width: 4px;
+    }
+
+    .order-item-card::before {
+        width: 22px;
+        height: 22px;
+        border-width: 3px;
+    }
+
+    .order-item-header {
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+        border-bottom-width: 4px;
+    }
+
+    .recipe-section {
+        padding: 17px;
+        margin-top: 14px;
+        border-width: 3px;
+    }
+
+    .recipe-header {
+        font-size: 15px;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom-width: 3px;
+    }
+
+    .recipe-ingredients {
+        gap: 12px;
+    }
+
+    .ingredient-row {
+        padding: 14px 17px;
+        border-width: 3px;
+        border-right-width: 5px;
+    }
+
+    .ingredient-name {
+        font-size: 15px;
+    }
+
+    .ingredient-amount {
+        font-size: 14px;
+    }
+
+    .ingredient-stock {
+        gap: 12px;
+    }
+
+    .stock-warning {
+        font-size: 20px;
+    }
+
+    .special-notes {
+        padding: 14px 18px;
+        margin-bottom: 20px;
+        border-width: 4px;
+        border-right-width: 7px;
+        font-size: 14px;
+    }
+
+    .order-actions {
+        gap: 14px;
+    }
+
+    .order-actions .btn {
+        padding: 16px;
+        font-size: 15px;
+        min-height: 48px;
+    }
+
+    .btn-print-recipe {
+        padding: 10px 18px;
+        font-size: 14px;
+        border-width: 3px;
+    }
+
+    .sound-notification {
+        padding: 55px 75px;
+        border-width: 7px;
+    }
+
+    .sound-notification::before,
+    .sound-notification::after {
+        width: 45px;
+        height: 45px;
+        border-width: 5px;
+    }
+}
+
+/* الأجهزة اللوحية المتوسطة - الوضع الرأسي (Portrait)
+   مثل: iPad, iPad Air, Samsung Galaxy Tab S (769px - 834px) */
+@media screen and (min-width: 769px) and (max-width: 834px) and (orientation: portrait) {
+    .kitchen-header {
+        padding: 32px 28px;
+    }
+
+    .kitchen-header h1 {
+        font-size: 36px;
+        margin-bottom: 12px;
+        letter-spacing: 4px;
+    }
+
+    .kitchen-header h1::before,
+    .kitchen-header h1::after {
+        font-size: 34px;
+        margin-left: 18px;
+        margin-right: 18px;
+    }
+
+    .kitchen-header::before,
+    .kitchen-header::after {
+        height: 4px;
+    }
+
+    .status-tabs {
+        padding: 24px;
+        gap: 18px;
+    }
+
+    .status-tab {
+        padding: 16px 32px;
+        font-size: 16px;
+        min-width: 150px;
+        border-width: 4px;
+    }
+
+    .orders-container {
+        padding: 30px;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 30px;
+    }
+
+    .order-card {
+        padding: 30px;
+        border-width: 5px;
+        border-right-width: 10px;
+    }
+
+    .order-card::before {
+        width: 30px;
+        height: 30px;
+        top: 12px;
+        left: 12px;
+        border-width: 4px;
+    }
+
+    .order-header-info {
+        margin-bottom: 24px;
+        padding-bottom: 22px;
+        border-bottom-width: 4px;
+    }
+
+    .order-number {
+        font-size: 32px;
+        letter-spacing: 3px;
+    }
+
+    .order-type-badge {
+        padding: 9px 20px;
+        font-size: 14px;
+        border-width: 3px;
+    }
+
+    .order-time {
+        font-size: 22px;
+        gap: 15px;
+        margin-bottom: 22px;
+    }
+
+    .timer {
+        font-size: 24px;
+        padding: 8px 18px;
+        border-width: 3px;
+    }
+
+    .order-items-list {
+        margin-bottom: 22px;
+    }
+
+    .order-item-row {
+        padding: 17px;
+        margin-bottom: 14px;
+        border-width: 3px;
+        border-right-width: 5px;
+    }
+
+    .item-name {
+        font-size: 17px;
+    }
+
+    .item-quantity {
+        padding: 6px 18px;
+        font-size: 16px;
+        border-width: 3px;
+    }
+
+    .order-item-card {
+        padding: 22px;
+        margin-bottom: 22px;
+        border-width: 4px;
+    }
+
+    .order-item-card::before {
+        width: 24px;
+        height: 24px;
+        border-width: 3px;
+    }
+
+    .order-item-header {
+        margin-bottom: 22px;
+        padding-bottom: 16px;
+        border-bottom-width: 4px;
+    }
+
+    .recipe-section {
+        padding: 19px;
+        margin-top: 16px;
+        border-width: 3px;
+    }
+
+    .recipe-header {
+        font-size: 16px;
+        margin-bottom: 16px;
+        padding-bottom: 14px;
+        border-bottom-width: 3px;
+    }
+
+    .recipe-ingredients {
+        gap: 14px;
+    }
+
+    .ingredient-row {
+        padding: 15px 19px;
+        border-width: 3px;
+        border-right-width: 5px;
+    }
+
+    .ingredient-name {
+        font-size: 16px;
+    }
+
+    .ingredient-amount {
+        font-size: 15px;
+    }
+
+    .ingredient-stock {
+        gap: 14px;
+    }
+
+    .stock-warning {
+        font-size: 22px;
+    }
+
+    .special-notes {
+        padding: 16px 20px;
+        margin-bottom: 22px;
+        border-width: 4px;
+        border-right-width: 8px;
+        font-size: 15px;
+    }
+
+    .order-actions {
+        gap: 16px;
+    }
+
+    .order-actions .btn {
+        padding: 17px;
+        font-size: 16px;
+        min-height: 50px;
+    }
+
+    .btn-print-recipe {
+        padding: 11px 20px;
+        font-size: 15px;
+        border-width: 3px;
+    }
+
+    .sound-notification {
+        padding: 60px 80px;
+        border-width: 8px;
+    }
+
+    .sound-notification::before,
+    .sound-notification::after {
+        width: 50px;
+        height: 50px;
+        border-width: 5px;
+    }
+}
+
+/* الأجهزة اللوحية الكبيرة - الوضع الرأسي (Portrait)
+   مثل: iPad Pro 11", iPad Pro 12.9" (835px - 1024px) */
+@media screen and (min-width: 835px) and (max-width: 1024px) and (orientation: portrait) {
+    .kitchen-header {
+        padding: 35px 30px;
+        border-bottom-width: 6px;
+    }
+
+    .kitchen-header h1 {
+        font-size: 38px;
+        margin-bottom: 14px;
+        letter-spacing: 4.5px;
+    }
+
+    .kitchen-header h1::before,
+    .kitchen-header h1::after {
+        font-size: 36px;
+        margin-left: 20px;
+        margin-right: 20px;
+    }
+
+    .kitchen-header::before {
+        height: 4px;
+    }
+
+    .kitchen-header::after {
+        height: 3px;
+    }
+
+    .status-tabs {
+        padding: 26px;
+        gap: 20px;
+        border-bottom-width: 5px;
+    }
+
+    .status-tab {
+        padding: 17px 34px;
+        font-size: 17px;
+        min-width: 160px;
+        border-width: 4px;
+    }
+
+    .orders-container {
+        padding: 32px;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 32px;
+    }
+
+    .order-card {
+        padding: 32px;
+        border-width: 5px;
+        border-right-width: 10px;
+    }
+
+    .order-card::before {
+        width: 32px;
+        height: 32px;
+        top: 14px;
+        left: 14px;
+        border-width: 4px;
+    }
+
+    .order-header-info {
+        margin-bottom: 26px;
+        padding-bottom: 24px;
+        border-bottom-width: 4px;
+    }
+
+    .order-number {
+        font-size: 34px;
+        letter-spacing: 3.5px;
+    }
+
+    .order-type-badge {
+        padding: 10px 22px;
+        font-size: 15px;
+        border-width: 3px;
+    }
+
+    .order-time {
+        font-size: 24px;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .timer {
+        font-size: 26px;
+        padding: 9px 20px;
+        border-width: 3px;
+    }
+
+    .order-items-list {
+        margin-bottom: 24px;
+    }
+
+    .order-item-row {
+        padding: 18px;
+        margin-bottom: 16px;
+        border-width: 3px;
+        border-right-width: 6px;
+    }
+
+    .item-name {
+        font-size: 18px;
+    }
+
+    .item-quantity {
+        padding: 7px 20px;
+        font-size: 17px;
+        border-width: 3px;
+    }
+
+    .order-item-card {
+        padding: 24px;
+        margin-bottom: 24px;
+        border-width: 4px;
+    }
+
+    .order-item-card::before {
+        width: 26px;
+        height: 26px;
+        top: 10px;
+        right: 10px;
+        border-width: 3px;
+    }
+
+    .order-item-header {
+        margin-bottom: 24px;
+        padding-bottom: 18px;
+        border-bottom-width: 4px;
+    }
+
+    .recipe-section {
+        padding: 21px;
+        margin-top: 18px;
+        border-width: 3px;
+    }
+
+    .recipe-header {
+        font-size: 17px;
+        margin-bottom: 18px;
+        padding-bottom: 16px;
+        border-bottom-width: 3px;
+    }
+
+    .recipe-ingredients {
+        gap: 16px;
+    }
+
+    .ingredient-row {
+        padding: 16px 21px;
+        border-width: 3px;
+        border-right-width: 6px;
+    }
+
+    .ingredient-name {
+        font-size: 17px;
+    }
+
+    .ingredient-amount {
+        font-size: 16px;
+    }
+
+    .ingredient-stock {
+        gap: 16px;
+        font-size: 16px;
+    }
+
+    .stock-warning {
+        font-size: 24px;
+    }
+
+    .special-notes {
+        padding: 18px 22px;
+        margin-bottom: 24px;
+        border-width: 4px;
+        border-right-width: 8px;
+        font-size: 16px;
+    }
+
+    .order-actions {
+        gap: 18px;
+    }
+
+    .order-actions .btn {
+        padding: 18px;
+        font-size: 17px;
+        min-height: 52px;
+        border-width: 4px;
+    }
+
+    .btn-print-recipe {
+        padding: 12px 22px;
+        font-size: 16px;
+        border-width: 4px;
+    }
+
+    .sound-notification {
+        padding: 65px 85px;
+        border-width: 8px;
+    }
+
+    .sound-notification::before,
+    .sound-notification::after {
+        width: 55px;
+        height: 55px;
+        top: 18px;
+        right: 18px;
+        bottom: 18px;
+        left: 18px;
+        border-width: 5px;
+    }
+}
+
+/* الأجهزة اللوحية الصغيرة - الوضع الأفقي (Landscape)
+   مثل: iPad Mini, Small Tablets (769px - 1024px) */
+@media screen and (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    .kitchen-header {
+        padding: 24px 26px;
+    }
+
+    .kitchen-header h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+        letter-spacing: 2.5px;
+    }
+
+    .kitchen-header h1::before,
+    .kitchen-header h1::after {
+        font-size: 26px;
+        margin-left: 12px;
+        margin-right: 12px;
+    }
+
+    .status-tabs {
+        padding: 18px;
+        gap: 12px;
+    }
+
+    .status-tab {
+        padding: 12px 24px;
+        font-size: 14px;
+        min-width: 120px;
+    }
+
+    .orders-container {
+        padding: 22px;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 22px;
+    }
+
+    .order-card {
+        padding: 22px;
+        border-width: 4px;
+        border-right-width: 8px;
+    }
+
+    .order-card::before {
+        width: 22px;
+        height: 22px;
+        top: 8px;
+        left: 8px;
+    }
+
+    .order-header-info {
+        margin-bottom: 18px;
+        padding-bottom: 16px;
+    }
+
+    .order-number {
+        font-size: 26px;
+        letter-spacing: 2px;
+    }
+
+    .order-type-badge {
+        padding: 6px 14px;
+        font-size: 12px;
+    }
+
+    .order-time {
+        font-size: 18px;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .timer {
+        font-size: 20px;
+        padding: 6px 12px;
+    }
+
+    .order-items-list {
+        margin-bottom: 16px;
+    }
+
+    .order-item-row {
+        padding: 12px;
+        margin-bottom: 8px;
+        border-right-width: 4px;
+    }
+
+    .item-name {
+        font-size: 14px;
+    }
+
+    .item-quantity {
+        padding: 4px 12px;
+        font-size: 14px;
+    }
+
+    .order-item-card {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .order-item-header {
+        margin-bottom: 16px;
+        padding-bottom: 10px;
+    }
+
+    .recipe-section {
+        padding: 13px;
+        margin-top: 10px;
+    }
+
+    .recipe-header {
+        font-size: 13px;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+    }
+
+    .recipe-ingredients {
+        gap: 8px;
+    }
+
+    .ingredient-row {
+        padding: 10px 13px;
+        border-right-width: 4px;
+    }
+
+    .ingredient-name {
+        font-size: 13px;
+    }
+
+    .ingredient-amount {
+        font-size: 12px;
+    }
+
+    .ingredient-stock {
+        gap: 8px;
+        font-size: 13px;
+    }
+
+    .stock-warning {
+        font-size: 16px;
+    }
+
+    .special-notes {
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        border-right-width: 6px;
+        font-size: 12px;
+    }
+
+    .order-actions {
+        gap: 10px;
+    }
+
+    .order-actions .btn {
+        padding: 12px;
+        font-size: 13px;
+        min-height: 44px;
+    }
+
+    .btn-print-recipe {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+
+    .sound-notification {
+        padding: 45px 60px;
+        border-width: 6px;
+    }
+
+    .sound-notification::before,
+    .sound-notification::after {
+        width: 35px;
+        height: 35px;
+        border-width: 4px;
+    }
+}
+
+/* الأجهزة اللوحية الكبيرة - الوضع الأفقي (Landscape)
+   مثل: iPad Pro, Samsung Galaxy Tab S (1025px - 1366px) */
+@media screen and (min-width: 1025px) and (max-width: 1366px) and (orientation: landscape) {
+    .kitchen-header {
+        padding: 28px;
+    }
+
+    .kitchen-header h1 {
+        font-size: 32px;
+        margin-bottom: 8px;
+        letter-spacing: 3px;
+    }
+
+    .status-tabs {
+        padding: 20px;
+        gap: 15px;
+    }
+
+    .status-tab {
+        padding: 14px 28px;
+        font-size: 15px;
+        min-width: 130px;
+    }
+
+    .orders-container {
+        padding: 25px;
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+        gap: 25px;
+    }
+
+    .order-card {
+        padding: 25px;
+    }
+
+    .order-number {
+        font-size: 28px;
+    }
+
+    .order-time {
+        font-size: 20px;
+        margin-bottom: 18px;
+    }
+
+    .timer {
+        font-size: 22px;
+    }
+
+    .order-item-row {
+        padding: 14px;
+    }
+
+    .item-name {
+        font-size: 15px;
+    }
+
+    .order-item-card {
+        padding: 18px;
+    }
+
+    .recipe-section {
+        padding: 15px;
+    }
+
+    .ingredient-row {
+        padding: 12px 15px;
+    }
+
+    .order-actions .btn {
+        padding: 14px;
+        font-size: 14px;
+    }
+
+    .sound-notification {
+        padding: 50px 70px;
+    }
+}
+
+/* تحسينات إضافية لجميع الأجهزة اللوحية */
+@media screen and (min-width: 600px) and (max-width: 1366px) {
+    /* تحسين الأداء للأجهزة القديمة */
+    .order-card,
+    .status-tab,
+    .order-item-row,
+    .ingredient-row {
+        will-change: transform;
+    }
+
+    .sound-notification {
+        will-change: transform, opacity;
+    }
+
+    /* تحسين مساحات اللمس - Touch Target Optimization */
+    .status-tab,
+    .order-actions .btn,
+    .btn-print-recipe {
+        min-height: 44px;
+        min-width: 44px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(229, 115, 115, 0.2);
+    }
+
+    /* تحسين التمرير السلس */
+    .orders-container {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+
+    /* تحسين قابلية القراءة */
+    .order-number,
+    .timer,
+    .item-name,
+    .ingredient-name {
+        line-height: 1.3;
+    }
+
+    .special-notes,
+    .recipe-header {
+        line-height: 1.5;
+    }
+
+    /* تحسين التباعد بين العناصر التفاعلية */
+    .status-tabs {
+        justify-content: center;
+    }
+
+    .order-actions {
+        flex-wrap: wrap;
+    }
+
+    /* تحسين الانتقالات */
+    .order-card,
+    .status-tab,
+    .ingredient-row,
+    .order-item-row {
+        transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* تحسين الرسوم المتحركة للطلبات العاجلة */
+    .order-card.urgent {
+        animation-duration: 1.5s;
+    }
+
+    .timer.urgent {
+        animation-duration: 0.8s;
+    }
+
+    /* تحسين عرض المكونات المنخفضة المخزون */
+    .ingredient-row.low-stock {
+        animation-duration: 1.5s;
+    }
+}
+
+/* دعم الأجهزة اللوحية بكثافة عالية (Retina Display) */
+@media screen and (min-width: 600px) and (max-width: 1366px) and (-webkit-min-device-pixel-ratio: 2),
+       screen and (min-width: 600px) and (max-width: 1366px) and (min-resolution: 192dpi) {
+    .kitchen-header {
+        border-bottom-width: 6px;
+    }
+
+    .kitchen-header::before {
+        height: 4px;
+    }
+
+    .kitchen-header::after {
+        height: 3px;
+    }
+
+    .status-tabs {
+        border-bottom-width: 5px;
+    }
+
+    .status-tab {
+        border-width: 4px;
+    }
+
+    .order-card {
+        border-width: 5px;
+        border-right-width: 10px;
+    }
+
+    .order-card::before {
+        border-width: 4px;
+    }
+
+    .order-header-info {
+        border-bottom-width: 4px;
+    }
+
+    .timer {
+        border-width: 3px;
+    }
+
+    .order-item-row {
+        border-width: 3px;
+        border-right-width: 5px;
+    }
+
+    .ingredient-row {
+        border-width: 3px;
+        border-right-width: 6px;
+    }
+
+    .special-notes {
+        border-width: 4px;
+        border-right-width: 8px;
+    }
+
+    .sound-notification {
+        border-width: 8px;
+    }
+
+    .sound-notification::before,
+    .sound-notification::after {
+        border-width: 5px;
+    }
+}
+
+/* تحسينات خاصة للأجهزة اللوحية القديمة ذات الأداء المحدود */
+@media screen and (min-width: 600px) and (max-width: 1024px) {
+    /* تقليل التأثيرات الحركية للأداء الأفضل */
+    .status-tab::before {
+        display: none;
+    }
+
+    /* تبسيط الظلال */
+    .order-card {
+        box-shadow: 0 4px 12px rgba(139, 115, 85, 0.2);
+    }
+
+    .order-card:hover {
+        box-shadow: 0 6px 18px rgba(139, 115, 85, 0.25);
+    }
+
+    .order-card.urgent {
+        box-shadow: 0 4px 15px rgba(198, 40, 40, 0.35);
+    }
+
+    /* تحسين الرسوم المتحركة */
+    @keyframes pulse {
+        0%, 100% {
+            box-shadow: 0 4px 15px rgba(198, 40, 40, 0.35);
+        }
+        50% {
+            box-shadow: 0 6px 20px rgba(198, 40, 40, 0.5);
+        }
+    }
+}
+
+/* دعم الأجهزة اللوحية ذات نسب العرض إلى الارتفاع غير القياسية */
+@media screen and (min-width: 600px) and (max-width: 1366px) and (min-aspect-ratio: 16/10) {
+    .orders-container {
+        max-width: 95%;
+        margin: 0 auto;
+    }
+
+    .sound-notification {
+        max-width: 600px;
+    }
+}
+
+/* تحسين عرض الشبكة Grid للأجهزة اللوحية */
+@media screen and (min-width: 600px) and (max-width: 834px) {
+    .orders-container {
+        justify-items: center;
+    }
+
+    .order-card {
+        max-width: 450px;
+        width: 100%;
+    }
+}
+
+@media screen and (min-width: 835px) and (max-width: 1024px) {
+    .orders-container {
+        justify-items: stretch;
+    }
+}
+
+/* تحسين التخطيط للأجهزة اللوحية الكبيرة في الوضع الأفقي */
+@media screen and (min-width: 1025px) and (max-width: 1366px) and (orientation: landscape) {
+    .orders-container {
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+}
+
+/* تحسين عرض التنبيهات الصوتية على الأجهزة اللوحية */
+@media screen and (min-width: 600px) and (max-width: 1024px) {
+    .sound-notification {
+        max-width: 90%;
+        padding: 40px 50px;
+    }
+
+    @keyframes bounceIn {
+        0% {
+            transform: translate(-50%, -50%) scale(0.5);
+            opacity: 0;
+        }
+        50% {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+        100% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+    }
+}
+
+/* تحسين الطباعة للأجهزة اللوحية */
+@media print and (min-width: 600px) and (max-width: 1366px) {
+    .orders-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .order-card {
+        page-break-inside: avoid;
+        border: 2px solid #333;
+        padding: 20px;
+    }
+
+    .recipe-section {
+        page-break-inside: avoid;
+    }
+
+    .ingredient-row {
+        border: 1px solid #333;
+        padding: 10px;
+    }
+}
+
+/* تحسين التباين للأجهزة اللوحية في وضع التباين العالي */
+@media screen and (min-width: 600px) and (max-width: 1366px) and (prefers-contrast: high) {
+    .kitchen-header {
+        border-bottom-width: 6px;
+    }
+
+    .order-card {
+        border-width: 5px;
+        border-right-width: 12px;
+    }
+
+    .status-tab.active {
+        border-width: 5px;
+    }
+
+    .order-type-badge {
+        border-width: 4px;
+    }
+
+    .timer {
+        border-width: 4px;
+    }
+}
+
 
