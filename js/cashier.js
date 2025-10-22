@@ -72,35 +72,53 @@ async verifyAdminAccess() {
             const username = usernameInput.value.trim();
             const password = passwordInput.value.trim();
 
+            console.log('🚀 بدء التحقق...');
+            console.log('👤 Username المدخل:', username);
+            console.log('🔑 Password المدخل:', password);
+
             if (!username || !password) {
                 Utils.showNotification('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
                 return;
             }
 
             try {
-                const { data: userData, error: userError } = await supabase
+                console.log('📡 جاري الاتصال بـ Supabase...');
+                
+                // ✅ جلب كل المستخدمين أولاً
+                const { data: allUsers, error: allError } = await supabase
                     .from('users')
-                    .select('*')
-                    .eq('username', username)
-                    .maybeSingle();
+                    .select('*');
 
-                // ✅ طباعة البيانات للتشخيص
-                console.log('📊 بيانات المستخدم:', userData);
-                console.log('🔑 كلمة المرور المدخلة:', password);
-                console.log('🔑 كلمة المرور في Database:', userData?.password);
-                console.log('🔑 نوع كلمة المرور:', typeof userData?.password);
-                console.log('✅ المقارنة:', userData?.password === password);
+                console.log('📊 كل المستخدمين:', allUsers);
+                console.log('❌ الخطأ (إن وجد):', allError);
 
-                if (userError) {
-                    console.error('❌ خطأ:', userError);
-                    Utils.showNotification('❌ حدث خطأ في التحقق', 'error');
+                if (allError) {
+                    console.error('❌ خطأ Supabase:', allError);
+                    Utils.showNotification('❌ خطأ: ' + allError.message, 'error');
                     return;
                 }
+
+                if (!allUsers || allUsers.length === 0) {
+                    Utils.showNotification('❌ لا يوجد مستخدمين في النظام', 'error');
+                    return;
+                }
+
+                // ✅ البحث عن المستخدم يدوياً
+                const userData = allUsers.find(u => 
+                    u.username && u.username.toLowerCase() === username.toLowerCase()
+                );
+
+                console.log('🔍 المستخدم المطلوب:', userData);
 
                 if (!userData) {
                     Utils.showNotification('❌ اسم المستخدم غير موجود', 'error');
                     return;
                 }
+
+                // ✅ طباعة البيانات للمقارنة
+                console.log('🔑 كلمة المرور المدخلة:', password);
+                console.log('🔑 كلمة المرور في DB:', userData.password);
+                console.log('✅ نتيجة المقارنة:', userData.password === password);
 
                 // ✅ التحقق من كلمة المرور
                 if (userData.password !== password) {
@@ -112,6 +130,8 @@ async verifyAdminAccess() {
 
                 // ✅ التحقق من الصلاحية
                 const userRole = userData.role ? userData.role.toLowerCase() : '';
+                console.log('👔 الصلاحية:', userRole);
+                
                 if (userRole !== 'admin' && userRole !== 'manager') {
                     Utils.showNotification('❌ ليس لديك صلاحية أدمن', 'error');
                     return;
@@ -122,7 +142,7 @@ async verifyAdminAccess() {
                 resolve(true);
 
             } catch (error) {
-                console.error('❌ خطأ:', error);
+                console.error('❌ خطأ غير متوقع:', error);
                 Utils.showNotification('❌ حدث خطأ غير متوقع', 'error');
                 resolve(false);
             }
@@ -141,7 +161,6 @@ async verifyAdminAccess() {
         });
     });
 },
-
 
 
 
@@ -2039,6 +2058,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
