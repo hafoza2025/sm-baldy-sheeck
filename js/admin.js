@@ -841,35 +841,91 @@ if (typeof window !== 'undefined') {
 console.log('✅ Admin Dashboard loaded with live stats');
 
 
-
-// ========================================
-// ✅ طباعة الفاتورة - نسخة طبق الأصل
-// ========================================
+// ================================================================================
+// 🖨️ نظام طباعة الفواتير من الأدمن - نسخة طبق الأصل من الكاشير
+// ================================================================================
+// ✅ ضع هذا الكود في نهاية ملف admin.js - لا تعدل أي شيء آخر
+// ================================================================================
 
 (function() {
-    console.log('🖨️ جاري تفعيل ميزة الطباعة...');
+    console.log('🖨️ جاري تفعيل نظام طباعة الفواتير...');
 
+    // ======================================
     // ✅ دالة مساعدة لطريقة الدفع
+    // ======================================
     function getPaymentMethodName(method) {
         const methods = {
             'cash': 'كاش',
             'visa': 'فيزا',
             'card': 'بطاقة',
             'wallet': 'محفظة',
-            'instapay': 'انستاباي'
+            'instapay': 'انستاباي',
+            'credit': 'بطاقة ائتمان'
         };
         return methods[method] || 'كاش';
     }
 
-    // ✅ دالة الطباعة - تستخدم البيانات الموجودة
-    window.printOrderReceipt = function(order) {
-        console.log('📦 Order Data:', order);
+    // ======================================
+    // ✅ دالة استرجاع بيانات الطلب الكاملة
+    // ======================================
+    async function fetchFullOrderData(orderId) {
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select(`
+                    *,
+                    order_items (
+                        *,
+                        menu_item:menu_items (
+                            name_ar,
+                            name_en
+                        )
+                    ),
+                    deliveries (
+                        customer_name,
+                        customer_phone,
+                        customer_address,
+                        delivery_address
+                    )
+                `)
+                .eq('id', orderId)
+                .single();
+
+            if (error) {
+                console.error('❌ خطأ في جلب البيانات:', error);
+                return null;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('❌ خطأ:', error);
+            return null;
+        }
+    }
+
+    // ======================================
+    // ✅ دالة الطباعة - نفس الكاشير تماماً
+    // ======================================
+    async function printOrderReceipt(orderId) {
+        console.log('📦 جاري استرجاع بيانات الطلب:', orderId);
         
-        if (!order || !order.order_number) {
-            alert('⚠️ لا توجد بيانات للطلب');
+        // ✅ جلب البيانات الكاملة من Database
+        const order = await fetchFullOrderData(orderId);
+        
+        if (!order) {
+            alert('⚠️ لم يتم العثور على بيانات الطلب');
             return;
         }
 
+        console.log('📦 Order Data:', order);
+        console.log('🚚 Delivery Info:', order.deliveries);
+        
+        if (order.deliveries && order.deliveries[0]) {
+            console.log('📍 Address:', order.deliveries[0].delivery_address || order.deliveries[0].customer_address);
+            console.log('📞 Phone:', order.deliveries[0].customer_phone);
+            console.log('👤 Name:', order.deliveries[0].customer_name);
+        }
+        
         const deliveryInfo = (order.order_type === 'delivery' && order.deliveries && order.deliveries.length > 0) 
             ? order.deliveries[0] 
             : null;
@@ -1082,57 +1138,69 @@ console.log('✅ Admin Dashboard loaded with live stats');
                 setTimeout(() => printWindow.close(), 500);
             }, 250);
         };
-    };
+    }
 
-    // ✅ تعديل displayOrders
-    const originalDisplay = AdminDashboard.displayOrders;
-    AdminDashboard.displayOrders = function(orders) {
-        const tbody = document.getElementById('ordersBody');
-        if (!tbody) return;
+    // تعريف الدالة globally
+    window.printOrderReceipt = printOrderReceipt;
 
-        if (!orders || orders.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">لا توجد طلبات</td></tr>';
-            return;
-        }
+    // ======================================
+    // ✅ تعديل displayOrders لإضافة زر الطباعة
+    // ======================================
+    if (typeof AdminDashboard !== 'undefined' && AdminDashboard.displayOrders) {
+        const originalDisplay = AdminDashboard.displayOrders;
+        
+        AdminDashboard.displayOrders = function(orders) {
+            const tbody = document.getElementById('ordersBody');
+            if (!tbody) return;
 
-        tbody.innerHTML = orders.map((order) => {
-            const paymentIcons = {
-                'cash': '💵 كاش',
-                'visa': '💳 فيزا',
-                'wallet': '📱 محفظة',
-                'instapay': '⚡ انستاباي'
-            };
-            const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
+            if (!orders || orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">لا توجد طلبات</td></tr>';
+                return;
+            }
 
-            // حفظ البيانات الكاملة
-            const orderStr = JSON.stringify(order).replace(/"/g, '&quot;');
+            tbody.innerHTML = orders.map((order) => {
+                const paymentIcons = {
+                    'cash': '💵 كاش',
+                    'visa': '💳 فيزا',
+                    'wallet': '📱 محفظة',
+                    'instapay': '⚡ انستاباي'
+                };
+                const paymentMethod = paymentIcons[order.payment_method] || '💵 كاش';
 
-            return `
-                <tr>
-                    <td><strong>#${order.order_number}</strong></td>
-                    <td>${new Date(order.created_at).toLocaleDateString('ar-EG')}</td>
-                    <td>${order.order_type === 'dine_in' ? '🍽️ داخلي' : '🛵 توصيل'}</td>
-                    <td>${order.order_type === 'dine_in' ? `طاولة ${order.table_number}` : order.deliveries?.[0]?.customer_name || '-'}</td>
-                    <td>${order.staff?.full_name || 'كاشير'}</td>
-                    <td><strong>${(order.total || 0).toFixed(2)} ج.م</strong></td>
-                    <td style="text-align: center;">${paymentMethod}</td>
-                    <td><span class="badge ${this.getStatusClass(order.status)}">${this.getStatusText(order.status)}</span></td>
-                    <td style="text-align: center;">
-                        ${order.status === 'completed' ? `
-                            <button 
-                                onclick='printOrderReceipt(${orderStr})'
-                                style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold;"
-                                title="طباعة">
-                                🖨️
-                            </button>
-                        ` : '-'}
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    };
+                return `
+                    <tr>
+                        <td><strong>#${order.order_number}</strong></td>
+                        <td>${new Date(order.created_at).toLocaleDateString('ar-EG')}</td>
+                        <td>${order.order_type === 'dine_in' ? '🍽️ داخلي' : '🛵 توصيل'}</td>
+                        <td>${order.order_type === 'dine_in' ? `طاولة ${order.table_number || '-'}` : order.deliveries?.[0]?.customer_name || '-'}</td>
+                        <td>${order.staff?.full_name || 'كاشير'}</td>
+                        <td><strong>${(order.total || 0).toFixed(2)} ج.م</strong></td>
+                        <td style="text-align: center;">${paymentMethod}</td>
+                        <td><span class="badge ${this.getStatusClass(order.status)}">${this.getStatusText(order.status)}</span></td>
+                        <td style="text-align: center;">
+                            ${order.status === 'completed' ? `
+                                <button 
+                                    onclick="printOrderReceipt(${order.id})"
+                                    style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s;"
+                                    onmouseover="this.style.background='#5568d3'; this.style.transform='translateY(-2px)'"
+                                    onmouseout="this.style.background='#667eea'; this.style.transform='translateY(0)'"
+                                    title="طباعة الفاتورة">
+                                    🖨️ طباعة
+                                </button>
+                            ` : '<span style="color: #999;">-</span>'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+        
+        console.log('✅ تم تعديل displayOrders بنجاح');
+    }
 
-    console.log('✅ تم تفعيل ميزة الطباعة بنجاح!');
+    console.log('✅ تم تفعيل نظام طباعة الفواتير بنجاح!');
+    console.log('🎉 يمكنك الآن طباعة أي فاتورة مكتملة من جميع الطلبات');
 })();
 
-
+// ================================================================================
+// ✅ انتهى كود نظام الطباعة - لا تضف أي شيء بعد هذا السطر
+// ================================================================================
