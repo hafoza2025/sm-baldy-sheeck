@@ -1579,3 +1579,137 @@
     }
 }
 
+/* ===============================
+   FIX: حل نهائي لصفحة Staff - التابلت 1240x601
+   =============================== */
+
+/* استهداف الكلاسات الصحيحة */
+@media only screen and (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+    
+    /* إصلاح الكاتجري - استهداف الكلاس الصحيح */
+    .categories,
+    .category-tabs {
+        display: flex !important;
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        padding: 15px 20px !important;
+    }
+
+    .category-btn,
+    .category-tab {
+        padding: 9px 15px !important;
+        font-size: 13px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+        min-width: fit-content !important;
+    }
+
+    /* شبكة المنيو - 6 أصناف - استهداف كل الكلاسات */
+    .menu-items,
+    .menu-grid,
+    .items-grid {
+        display: grid !important;
+        grid-template-columns: repeat(6, 1fr) !important;
+        gap: 12px !important;
+        padding: 18px !important;
+    }
+
+    /* بطاقات الأصناف */
+    .menu-item-card,
+    .menu-item,
+    .item-card {
+        padding: 12px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .menu-item-card img,
+    .menu-item img,
+    .item-card img {
+        height: 90px !important;
+        width: 100% !important;
+    }
+
+    .menu-item-card h3,
+    .menu-item h4,
+    .item-card h3 {
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+        text-align: center !important;
+    }
+
+    .menu-item-card .price,
+    .menu-item .price,
+    .item-card .price {
+        font-size: 15px !important;
+    }
+
+    .menu-item-card .add-btn,
+    .menu-item .add-btn,
+    .item-card .add-btn {
+        padding: 8px !important;
+        font-size: 11px !important;
+    }
+
+    /* البحث */
+    .search-box input {
+        padding: 12px 18px !important;
+        font-size: 14px !important;
+    }
+
+    /* الحاوية */
+    .menu-container {
+        padding: 20px !important;
+    }
+}
+
+/* للحجم المحدد 1240x601 */
+@media only screen and (width: 1240px) and (height: 601px),
+       only screen and (min-width: 1220px) and (max-width: 1260px) and (min-height: 590px) and (max-height: 610px) {
+    
+    .categories,
+    .category-tabs {
+        padding: 12px 15px !important;
+        gap: 6px !important;
+    }
+
+    .category-btn,
+    .category-tab {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+    }
+
+    .menu-items,
+    .menu-grid,
+    .items-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .menu-item-card,
+    .menu-item,
+    .item-card {
+        padding: 10px !important;
+    }
+
+    .menu-item-card img,
+    .menu-item img,
+    .item-card img {
+        height: 85px !important;
+    }
+
+    .menu-item-card h3,
+    .menu-item h4,
+    .item-card h3 {
+        font-size: 11px !important;
+    }
+
+    .menu-item-card .price,
+    .menu-item .price,
+    .item-card .price {
+        font-size: 14px !important;
+    }
+}
+
