@@ -2372,3 +2372,193 @@
     }
 }
 
+/* ===============================
+   حل نهائي لصفحة Staff على التابلت
+   =============================== */
+
+/* تابلت landscape - الحل الشامل */
+@media only screen and (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+    
+    /* ===== إصلاح أزرار الكاتجري ===== */
+    .category-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        padding: 15px 20px;
+        flex-wrap: nowrap; /* صف واحد */
+        overflow-x: auto; /* scroll أفقي لو احتاج */
+        overflow-y: hidden;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    /* scrollbar للكاتجري */
+    .category-tabs::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .category-tabs::-webkit-scrollbar-thumb {
+        background: var(--pharaoh-bronze);
+        border-radius: 3px;
+    }
+
+    .category-tab {
+        padding: 10px 18px;
+        font-size: 14px;
+        min-width: fit-content; /* العرض حسب المحتوى */
+        white-space: nowrap; /* منع كسر السطر */
+        flex-shrink: 0; /* منع الانكماش */
+        border-width: 3px;
+        text-align: center;
+        direction: rtl;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ===== شبكة الأصناف - 6 في الصف ===== */
+    .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr); /* 6 أعمدة ثابتة */
+        gap: 15px;
+        padding: 20px;
+        width: 100%;
+    }
+
+    /* بطاقة الصنف */
+    .menu-item {
+        padding: 15px;
+        width: 100%;
+        min-width: 0; /* مهم جداً */
+        max-width: 100%;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .menu-item img {
+        height: 100px;
+        width: 100%;
+        object-fit: cover;
+        margin-bottom: 10px;
+        border-width: 2px;
+    }
+
+    .menu-item h4 {
+        font-size: 13px;
+        margin-bottom: 8px;
+        line-height: 1.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* سطرين max */
+        -webkit-box-orient: vertical;
+        width: 100%;
+        text-align: center;
+        direction: rtl;
+    }
+
+    .menu-item .price {
+        font-size: 16px;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .menu-item .add-btn {
+        padding: 10px 15px;
+        font-size: 12px;
+        width: 100%;
+    }
+
+    /* ===== تحسين الحاوية الرئيسية ===== */
+    .menu-container {
+        padding: 20px;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* ===== صندوق البحث ===== */
+    .search-box input {
+        padding: 12px 18px;
+        font-size: 14px;
+        text-align: right;
+        direction: rtl;
+    }
+
+    /* ===== محدد الطاولة ===== */
+    .table-selector {
+        padding: 18px 20px;
+    }
+
+    .table-selector select {
+        padding: 12px 18px;
+        font-size: 15px;
+        text-align: right;
+        direction: rtl;
+    }
+
+    /* ===== رأس الصفحة ===== */
+    .staff-header {
+        padding: 25px 30px;
+    }
+
+    .staff-header h1 {
+        font-size: 26px;
+        text-align: center;
+        direction: rtl;
+    }
+}
+
+/* ===== حل للشاشات الأصغر قليلاً ===== */
+@media only screen and (min-width: 1024px) and (max-width: 1280px) and (orientation: landscape) {
+    
+    .category-tab {
+        padding: 9px 15px;
+        font-size: 13px;
+    }
+
+    .menu-grid {
+        gap: 12px;
+        padding: 18px;
+    }
+
+    .menu-item {
+        padding: 12px;
+    }
+
+    .menu-item img {
+        height: 90px;
+    }
+
+    .menu-item h4 {
+        font-size: 12px;
+    }
+
+    .menu-item .price {
+        font-size: 15px;
+    }
+}
+
+/* ===== محاذاة عامة للعربية ===== */
+@media only screen and (min-width: 1024px) and (max-width: 1366px) {
+    body {
+        direction: rtl;
+    }
+
+    * {
+        text-align: right;
+    }
+
+    input, select, button {
+        direction: rtl;
+    }
+
+    /* إصلاح الأيقونات */
+    .staff-header h1::before {
+        margin-left: 10px;
+        margin-right: 0;
+    }
+}
+
