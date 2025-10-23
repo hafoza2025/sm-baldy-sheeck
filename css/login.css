@@ -802,3 +802,173 @@ body::after {
         margin-top: 10px;
     }
 }
+/* ===============================
+   حل مشكلة القص في التابلت - إظهار الصفحة كاملة
+   =============================== */
+
+/* تابلت - وضع أفقي (Landscape) - حل المشكلة */
+@media only screen and (min-width: 1025px) and (max-width: 1366px) and (orientation: landscape) {
+    body {
+        padding: 15px 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-container {
+        padding: 35px 45px; /* تقليل padding */
+        max-width: 520px; /* تقليل العرض قليلاً */
+        margin: 0 auto;
+        width: 85%;
+    }
+
+    .logo {
+        margin-bottom: 25px; /* تقليل المسافات */
+        padding-bottom: 20px;
+    }
+
+    .logo h1 {
+        font-size: 32px; /* تصغير الخط */
+        margin-bottom: 8px;
+    }
+
+    .logo h1::before {
+        font-size: 40px;
+        margin-bottom: 5px;
+    }
+
+    .logo p {
+        font-size: 14px;
+    }
+
+    .login-container .form-group {
+        margin-bottom: 18px; /* تقليل المسافة بين الحقول */
+    }
+
+    .login-container .form-group label {
+        margin-bottom: 6px;
+        font-size: 13px;
+    }
+
+    .login-container .form-group input {
+        padding: 13px 18px; /* تقليل padding */
+        font-size: 15px;
+    }
+
+    .login-container .btn-login {
+        font-size: 18px;
+        padding: 15px; /* تقليل padding */
+        margin-top: 12px;
+    }
+
+    body::after {
+        font-size: 120px; /* تصغير الزخارف */
+        letter-spacing: 45px;
+    }
+
+    .login-container::before,
+    .login-container::after {
+        width: 40px; /* تصغير زخارف الزوايا */
+        height: 40px;
+        border-width: 4px;
+    }
+
+    .login-container::before {
+        top: 12px;
+        right: 12px;
+    }
+
+    .login-container::after {
+        bottom: 12px;
+        left: 12px;
+    }
+
+    /* تقليل مساحة الـ alerts */
+    .login-container .alert {
+        padding: 12px 16px;
+        margin-bottom: 18px;
+        font-size: 13px;
+    }
+
+    .login-container small {
+        font-size: 12px;
+        margin-top: 6px;
+    }
+}
+
+/* حل إضافي لجميع أحجام التابلت في landscape */
+@media only screen and (min-width: 769px) and (max-width: 1366px) and (orientation: landscape) {
+    /* التأكد من عدم وجود overflow */
+    body {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .login-container {
+        box-sizing: border-box;
+        max-height: 90vh; /* الحد الأقصى 90% من ارتفاع الشاشة */
+        overflow-y: auto; /* scroll داخلي إذا لزم الأمر */
+    }
+
+    /* تحسين الزخارف الخلفية */
+    body::before {
+        opacity: 0.5;
+    }
+
+    body::after {
+        opacity: 0.05;
+    }
+}
+
+/* تحسينات خاصة للشاشات القصيرة */
+@media only screen and (min-width: 769px) and (max-height: 700px) {
+    body {
+        padding: 10px 0;
+    }
+
+    .login-container {
+        padding: 25px 35px;
+        margin: 10px auto;
+    }
+
+    .logo {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+    }
+
+    .logo h1 {
+        font-size: 28px;
+        margin-bottom: 6px;
+    }
+
+    .logo h1::before {
+        font-size: 36px;
+        margin-bottom: 5px;
+    }
+
+    .logo p {
+        font-size: 13px;
+    }
+
+    .login-container .form-group {
+        margin-bottom: 15px;
+    }
+
+    .login-container .form-group label {
+        margin-bottom: 6px;
+        font-size: 12px;
+    }
+
+    .login-container .form-group input {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+
+    .login-container .btn-login {
+        font-size: 16px;
+        padding: 14px;
+        margin-top: 10px;
+    }
+}
+
