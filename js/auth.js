@@ -109,14 +109,15 @@ Auth.checkRecipeAccess = function() {
   
   if (user.role !== 'admin') {
     alert('غير مصرح لك بالوصول لهذه الصفحة - Admin فقط');
-    window.location.href = user.role === 'cashier' ? 'cashier.html' : 
-                           user.role === 'staff' ? 'staff-tablet.html' : 
+    window.location.href = user.role === 'cashier' ? 'index.html' : 
+                           user.role === 'staff' ? 'index.html' : 
                            'kitchen-display.html';
     return null;
   }
   
   return user;
 };
+
 
 
 
