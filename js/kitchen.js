@@ -1034,18 +1034,18 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem &&
   KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
 }
 // ===================================
-// 🖨️ طباعة تذكرة الأوردر للمطبخ - Xprinter
-// (Order Type + Table/Delivery + Items فقط - بدون Recipe)
+// 🖨️ طباعة تذكرة الأوردر الكاملة - Xprinter 80mm
+// (بدون المكونات - فقط بيانات الأوردر والأصناف)
 // ===================================
 
-// إضافة دالة طباعة تذكرة الأوردر
-KitchenDisplay.printOrderTicket = async function(orderId) {
+// إضافة دالة طباعة الأوردر الكامل
+KitchenDisplay.printCompleteOrder = async function(orderId) {
   try {
     if (typeof Loading !== 'undefined' && Loading.show) {
       Loading.show('جاري تحضير التذكرة...', 'يرجى الانتظار');
     }
 
-    // جلب بيانات الأوردر
+    // جلب بيانات الأوردر الكاملة
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
@@ -1056,6 +1056,7 @@ KitchenDisplay.printOrderTicket = async function(orderId) {
         delivery_address,
         customer_name,
         customer_phone,
+        notes,
         created_at,
         order_items(
           id,
@@ -1072,10 +1073,10 @@ KitchenDisplay.printOrderTicket = async function(orderId) {
       Loading.hide();
     }
 
-    this.generateXprinterOrderTicket(order);
+    this.generateXprinterCompleteOrder(order);
 
   } catch (error) {
-    console.error('Error printing order ticket:', error);
+    console.error('Error printing complete order:', error);
     if (typeof Loading !== 'undefined' && Loading.hide) {
       Loading.hide();
     }
@@ -1087,8 +1088,8 @@ KitchenDisplay.printOrderTicket = async function(orderId) {
   }
 };
 
-// دالة توليد HTML لطباعة التذكرة
-KitchenDisplay.generateXprinterOrderTicket = function(order) {
+// دالة توليد HTML لطباعة الأوردر الكامل
+KitchenDisplay.generateXprinterCompleteOrder = function(order) {
   const now = new Date();
 
   const formatDate = (date) => {
@@ -1113,7 +1114,7 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
     ? SYSTEM_CONFIG.restaurantName 
     : 'مطعم الفرعون';
 
-  // تحديد نوع الطلب وأيقونته
+  // تحديد نوع الطلب
   let orderTypeIcon = '';
   let orderTypeLabel = '';
   let locationInfo = '';
@@ -1131,6 +1132,12 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
     orderTypeLabel = 'تيك أواي';
     locationInfo = 'جاهز للاستلام';
   }
+
+  // حساب الإجمالي
+  let totalAmount = 0;
+  order.order_items.forEach(item => {
+    totalAmount += item.menu_item.price * item.quantity;
+  });
 
   const printHTML = `
     <!DOCTYPE html>
@@ -1162,7 +1169,7 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
           line-height: 1.4;
         }
 
-        .ticket-container {
+        .order-container {
           width: 100%;
           text-align: center;
         }
@@ -1179,7 +1186,7 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
           margin-bottom: 1mm;
         }
 
-        .header .order-number {
+        .order-number {
           font-size: 24px;
           font-weight: bold;
           color: #000;
@@ -1207,6 +1214,14 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
           background: #fafafa;
         }
 
+        .customer-info {
+          border: 1px dashed #000;
+          padding: 2mm;
+          margin: 2mm 0;
+          font-size: 11px;
+          text-align: center;
+        }
+
         .datetime {
           display: flex;
           justify-content: space-between;
@@ -1217,11 +1232,6 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
           border-bottom: 1px dashed #000;
         }
 
-        .items-section {
-          margin: 3mm 0;
-          text-align: right;
-        }
-
         .section-title {
           font-size: 14px;
           font-weight: bold;
@@ -1230,6 +1240,11 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
           padding: 1.5mm;
           background: #000;
           color: #fff;
+        }
+
+        .items-section {
+          margin: 3mm 0;
+          text-align: right;
         }
 
         .item {
@@ -1244,11 +1259,26 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
           border-bottom: 2px solid #000;
         }
 
+        .item-details {
+          flex: 1;
+          text-align: right;
+        }
+
         .item-name {
           font-size: 13px;
           font-weight: bold;
-          flex: 1;
-          text-align: right;
+        }
+
+        .item-category {
+          font-size: 10px;
+          color: #666;
+          margin-top: 0.5mm;
+        }
+
+        .item-price {
+          font-size: 11px;
+          color: #333;
+          margin-top: 0.5mm;
         }
 
         .item-qty {
@@ -1263,26 +1293,50 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
           text-align: center;
         }
 
-        .item-category {
-          font-size: 10px;
-          color: #666;
-          margin-top: 0.5mm;
+        .notes-section {
+          border: 2px solid #000;
+          padding: 2mm;
+          margin: 3mm 0;
+          background: #fff9e6;
+        }
+
+        .notes-title {
+          font-weight: bold;
+          font-size: 12px;
+          margin-bottom: 1mm;
+          text-align: center;
+        }
+
+        .notes-content {
+          font-size: 11px;
+          text-align: right;
+          line-height: 1.5;
+        }
+
+        .total-section {
+          border-top: 3px double #000;
+          border-bottom: 3px double #000;
+          padding: 2mm 0;
+          margin: 3mm 0;
+          font-size: 16px;
+          font-weight: bold;
+          display: flex;
+          justify-content: space-between;
         }
 
         .footer {
-          border-top: 3px double #000;
+          border-top: 2px dashed #000;
           padding-top: 2mm;
           margin-top: 3mm;
           text-align: center;
           font-size: 10px;
         }
 
-        .customer-info {
-          border: 1px dashed #000;
-          padding: 2mm;
-          margin: 2mm 0;
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin: 1mm 0;
           font-size: 11px;
-          text-align: center;
         }
 
         @media print {
@@ -1295,7 +1349,7 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
       </style>
     </head>
     <body>
-      <div class="ticket-container">
+      <div class="order-container">
         <div class="header">
           <h1>${restaurantName}</h1>
           <div class="order-number">طلب #${order.order_number}</div>
@@ -1324,20 +1378,48 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
         <div class="section-title">📋 الأصناف المطلوبة</div>
 
         <div class="items-section">
-          ${order.order_items.map((item, idx) => `
-            <div class="item">
-              <div style="flex: 1;">
-                <div class="item-name">${item.menu_item.name_ar}</div>
-                <div class="item-category">${item.menu_item.category || ''}</div>
+          ${order.order_items.map((item, idx) => {
+            const itemTotal = (item.menu_item.price * item.quantity).toFixed(2);
+            return `
+              <div class="item">
+                <div class="item-details">
+                  <div class="item-name">${item.menu_item.name_ar}</div>
+                  <div class="item-category">${item.menu_item.category || ''}</div>
+                  <div class="item-price">
+                    ${item.menu_item.price.toFixed(2)} ج × ${item.quantity} = ${itemTotal} ج
+                  </div>
+                </div>
+                <div class="item-qty">× ${item.quantity}</div>
               </div>
-              <div class="item-qty">× ${item.quantity}</div>
-            </div>
-          `).join('')}
+            `;
+          }).join('')}
+        </div>
+
+        ${order.notes ? `
+          <div class="notes-section">
+            <div class="notes-title">📝 ملاحظات:</div>
+            <div class="notes-content">${order.notes}</div>
+          </div>
+        ` : ''}
+
+        <div class="total-section">
+          <span>الإجمالي:</span>
+          <span>${totalAmount.toFixed(2)} ج</span>
+        </div>
+
+        <div class="summary-row">
+          <span>عدد الأصناف:</span>
+          <span>${order.order_items.length}</span>
+        </div>
+
+        <div class="summary-row">
+          <span>إجمالي القطع:</span>
+          <span>${order.order_items.reduce((sum, item) => sum + item.quantity, 0)}</span>
         </div>
 
         <div class="footer">
           <div style="font-weight: bold; margin-bottom: 1mm;">
-            إجمالي الأصناف: ${order.order_items.length}
+            شكراً لاختياركم ${restaurantName}
           </div>
           <div style="font-size: 9px; margin-top: 1mm;">
             طُبع في: ${new Date().toLocaleTimeString('ar-EG')}
@@ -1369,9 +1451,10 @@ KitchenDisplay.generateXprinterOrderTicket = function(order) {
   }
 };
 
-console.log('✅ Xprinter Order Ticket System Ready! 🎫');
+console.log('✅ Xprinter Complete Order System Ready! 🎫');
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
