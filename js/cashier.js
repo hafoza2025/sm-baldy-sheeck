@@ -646,10 +646,9 @@ async resetDiscountAndService() {
 
     // ==================== التحكم الكامل في الفاتورة ====================
 
-  async selectOrderForFullEdit(orderId) {
-    // ✅ التحقق من صلاحية الأدمن أولاً
-    const hasAccess = await this.();
-    
+ async selectOrderForFullEdit(orderId) {
+    // ✅ طلب صلاحية Admin
+    const hasAccess = await this.verifyAdminAccess();
     if (!hasAccess) {
         Utils.showNotification('❌ لم يتم التحقق من الصلاحية', 'error');
         return;
@@ -658,22 +657,20 @@ async resetDiscountAndService() {
     const order = this.openOrders.find(o => o.id === orderId);
     if (!order) return;
 
+    this.selectedOrder = order;
+    this.currentEditCart.items = [];
+    this.displayOpenOrders(this.openOrders);
+    this.displayFullEditSection();
 
-        this.selectedOrder = order;
-        this.currentEditCart.items = [];
+    const orderType = order.order_type === 'delivery' 
+        ? (order.deliveries[0]?.customer_name || 'ديليفري') 
+        : `طاولة ${order.table_number}`;
+        
+    Utils.showNotification(`✏️ تعديل ${orderType}`, 'success');
 
-        this.displayOpenOrders(this.openOrders);
-        this.displayFullEditSection();
-
-        const orderType = order.order_type === 'delivery'
-            ? `طلب ${order.deliveries[0]?.customer_name}`
-            : `فاتورة طاولة ${order.table_number}`;
-
-        Utils.showNotification(`تم اختيار ${orderType} للتعديل الكامل`, 'success');
-
-        document.getElementById('editSection').style.display = 'block';
-        document.getElementById('newOrderSection').style.display = 'none';
-    },
+    document.getElementById('editSection').style.display = 'block';
+    document.getElementById('newOrderSection').style.display = 'none';
+},
 
     displayFullEditSection() {
         const container = document.getElementById('editOrderItems');
@@ -1120,7 +1117,12 @@ let summaryHTML = `
 
             const subtotal = items.reduce((sum, item) => sum + item.total_price, 0);
             const tax = Utils.calculateTax(subtotal);
-            const total = subtotal + tax + (this.selectedOrder.delivery_fee || 0) - (this.selectedOrder.discount || 0);
+           const total = subtotal + 
+              tax + 
+              (this.selectedOrder.delivery_fee || 0) + 
+              (this.selectedOrder.service_charge || 0) - 
+              (this.selectedOrder.discount || 0);
+
 
             await supabase
                 .from('orders')
@@ -2348,6 +2350,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
