@@ -1601,200 +1601,210 @@ KitchenDisplay.generateSingleOrderReceipt = function(order) {
     <head>
       <meta charset="UTF-8">
       <title>Order #${order.order_number}</title>
-      <style>
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
+     <style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-        @page {
-          size: 80mm auto;
-          margin: 0;
-        }
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
 
-        body {
-          font-family: 'Arial', 'Tahoma', sans-serif;
-          width: 80mm;
-          margin: 0;
-          padding: 3mm;
-          background: white;
-          color: #000;
-          font-size: 11px;
-          line-height: 1.3;
-        }
+  body {
+    font-family: 'Arial', 'Tahoma', sans-serif;
+    width: 80mm;
+    margin: 0;
+    padding: 3mm;
+    background: white;
+    color: #000;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1.4;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
-        .receipt {
-          width: 100%;
-        }
+  .receipt {
+    width: 100%;
+  }
 
-        .header {
-          text-align: center;
-          border-bottom: 2px double #000;
-          padding-bottom: 2mm;
-          margin-bottom: 2mm;
-        }
+  .header {
+    text-align: center;
+    border-bottom: 3px double #000;
+    padding-bottom: 2mm;
+    margin-bottom: 2mm;
+  }
 
-        .header h1 {
-          font-size: 16px;
-          font-weight: bold;
-          margin-bottom: 1mm;
-        }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 900;
+    margin-bottom: 1mm;
+  }
 
-        .order-num {
-          font-size: 20px;
-          font-weight: bold;
-          margin: 2mm 0;
-          padding: 1.5mm;
-          border: 2px solid #000;
-          display: inline-block;
-        }
+  .order-num {
+    font-size: 22px;
+    font-weight: 900;
+    margin: 2mm 0;
+    padding: 2mm;
+    border: 3px solid #000;
+    display: inline-block;
+  }
 
-        .order-type-badge {
-          background: #000;
-          color: #fff;
-          padding: 1.5mm 3mm;
-          font-size: 12px;
-          font-weight: bold;
-          margin: 2mm 0;
-          display: inline-block;
-        }
+  .order-type-badge {
+    background: #000;
+    color: #fff;
+    padding: 2mm 3mm;
+    font-size: 14px;
+    font-weight: 900;
+    margin: 2mm 0;
+    display: inline-block;
+  }
 
-        .location {
-          border: 1px dashed #000;
-          padding: 2mm;
-          margin: 2mm 0;
-          font-size: 12px;
-          font-weight: bold;
-          text-align: center;
-        }
+  .location {
+    border: 2px dashed #000;
+    padding: 2mm;
+    margin: 2mm 0;
+    font-size: 13px;
+    font-weight: 900;
+    text-align: center;
+  }
 
-        .customer-box {
-          border: 1px solid #ccc;
-          padding: 1.5mm;
-          margin: 2mm 0;
-          font-size: 10px;
-          background: #f9f9f9;
-        }
+  .customer-box {
+    border: 2px solid #000;
+    padding: 2mm;
+    margin: 2mm 0;
+    font-size: 11px;
+    font-weight: bold;
+    background: #f9f9f9;
+  }
 
-        .customer-box div {
-          margin: 0.5mm 0;
-        }
+  .customer-box div {
+    margin: 0.5mm 0;
+  }
 
-        .datetime {
-          display: flex;
-          justify-content: space-between;
-          font-size: 10px;
-          padding: 1mm 0;
-          border-top: 1px dashed #ccc;
-          border-bottom: 1px dashed #ccc;
-          margin: 2mm 0;
-        }
+  .datetime {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 1mm 0;
+    border-top: 2px dashed #000;
+    border-bottom: 2px dashed #000;
+    margin: 2mm 0;
+  }
 
-        .section-header {
-          background: #000;
-          color: #fff;
-          padding: 1.5mm;
-          font-size: 12px;
-          font-weight: bold;
-          text-align: center;
-          margin: 2mm 0;
-        }
+  .section-header {
+    background: #000;
+    color: #fff;
+    padding: 2mm;
+    font-size: 14px;
+    font-weight: 900;
+    text-align: center;
+    margin: 2mm 0;
+  }
 
-        .items {
-          margin: 2mm 0;
-        }
+  .items {
+    margin: 2mm 0;
+  }
 
-        .item {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          padding: 1.5mm 0;
-          border-bottom: 1px dotted #ccc;
-        }
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 2mm 0;
+    border-bottom: 2px dotted #000;
+  }
 
-        .item:last-child {
-          border-bottom: 1px solid #000;
-        }
+  .item:last-child {
+    border-bottom: 3px solid #000;
+  }
 
-        .item-info {
-          flex: 1;
-          padding-right: 2mm;
-        }
+  .item-info {
+    flex: 1;
+    padding-right: 2mm;
+  }
 
-        .item-name {
-          font-size: 11px;
-          font-weight: bold;
-          margin-bottom: 0.5mm;
-        }
+  .item-name {
+    font-size: 13px;
+    font-weight: 900;
+    margin-bottom: 0.5mm;
+  }
 
-        .item-details {
-          font-size: 9px;
-          color: #555;
-        }
+  .item-details {
+    font-size: 10px;
+    font-weight: bold;
+    color: #333;
+  }
 
-        .item-qty-box {
-          background: #000;
-          color: #fff;
-          padding: 1mm 2.5mm;
-          font-size: 14px;
-          font-weight: bold;
-          min-width: 8mm;
-          text-align: center;
-          border-radius: 1mm;
-        }
+  .item-qty-box {
+    background: #000;
+    color: #fff;
+    padding: 2mm 3mm;
+    font-size: 16px;
+    font-weight: 900;
+    min-width: 10mm;
+    text-align: center;
+    border-radius: 1mm;
+  }
 
-        .notes {
-          border: 1px solid #000;
-          padding: 2mm;
-          margin: 2mm 0;
-          background: #fffacd;
-        }
+  .notes {
+    border: 2px solid #000;
+    padding: 2mm;
+    margin: 2mm 0;
+    background: #fffacd;
+  }
 
-        .notes-title {
-          font-weight: bold;
-          font-size: 11px;
-          margin-bottom: 1mm;
-        }
+  .notes-title {
+    font-weight: 900;
+    font-size: 12px;
+    margin-bottom: 1mm;
+  }
 
-        .notes-text {
-          font-size: 10px;
-        }
+  .notes-text {
+    font-size: 11px;
+    font-weight: bold;
+  }
 
-        .summary {
-          border-top: 2px solid #000;
-          border-bottom: 2px solid #000;
-          padding: 2mm 0;
-          margin: 2mm 0;
-        }
+  .summary {
+    border-top: 3px solid #000;
+    border-bottom: 3px solid #000;
+    padding: 2mm 0;
+    margin: 2mm 0;
+  }
 
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          margin: 1mm 0;
-          font-size: 11px;
-          font-weight: bold;
-        }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 1mm 0;
+    font-size: 12px;
+    font-weight: 900;
+  }
 
-        .footer {
-          text-align: center;
-          border-top: 1px dashed #000;
-          padding-top: 2mm;
-          margin-top: 2mm;
-          font-size: 9px;
-        }
+  .footer {
+    text-align: center;
+    border-top: 2px dashed #000;
+    padding-top: 2mm;
+    margin-top: 2mm;
+    font-size: 10px;
+    font-weight: bold;
+  }
 
-        .footer-brand {
-          font-weight: bold;
-          margin-bottom: 1mm;
-        }
+  .footer-brand {
+    font-weight: 900;
+    margin-bottom: 1mm;
+  }
 
-        @media print {
-          body {
-            width: 80mm;
-          }
-        }
-      </style>
+  @media print {
+    body {
+      width: 80mm;
+      font-weight: bold;
+    }
+  }
+</style>
+
     </head>
     <body>
       <div class="receipt">
@@ -1902,6 +1912,7 @@ console.log('✅ نظام طباعة الفاتورة الموحدة (بدون �
 
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
