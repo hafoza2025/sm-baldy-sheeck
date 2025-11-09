@@ -1981,6 +1981,28 @@ printReceipt(order) {
                     font-size: 13px;
                     font-weight: bold;
                 }
+                .discount-item {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 6px 0;
+                    font-size: 13px;
+                    font-weight: bold;
+                    color: #2e7d32;
+                    background: #e8f5e9;
+                    padding: 5px 8px;
+                    border-radius: 4px;
+                }
+                .service-item {
+                    display: flex;
+                    justify-content: space-between;
+                    margin: 6px 0;
+                    font-size: 13px;
+                    font-weight: bold;
+                    color: #e65100;
+                    background: #fff3e0;
+                    padding: 5px 8px;
+                    border-radius: 4px;
+                }
                 .total { 
                     font-size: 16px;
                     font-weight: bold;
@@ -2055,8 +2077,22 @@ printReceipt(order) {
             
             ${order.delivery_fee > 0 ? `
                 <div class="summary-item">
-                    <span>التوصيل:</span>
+                    <span>🚚 التوصيل:</span>
                     <span>${Utils.formatCurrency(order.delivery_fee)}</span>
+                </div>
+            ` : ''}
+
+            ${(order.discount && order.discount > 0) ? `
+                <div class="discount-item">
+                    <span>🏷️ خصم (${order.discount_percentage || 0}%)</span>
+                    <span>-${Utils.formatCurrency(order.discount)}</span>
+                </div>
+            ` : ''}
+
+            ${(order.service_charge && order.service_charge > 0) ? `
+                <div class="service-item">
+                    <span>💼 رسوم خدمة (12%)</span>
+                    <span>+${Utils.formatCurrency(order.service_charge)}</span>
                 </div>
             ` : ''}
 
@@ -2086,7 +2122,6 @@ printReceipt(order) {
         }, 250);
     };
 },
-
 
 
 
@@ -2350,6 +2385,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
