@@ -1034,15 +1034,15 @@ if (typeof KitchenDisplay !== 'undefined' && KitchenDisplay.loadRecipeForItem &&
   KitchenDisplay.loadRecipeForItem = protectAsync(originalLoadRecipe, 'load-recipe', false);
 }
 // ===================================
-// 🖨️ طباعة تذكرة الأوردر الكاملة - Xprinter 80mm
-// (بدون المكونات - فقط بيانات الأوردر والأصناف)
+// 🖨️ طباعة فاتورة أوردر واحدة شاملة - Xprinter 80mm
+// (جميع البيانات + جميع الأصناف في صفحة واحدة)
 // ===================================
 
-// إضافة دالة طباعة الأوردر الكامل
-KitchenDisplay.printCompleteOrder = async function(orderId) {
+// دالة طباعة الأوردر الكامل في فاتورة واحدة
+KitchenDisplay.printSingleOrderReceipt = async function(orderId) {
   try {
     if (typeof Loading !== 'undefined' && Loading.show) {
-      Loading.show('جاري تحضير التذكرة...', 'يرجى الانتظار');
+      Loading.show('جاري تحضير الفاتورة...', 'يرجى الانتظار');
     }
 
     // جلب بيانات الأوردر الكاملة
@@ -1073,10 +1073,10 @@ KitchenDisplay.printCompleteOrder = async function(orderId) {
       Loading.hide();
     }
 
-    this.generateXprinterCompleteOrder(order);
+    this.generateSingleOrderReceipt(order);
 
   } catch (error) {
-    console.error('Error printing complete order:', error);
+    console.error('Error printing order receipt:', error);
     if (typeof Loading !== 'undefined' && Loading.hide) {
       Loading.hide();
     }
@@ -1088,8 +1088,8 @@ KitchenDisplay.printCompleteOrder = async function(orderId) {
   }
 };
 
-// دالة توليد HTML لطباعة الأوردر الكامل
-KitchenDisplay.generateXprinterCompleteOrder = function(order) {
+// دالة توليد HTML للفاتورة الواحدة
+KitchenDisplay.generateSingleOrderReceipt = function(order) {
   const now = new Date();
 
   const formatDate = (date) => {
@@ -1135,8 +1135,11 @@ KitchenDisplay.generateXprinterCompleteOrder = function(order) {
 
   // حساب الإجمالي
   let totalAmount = 0;
+  let totalQuantity = 0;
+  
   order.order_items.forEach(item => {
     totalAmount += item.menu_item.price * item.quantity;
+    totalQuantity += item.quantity;
   });
 
   const printHTML = `
@@ -1155,275 +1158,280 @@ KitchenDisplay.generateXprinterCompleteOrder = function(order) {
         @page {
           size: 80mm auto;
           margin: 0;
-          padding: 0;
         }
 
         body {
-          font-family: 'Arial', 'Verdana', sans-serif;
+          font-family: 'Arial', 'Tahoma', sans-serif;
           width: 80mm;
           margin: 0;
-          padding: 4mm;
+          padding: 3mm;
           background: white;
           color: #000;
-          font-size: 12px;
-          line-height: 1.4;
+          font-size: 11px;
+          line-height: 1.3;
         }
 
-        .order-container {
+        .receipt {
           width: 100%;
-          text-align: center;
         }
 
         .header {
-          border-bottom: 3px double #000;
-          padding-bottom: 3mm;
-          margin-bottom: 3mm;
+          text-align: center;
+          border-bottom: 2px double #000;
+          padding-bottom: 2mm;
+          margin-bottom: 2mm;
         }
 
         .header h1 {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: bold;
           margin-bottom: 1mm;
         }
 
-        .order-number {
-          font-size: 24px;
+        .order-num {
+          font-size: 20px;
           font-weight: bold;
-          color: #000;
           margin: 2mm 0;
-          padding: 2mm;
+          padding: 1.5mm;
           border: 2px solid #000;
-          background: #f0f0f0;
+          display: inline-block;
         }
 
-        .order-type {
+        .order-type-badge {
           background: #000;
           color: #fff;
-          padding: 2mm;
-          font-size: 14px;
+          padding: 1.5mm 3mm;
+          font-size: 12px;
           font-weight: bold;
           margin: 2mm 0;
+          display: inline-block;
         }
 
-        .location-box {
-          border: 2px dashed #000;
-          padding: 2mm;
-          margin: 2mm 0;
-          font-size: 13px;
-          font-weight: bold;
-          background: #fafafa;
-        }
-
-        .customer-info {
+        .location {
           border: 1px dashed #000;
           padding: 2mm;
           margin: 2mm 0;
-          font-size: 11px;
+          font-size: 12px;
+          font-weight: bold;
           text-align: center;
+        }
+
+        .customer-box {
+          border: 1px solid #ccc;
+          padding: 1.5mm;
+          margin: 2mm 0;
+          font-size: 10px;
+          background: #f9f9f9;
+        }
+
+        .customer-box div {
+          margin: 0.5mm 0;
         }
 
         .datetime {
           display: flex;
           justify-content: space-between;
-          font-size: 11px;
-          margin: 2mm 0;
+          font-size: 10px;
           padding: 1mm 0;
-          border-top: 1px dashed #000;
-          border-bottom: 1px dashed #000;
+          border-top: 1px dashed #ccc;
+          border-bottom: 1px dashed #ccc;
+          margin: 2mm 0;
         }
 
-        .section-title {
-          font-size: 14px;
+        .section-header {
+          background: #000;
+          color: #fff;
+          padding: 1.5mm;
+          font-size: 12px;
           font-weight: bold;
           text-align: center;
           margin: 2mm 0;
-          padding: 1.5mm;
-          background: #000;
-          color: #fff;
         }
 
-        .items-section {
-          margin: 3mm 0;
-          text-align: right;
+        .items {
+          margin: 2mm 0;
         }
 
         .item {
-          border-bottom: 1px dotted #ccc;
-          padding: 2mm 0;
           display: flex;
           justify-content: space-between;
-          align-items: center;
+          align-items: flex-start;
+          padding: 1.5mm 0;
+          border-bottom: 1px dotted #ccc;
         }
 
         .item:last-child {
-          border-bottom: 2px solid #000;
+          border-bottom: 1px solid #000;
         }
 
-        .item-details {
+        .item-info {
           flex: 1;
-          text-align: right;
+          padding-right: 2mm;
         }
 
         .item-name {
-          font-size: 13px;
-          font-weight: bold;
-        }
-
-        .item-category {
-          font-size: 10px;
-          color: #666;
-          margin-top: 0.5mm;
-        }
-
-        .item-price {
           font-size: 11px;
-          color: #333;
-          margin-top: 0.5mm;
+          font-weight: bold;
+          margin-bottom: 0.5mm;
         }
 
-        .item-qty {
-          font-size: 16px;
-          font-weight: bold;
-          margin-left: 2mm;
+        .item-details {
+          font-size: 9px;
+          color: #555;
+        }
+
+        .item-qty-box {
           background: #000;
           color: #fff;
-          padding: 1mm 3mm;
-          border-radius: 2mm;
-          min-width: 10mm;
+          padding: 1mm 2.5mm;
+          font-size: 14px;
+          font-weight: bold;
+          min-width: 8mm;
           text-align: center;
+          border-radius: 1mm;
         }
 
-        .notes-section {
-          border: 2px solid #000;
+        .notes {
+          border: 1px solid #000;
           padding: 2mm;
-          margin: 3mm 0;
-          background: #fff9e6;
+          margin: 2mm 0;
+          background: #fffacd;
         }
 
         .notes-title {
           font-weight: bold;
-          font-size: 12px;
-          margin-bottom: 1mm;
-          text-align: center;
-        }
-
-        .notes-content {
           font-size: 11px;
-          text-align: right;
-          line-height: 1.5;
+          margin-bottom: 1mm;
         }
 
-        .total-section {
-          border-top: 3px double #000;
-          border-bottom: 3px double #000;
-          padding: 2mm 0;
-          margin: 3mm 0;
-          font-size: 16px;
-          font-weight: bold;
-          display: flex;
-          justify-content: space-between;
-        }
-
-        .footer {
-          border-top: 2px dashed #000;
-          padding-top: 2mm;
-          margin-top: 3mm;
-          text-align: center;
+        .notes-text {
           font-size: 10px;
+        }
+
+        .summary {
+          border-top: 2px solid #000;
+          border-bottom: 2px solid #000;
+          padding: 2mm 0;
+          margin: 2mm 0;
         }
 
         .summary-row {
           display: flex;
           justify-content: space-between;
           margin: 1mm 0;
-          font-size: 11px;
+          font-size: 10px;
+        }
+
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 14px;
+          font-weight: bold;
+          padding: 1mm 0;
+          border-top: 1px dashed #000;
+          margin-top: 1mm;
+        }
+
+        .footer {
+          text-align: center;
+          border-top: 1px dashed #000;
+          padding-top: 2mm;
+          margin-top: 2mm;
+          font-size: 9px;
+        }
+
+        .footer-brand {
+          font-weight: bold;
+          margin-bottom: 1mm;
         }
 
         @media print {
           body {
             width: 80mm;
-            margin: 0;
-            padding: 4mm;
           }
         }
       </style>
     </head>
     <body>
-      <div class="order-container">
+      <div class="receipt">
+        <!-- رأس الفاتورة -->
         <div class="header">
           <h1>${restaurantName}</h1>
-          <div class="order-number">طلب #${order.order_number}</div>
+          <div class="order-num">طلب #${order.order_number}</div>
         </div>
 
-        <div class="order-type">
-          ${orderTypeIcon} ${orderTypeLabel}
+        <!-- نوع الطلب -->
+        <div style="text-align: center;">
+          <span class="order-type-badge">${orderTypeIcon} ${orderTypeLabel}</span>
         </div>
 
-        <div class="location-box">
-          ${locationInfo}
-        </div>
+        <!-- الموقع / الطاولة -->
+        <div class="location">${locationInfo}</div>
 
+        <!-- بيانات العميل -->
         ${order.customer_name || order.customer_phone ? `
-          <div class="customer-info">
-            ${order.customer_name ? `<div><strong>العميل:</strong> ${order.customer_name}</div>` : ''}
-            ${order.customer_phone ? `<div><strong>التليفون:</strong> ${order.customer_phone}</div>` : ''}
+          <div class="customer-box">
+            ${order.customer_name ? `<div>👤 <strong>العميل:</strong> ${order.customer_name}</div>` : ''}
+            ${order.customer_phone ? `<div>📞 <strong>التليفون:</strong> ${order.customer_phone}</div>` : ''}
           </div>
         ` : ''}
 
+        <!-- التاريخ والوقت -->
         <div class="datetime">
           <span>📅 ${formatDate(order.created_at)}</span>
           <span>🕐 ${formatTime(order.created_at)}</span>
         </div>
 
-        <div class="section-title">📋 الأصناف المطلوبة</div>
+        <!-- عنوان الأصناف -->
+        <div class="section-header">📋 الأصناف المطلوبة</div>
 
-        <div class="items-section">
+        <!-- قائمة الأصناف -->
+        <div class="items">
           ${order.order_items.map((item, idx) => {
             const itemTotal = (item.menu_item.price * item.quantity).toFixed(2);
             return `
               <div class="item">
-                <div class="item-details">
+                <div class="item-info">
                   <div class="item-name">${item.menu_item.name_ar}</div>
-                  <div class="item-category">${item.menu_item.category || ''}</div>
-                  <div class="item-price">
-                    ${item.menu_item.price.toFixed(2)} ج × ${item.quantity} = ${itemTotal} ج
+                  <div class="item-details">
+                    ${item.menu_item.category ? `📂 ${item.menu_item.category}<br>` : ''}
+                    💰 ${item.menu_item.price.toFixed(2)} ج × ${item.quantity} = <strong>${itemTotal} ج</strong>
                   </div>
                 </div>
-                <div class="item-qty">× ${item.quantity}</div>
+                <div class="item-qty-box">×${item.quantity}</div>
               </div>
             `;
           }).join('')}
         </div>
 
+        <!-- الملاحظات -->
         ${order.notes ? `
-          <div class="notes-section">
+          <div class="notes">
             <div class="notes-title">📝 ملاحظات:</div>
-            <div class="notes-content">${order.notes}</div>
+            <div class="notes-text">${order.notes}</div>
           </div>
         ` : ''}
 
-        <div class="total-section">
-          <span>الإجمالي:</span>
-          <span>${totalAmount.toFixed(2)} ج</span>
+        <!-- الملخص والإجمالي -->
+        <div class="summary">
+          <div class="summary-row">
+            <span>عدد الأصناف:</span>
+            <span><strong>${order.order_items.length}</strong> صنف</span>
+          </div>
+          <div class="summary-row">
+            <span>إجمالي القطع:</span>
+            <span><strong>${totalQuantity}</strong> قطعة</span>
+          </div>
+          <div class="total-row">
+            <span>الإجمالي الكلي:</span>
+            <span>${totalAmount.toFixed(2)} ج</span>
+          </div>
         </div>
 
-        <div class="summary-row">
-          <span>عدد الأصناف:</span>
-          <span>${order.order_items.length}</span>
-        </div>
-
-        <div class="summary-row">
-          <span>إجمالي القطع:</span>
-          <span>${order.order_items.reduce((sum, item) => sum + item.quantity, 0)}</span>
-        </div>
-
+        <!-- تذييل الفاتورة -->
         <div class="footer">
-          <div style="font-weight: bold; margin-bottom: 1mm;">
-            شكراً لاختياركم ${restaurantName}
-          </div>
-          <div style="font-size: 9px; margin-top: 1mm;">
-            طُبع في: ${new Date().toLocaleTimeString('ar-EG')}
-          </div>
+          <div class="footer-brand">شكراً لاختياركم ${restaurantName}</div>
+          <div>طُبع في: ${new Date().toLocaleTimeString('ar-EG')}</div>
         </div>
       </div>
 
@@ -1434,7 +1442,7 @@ KitchenDisplay.generateXprinterCompleteOrder = function(order) {
             setTimeout(function() {
               window.close();
             }, 500);
-          }, 300);
+          }, 250);
         };
       </script>
     </body>
@@ -1451,9 +1459,11 @@ KitchenDisplay.generateXprinterCompleteOrder = function(order) {
   }
 };
 
-console.log('✅ Xprinter Complete Order System Ready! 🎫');
+console.log('✅ Single Order Receipt System Ready! 🎫');
+
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
