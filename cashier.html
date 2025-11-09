@@ -183,12 +183,67 @@
     <div class="right-panel">
       
       <!-- قسم التعديل على فاتورة موجودة -->
-      <div id="editSection" style="display: none; flex: 1;">
-        <h2 style="margin-bottom: 20px;">✏️ تعديل الفاتورة</h2>
-        <div id="editOrderItems" style="flex: 1; overflow-y: auto;"></div>
-        
-        <!-- طرق الدفع للطلبات الموجودة -->
-        <div style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+   <!-- قسم التعديل على فاتورة موجودة -->
+<div id="editSection" style="display: none; flex: 1;">
+  <h2 style="margin-bottom: 20px;">✏️ تعديل الفاتورة</h2>
+  <div id="editOrderItems" style="flex: 1; overflow-y: auto;"></div>
+  
+  <!-- 🆕 أزرار الخصم ورسوم الخدمة -->
+  <div style="margin: 15px 0; padding: 15px; background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%); border-radius: 10px; border: 2px solid #ff9800;">
+    <!-- الخصم -->
+    <div style="margin-bottom: 12px;">
+      <h4 style="margin: 0 0 10px 0; color: #e65100; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">🏷️</span>
+        تطبيق خصم:
+      </h4>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+        <button onclick="CashierSystem.applyDiscount(10)" 
+                style="padding: 12px; background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 2px 6px rgba(0,0,0,0.2);"
+                onmouseover="this.style.transform='scale(1.05)'" 
+                onmouseout="this.style.transform='scale(1)'">
+          خصم 10%
+        </button>
+        <button onclick="CashierSystem.applyDiscount(15)" 
+                style="padding: 12px; background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 2px 6px rgba(0,0,0,0.2);"
+                onmouseover="this.style.transform='scale(1.05)'" 
+                onmouseout="this.style.transform='scale(1)'">
+          خصم 15%
+        </button>
+        <button onclick="CashierSystem.applyDiscount(20)" 
+                style="padding: 12px; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; box-shadow: 0 2px 6px rgba(0,0,0,0.2);"
+                onmouseover="this.style.transform='scale(1.05)'" 
+                onmouseout="this.style.transform='scale(1)'">
+          خصم 20%
+        </button>
+      </div>
+    </div>
+    
+    <!-- رسوم الخدمة -->
+    <div style="margin-top: 12px; padding-top: 12px; border-top: 2px dashed #ff9800;">
+      <h4 style="margin: 0 0 10px 0; color: #e65100; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">💼</span>
+        رسوم الخدمة:
+      </h4>
+      <button onclick="CashierSystem.applyServiceCharge()" 
+              style="width: 100%; padding: 14px; background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: bold; transition: all 0.3s; box-shadow: 0 2px 6px rgba(0,0,0,0.2);"
+              onmouseover="this.style.transform='scale(1.02)'" 
+              onmouseout="this.style.transform='scale(1)'">
+        إضافة خدمة 12%
+      </button>
+    </div>
+    
+    <!-- زر إلغاء -->
+    <button onclick="CashierSystem.resetDiscountAndService()" 
+            style="width: 100%; margin-top: 10px; padding: 10px; background: #f44336; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s;"
+            onmouseover="this.style.background='#d32f2f'" 
+            onmouseout="this.style.background='#f44336'">
+      ❌ إلغاء الخصم والخدمة
+    </button>
+  </div>
+  
+  <!-- طرق الدفع للطلبات الموجودة -->
+  <div style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+
           <label style="display: block; font-weight: bold; margin-bottom: 10px; color: #333;">
             💳 طريقة الدفع:
           </label>
@@ -792,6 +847,7 @@ console.log('✅ Refresh system initialized');
 
 </body>
 </html>
+
 
 
 
