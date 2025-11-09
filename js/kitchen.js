@@ -177,9 +177,16 @@ const KitchenDisplay = {
           </div>
 
           <!-- زر طباعة كل Recipes للطلب -->
-          <button class="btn btn-warning" style="width: 100%; margin-bottom: 10px; padding: 12px; font-size: 15px; font-weight: bold;" onclick="KitchenDisplay.printAllRecipes(${order.id}, ${order.order_items.map(i => i.id).join(',')})">
-            🖨️📋 طباعة كل Recipes للطلب
-          </button>
+         <!-- زر طباعة فاتورة الأوردر الموحدة -->
+<button class="btn btn-primary" style="width: 100%; margin-bottom: 10px; padding: 12px; font-size: 15px; font-weight: bold; background: #007bff;" onclick="KitchenDisplay.printSingleOrderReceipt(${order.id})">
+  🖨️📄 طباعة فاتورة الطلب
+</button>
+
+<!-- زر طباعة كل Recipes (المكونات فقط) -->
+<button class="btn btn-warning" style="width: 100%; margin-bottom: 10px; padding: 12px; font-size: 14px;" onclick="KitchenDisplay.printAllRecipes(${order.id}, ${order.order_items.map(i => i.id).join(',')})">
+  🖨️📋 طباعة المكونات (Recipes)
+</button>
+
 
           <div class="order-actions">
             ${order.status === 'new' ? `
@@ -1463,6 +1470,7 @@ console.log('✅ Single Order Receipt System Ready! 🎫');
 
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
