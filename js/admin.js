@@ -857,36 +857,40 @@ console.log('✅ Admin Dashboard loaded with live stats');
         
         try {
             // ✅ جلب البيانات من Supabase
-            const { data: order, error } = await supabase
-                .from('orders')
-                .select(`
-                    id,
-                    order_number,
-                    created_at,
-                    order_type,
-                    table_number,
-                    payment_method,
-                    status,
-                    subtotal,
-                    tax,
-                    delivery_fee,
-                    total,
-                    order_items (
-                        id,
-                        quantity,
-                        total_price,
-                        menu_item:menu_items (
-                            name_ar
-                        )
-                    ),
-                    deliveries (
-                        customer_name,
-                        customer_phone,
-                        customer_address
-                    )
-                `)
-                .eq('id', orderId)
-                .single();
+       const { data: order, error } = await supabase
+    .from('orders')
+    .select(`
+        id,
+        order_number,
+        created_at,
+        order_type,
+        table_number,
+        payment_method,
+        status,
+        subtotal,
+        tax,
+        delivery_fee,
+        discount,
+        discount_percentage,
+        service_charge,
+        total,
+        order_items (
+            id,
+            quantity,
+            total_price,
+            menu_item:menu_items (
+                name_ar
+            )
+        ),
+        deliveries (
+            customer_name,
+            customer_phone,
+            customer_address
+        )
+    `)
+    .eq('id', orderId)
+    .single();
+
 
             if (error) {
                 console.error('❌ خطأ في Supabase:', error);
@@ -963,26 +967,39 @@ console.log('✅ Admin Dashboard loaded with live stats');
                         </div>
                     `).join('')}
                     <hr>
-                    <div class="summary-item">
-                        <span>المجموع:</span>
-                        <span>${(order.subtotal || 0).toFixed(2)} ج.م</span>
-                    </div>
-                    ${order.order_type !== 'delivery' && order.tax > 0 ? `
-                        <div class="summary-item">
-                            <span>الضريبة (14%):</span>
-                            <span>${(order.tax).toFixed(2)} ج.م</span>
-                        </div>
-                    ` : ''}
-                    ${(order.delivery_fee || 0) > 0 ? `
-                        <div class="summary-item">
-                            <span>التوصيل:</span>
-                            <span>${order.delivery_fee.toFixed(2)} ج.م</span>
-                        </div>
-                    ` : ''}
-                    <div class="summary-item total">
-                        <span>الإجمالي:</span>
-                        <span>${(order.total || 0).toFixed(2)} ج.م</span>
-                    </div>
+                <div class="summary-item">
+    <span>المجموع:</span>
+    <span>${(order.subtotal || 0).toFixed(2)} ج.م</span>
+</div>
+${order.order_type !== 'delivery' && order.tax > 0 ? `
+    <div class="summary-item">
+        <span>الضريبة (14%):</span>
+        <span>${(order.tax).toFixed(2)} ج.م</span>
+    </div>
+` : ''}
+${(order.delivery_fee || 0) > 0 ? `
+    <div class="summary-item">
+        <span>🚚 التوصيل:</span>
+        <span>${order.delivery_fee.toFixed(2)} ج.م</span>
+    </div>
+` : ''}
+${(order.discount && order.discount > 0) ? `
+    <div class="summary-item" style="color: #2e7d32; background: #e8f5e9; padding: 5px 8px; border-radius: 4px; margin: 6px 0;">
+        <span>🏷️ خصم (${(order.discount_percentage || 0)}%)</span>
+        <span>-${order.discount.toFixed(2)} ج.م</span>
+    </div>
+` : ''}
+${(order.service_charge && order.service_charge > 0) ? `
+    <div class="summary-item" style="color: #e65100; background: #fff3e0; padding: 5px 8px; border-radius: 4px; margin: 6px 0;">
+        <span>💼 رسوم خدمة (12%)</span>
+        <span>+${order.service_charge.toFixed(2)} ج.م</span>
+    </div>
+` : ''}
+<div class="summary-item total">
+    <span>الإجمالي:</span>
+    <span>${(order.total || 0).toFixed(2)} ج.م</span>
+</div>
+
                     <div class="footer">
                         <p>شكراً لزيارتكم بلدي شيك</p>
                         <p>بلدي شيك بلدي علي اصلة</p>
@@ -1066,3 +1083,4 @@ console.log('✅ Admin Dashboard loaded with live stats');
 
     console.log('✅ تم تفعيل نظام الطباعة بنجاح!');
 })();
+
