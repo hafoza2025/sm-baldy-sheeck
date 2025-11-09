@@ -44,16 +44,33 @@
             <button id="closeCart" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
         </div>
 
-        <div class="cart-items" id="cartItemsList"></div>
+<div class="cart-items" id="cartItemsList"></div>
 
-        <div class="cart-footer">
-            <div
-                style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 20px; font-weight: bold;">
-                <span>الإجمالي:</span>
-                <span id="cartTotal">0 جنيه</span>
-            </div>
-            <button class="send-order-btn" id="sendOrderBtn">📤 إرسال الطلب</button>
-        </div>
+<!-- 🆕 حقل التعليق الجديد -->
+<div style="padding: 15px; border-top: 2px solid #e0e0e0; background: #f9f9f9;">
+    <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #333; font-size: 14px;">
+        💬 ملاحظات/تعليق على الطلب (اختياري):
+    </label>
+    <textarea 
+        id="orderNotesInput" 
+        placeholder="مثال: بدون بصل - طلب عاجل - إضافة صوص إضافي..."
+        style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; min-height: 90px; resize: vertical; font-family: inherit; transition: border 0.3s;"
+        onfocus="this.style.borderColor='#667eea'"
+        onblur="this.style.borderColor='#ddd'"
+    ></textarea>
+    <div style="font-size: 11px; color: #999; margin-top: 5px;">
+        💡 سيظهر هذا التعليق في المطبخ والفاتورة
+    </div>
+</div>
+
+<div class="cart-footer">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 20px; font-weight: bold;">
+        <span>الإجمالي:</span>
+        <span id="cartTotal">0 جنيه</span>
+    </div>
+    <button class="send-order-btn" id="sendOrderBtn">📤 إرسال الطلب</button>
+</div>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -485,4 +502,5 @@ console.log('✅ Refresh system initialized');
 
 
 </html>
+
 
