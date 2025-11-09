@@ -179,15 +179,16 @@ const KitchenDisplay = {
           <!-- زر طباعة كل Recipes للطلب -->
          <!-- زر طباعة فاتورة الأوردر الموحدة -->
 <!-- زر طباعة فاتورة الطلب الموحدة -->
+<!-- زر طباعة فاتورة الطلب الموحدة -->
 <button class="btn btn-success" style="width: 100%; margin-bottom: 10px; padding: 14px; font-size: 16px; font-weight: bold;" onclick="KitchenDisplay.printSingleOrderReceipt(${order.id})">
   🖨️📋 طباعة فاتورة الطلب
 </button>
-
 
 <!-- زر طباعة كل Recipes (المكونات فقط) -->
 <button class="btn btn-warning" style="width: 100%; margin-bottom: 10px; padding: 12px; font-size: 14px;" onclick="KitchenDisplay.printAllRecipes(${order.id}, ${order.order_items.map(i => i.id).join(',')})">
   🖨️📋 طباعة المكونات (Recipes)
 </button>
+
 
 
           <div class="order-actions">
@@ -1921,6 +1922,7 @@ console.log('✅ نظام طباعة الفاتورة الموحدة جاهز! �
 
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
