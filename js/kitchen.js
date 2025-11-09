@@ -1762,23 +1762,54 @@ KitchenDisplay.generateSingleOrderReceipt = function(order) {
     border-radius: 1mm;
   }
 
+  /* ===================================
+   📝 تنسيق الملاحظات - محسّن للطباعة
+   =================================== */
+
+.notes {
+  border: 4px double #000;          /* حدود مزدوجة ثقيلة */
+  padding: 3mm;
+  margin: 3mm 0;
+  background: #fffacd;              /* خلفية صفراء واضحة */
+  border-radius: 1mm;
+  box-shadow: 0 0 0 2px #000;      /* إطار إضافي للتأكيد */
+  page-break-inside: avoid;         /* لا يتم تقطيعه عند الطباعة */
+}
+
+.notes-title {
+  font-weight: 900;                 /* عريض جداً */
+  font-size: 14px;
+  margin-bottom: 1.5mm;
+  text-decoration: underline;       /* خط تحت */
+  text-decoration-thickness: 2px;   /* خط ثقيل */
+  color: #000;
+}
+
+.notes-text {
+  font-size: 13px;                  /* خط كبير */
+  font-weight: 900;                 /* عريض جداً */
+  line-height: 1.6;
+  color: #000;                      /* أسود صافي */
+  white-space: pre-wrap;            /* يحافظ على الأسطر المتعددة */
+  word-break: break-word;           /* يكسر الكلمات الطويلة */
+}
+
+/* للطباعة - تأكيد إضافي */
+@media print {
   .notes {
-    border: 2px solid #000;
-    padding: 2mm;
-    margin: 2mm 0;
-    background: #fffacd;
+    border: 4px double #000 !important;
+    background: #fffacd !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-
-  .notes-title {
-    font-weight: 900;
-    font-size: 12px;
-    margin-bottom: 1mm;
-  }
-
+  
   .notes-text {
-    font-size: 11px;
-    font-weight: bold;
+    font-weight: 900 !important;
+    font-size: 13px !important;
+    color: #000 !important;
   }
+}
+
 
   .summary {
     border-top: 3px solid #000;
@@ -1924,6 +1955,7 @@ console.log('✅ نظام طباعة الفاتورة الموحدة (بدون �
 
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
