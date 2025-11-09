@@ -178,9 +178,11 @@ const KitchenDisplay = {
 
           <!-- زر طباعة كل Recipes للطلب -->
          <!-- زر طباعة فاتورة الأوردر الموحدة -->
-<button class="btn btn-primary" style="width: 100%; margin-bottom: 10px; padding: 12px; font-size: 15px; font-weight: bold; background: #007bff;" onclick="KitchenDisplay.printSingleOrderReceipt(${order.id})">
-  🖨️📄 طباعة فاتورة الطلب
+<!-- زر طباعة فاتورة الطلب الموحدة -->
+<button class="btn btn-success" style="width: 100%; margin-bottom: 10px; padding: 14px; font-size: 16px; font-weight: bold;" onclick="KitchenDisplay.printSingleOrderReceipt(${order.id})">
+  🖨️📋 طباعة فاتورة الطلب
 </button>
+
 
 <!-- زر طباعة كل Recipes (المكونات فقط) -->
 <button class="btn btn-warning" style="width: 100%; margin-bottom: 10px; padding: 12px; font-size: 14px;" onclick="KitchenDisplay.printAllRecipes(${order.id}, ${order.order_items.map(i => i.id).join(',')})">
@@ -1468,8 +1470,458 @@ KitchenDisplay.generateSingleOrderReceipt = function(order) {
 
 console.log('✅ Single Order Receipt System Ready! 🎫');
 
+// ===================================
+// 🖨️ نظام طباعة فاتورة الأوردر الموحدة - Xprinter 80mm
+// (يُضاف في آخر الملف - مستقل تماماً)
+// ===================================
+
+// دالة طباعة فاتورة الأوردر الكاملة (مستقلة)
+KitchenDisplay.printSingleOrderReceipt = async function(orderId) {
+  try {
+    // عرض رسالة تحميل
+    if (typeof Loading !== 'undefined' && Loading.show) {
+      Loading.show('جاري تحضير الفاتورة...', 'يرجى الانتظار');
+    }
+
+    // جلب بيانات الأوردر الكاملة من قاعدة البيانات
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        order_number,
+        order_type,
+        table_number,
+        customer_name,
+        customer_phone,
+        notes,
+        created_at,
+        order_items(
+          id,
+          quantity,
+          menu_item:menu_item_id(name_ar, category, price)
+        ),
+        deliveries(customer_address, customer_name, customer_phone)
+      `)
+      .eq('id', orderId)
+      .single();
+
+    // التعامل مع الأخطاء
+    if (orderError) throw orderError;
+
+    // إخفاء رسالة التحميل
+    if (typeof Loading !== 'undefined' && Loading.hide) {
+      Loading.hide();
+    }
+
+    // توليد وطباعة الفاتورة
+    this.generateSingleOrderReceipt(order);
+
+  } catch (error) {
+    console.error('Error printing order receipt:', error);
+    
+    // إخفاء رسالة التحميل
+    if (typeof Loading !== 'undefined' && Loading.hide) {
+      Loading.hide();
+    }
+    
+    // عرض رسالة الخطأ
+    if (typeof Utils !== 'undefined' && Utils.showNotification) {
+      Utils.showNotification('خطأ: ' + error.message, 'error');
+    } else {
+      alert('خطأ في الطباعة: ' + error.message);
+    }
+  }
+};
+
+// دالة توليد HTML للفاتورة الموحدة
+KitchenDisplay.generateSingleOrderReceipt = function(order) {
+  const now = new Date();
+
+  // دالة تنسيق التاريخ
+  const formatDate = (date) => {
+    const d = new Date(date);
+    return d.toLocaleDateString('ar-EG', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+  };
+
+  // دالة تنسيق الوقت
+  const formatTime = (date) => {
+    const d = new Date(date);
+    return d.toLocaleTimeString('ar-EG', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  // اسم المطعم
+  const restaurantName = (typeof SYSTEM_CONFIG !== 'undefined' && SYSTEM_CONFIG.restaurantName) 
+    ? SYSTEM_CONFIG.restaurantName 
+    : 'مطعم الفرعون';
+
+  // تحديد نوع الطلب والأيقونة والموقع
+  let orderTypeIcon = '';
+  let orderTypeLabel = '';
+  let locationInfo = '';
+
+  if (order.order_type === 'dine_in') {
+    orderTypeIcon = '🪑';
+    orderTypeLabel = 'داخل المطعم';
+    locationInfo = order.table_number ? `طاولة رقم: ${order.table_number}` : 'لم يتم تحديد الطاولة';
+  } else if (order.order_type === 'delivery') {
+    orderTypeIcon = '🛵';
+    orderTypeLabel = 'ديليفري';
+    // جلب عنوان الديليفري من جدول deliveries
+    locationInfo = (order.deliveries && order.deliveries[0] && order.deliveries[0].customer_address) 
+      ? order.deliveries[0].customer_address 
+      : 'لم يتم تحديد العنوان';
+  } else if (order.order_type === 'takeaway') {
+    orderTypeIcon = '📦';
+    orderTypeLabel = 'تيك أواي';
+    locationInfo = 'جاهز للاستلام';
+  }
+
+  // جلب بيانات العميل (من orders أو deliveries)
+  const customerName = order.customer_name || (order.deliveries && order.deliveries[0] && order.deliveries[0].customer_name);
+  const customerPhone = order.customer_phone || (order.deliveries && order.deliveries[0] && order.deliveries[0].customer_phone);
+
+  // حساب الإجمالي والكميات
+  let totalAmount = 0;
+  let totalQuantity = 0;
+  
+  order.order_items.forEach(item => {
+    totalAmount += item.menu_item.price * item.quantity;
+    totalQuantity += item.quantity;
+  });
+
+  // توليد HTML للفاتورة
+  const printHTML = `
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <title>Order #${order.order_number}</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        @page {
+          size: 80mm auto;
+          margin: 0;
+        }
+
+        body {
+          font-family: 'Arial', 'Tahoma', sans-serif;
+          width: 80mm;
+          margin: 0;
+          padding: 3mm;
+          background: white;
+          color: #000;
+          font-size: 11px;
+          line-height: 1.3;
+        }
+
+        .receipt {
+          width: 100%;
+        }
+
+        .header {
+          text-align: center;
+          border-bottom: 2px double #000;
+          padding-bottom: 2mm;
+          margin-bottom: 2mm;
+        }
+
+        .header h1 {
+          font-size: 16px;
+          font-weight: bold;
+          margin-bottom: 1mm;
+        }
+
+        .order-num {
+          font-size: 20px;
+          font-weight: bold;
+          margin: 2mm 0;
+          padding: 1.5mm;
+          border: 2px solid #000;
+          display: inline-block;
+        }
+
+        .order-type-badge {
+          background: #000;
+          color: #fff;
+          padding: 1.5mm 3mm;
+          font-size: 12px;
+          font-weight: bold;
+          margin: 2mm 0;
+          display: inline-block;
+        }
+
+        .location {
+          border: 1px dashed #000;
+          padding: 2mm;
+          margin: 2mm 0;
+          font-size: 12px;
+          font-weight: bold;
+          text-align: center;
+        }
+
+        .customer-box {
+          border: 1px solid #ccc;
+          padding: 1.5mm;
+          margin: 2mm 0;
+          font-size: 10px;
+          background: #f9f9f9;
+        }
+
+        .customer-box div {
+          margin: 0.5mm 0;
+        }
+
+        .datetime {
+          display: flex;
+          justify-content: space-between;
+          font-size: 10px;
+          padding: 1mm 0;
+          border-top: 1px dashed #ccc;
+          border-bottom: 1px dashed #ccc;
+          margin: 2mm 0;
+        }
+
+        .section-header {
+          background: #000;
+          color: #fff;
+          padding: 1.5mm;
+          font-size: 12px;
+          font-weight: bold;
+          text-align: center;
+          margin: 2mm 0;
+        }
+
+        .items {
+          margin: 2mm 0;
+        }
+
+        .item {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          padding: 1.5mm 0;
+          border-bottom: 1px dotted #ccc;
+        }
+
+        .item:last-child {
+          border-bottom: 1px solid #000;
+        }
+
+        .item-info {
+          flex: 1;
+          padding-right: 2mm;
+        }
+
+        .item-name {
+          font-size: 11px;
+          font-weight: bold;
+          margin-bottom: 0.5mm;
+        }
+
+        .item-details {
+          font-size: 9px;
+          color: #555;
+        }
+
+        .item-qty-box {
+          background: #000;
+          color: #fff;
+          padding: 1mm 2.5mm;
+          font-size: 14px;
+          font-weight: bold;
+          min-width: 8mm;
+          text-align: center;
+          border-radius: 1mm;
+        }
+
+        .notes {
+          border: 1px solid #000;
+          padding: 2mm;
+          margin: 2mm 0;
+          background: #fffacd;
+        }
+
+        .notes-title {
+          font-weight: bold;
+          font-size: 11px;
+          margin-bottom: 1mm;
+        }
+
+        .notes-text {
+          font-size: 10px;
+        }
+
+        .summary {
+          border-top: 2px solid #000;
+          border-bottom: 2px solid #000;
+          padding: 2mm 0;
+          margin: 2mm 0;
+        }
+
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin: 1mm 0;
+          font-size: 10px;
+        }
+
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 14px;
+          font-weight: bold;
+          padding: 1mm 0;
+          border-top: 1px dashed #000;
+          margin-top: 1mm;
+        }
+
+        .footer {
+          text-align: center;
+          border-top: 1px dashed #000;
+          padding-top: 2mm;
+          margin-top: 2mm;
+          font-size: 9px;
+        }
+
+        .footer-brand {
+          font-weight: bold;
+          margin-bottom: 1mm;
+        }
+
+        @media print {
+          body {
+            width: 80mm;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="receipt">
+        <!-- رأس الفاتورة -->
+        <div class="header">
+          <h1>${restaurantName}</h1>
+          <div class="order-num">طلب #${order.order_number}</div>
+        </div>
+
+        <!-- نوع الطلب -->
+        <div style="text-align: center;">
+          <span class="order-type-badge">${orderTypeIcon} ${orderTypeLabel}</span>
+        </div>
+
+        <!-- الموقع / الطاولة / العنوان -->
+        <div class="location">${locationInfo}</div>
+
+        <!-- بيانات العميل -->
+        ${customerName || customerPhone ? `
+          <div class="customer-box">
+            ${customerName ? `<div>👤 <strong>العميل:</strong> ${customerName}</div>` : ''}
+            ${customerPhone ? `<div>📞 <strong>التليفون:</strong> ${customerPhone}</div>` : ''}
+          </div>
+        ` : ''}
+
+        <!-- التاريخ والوقت -->
+        <div class="datetime">
+          <span>📅 ${formatDate(order.created_at)}</span>
+          <span>🕐 ${formatTime(order.created_at)}</span>
+        </div>
+
+        <!-- عنوان الأصناف -->
+        <div class="section-header">📋 الأصناف المطلوبة</div>
+
+        <!-- قائمة الأصناف -->
+        <div class="items">
+          ${order.order_items.map((item, idx) => {
+            const itemTotal = (item.menu_item.price * item.quantity).toFixed(2);
+            return `
+              <div class="item">
+                <div class="item-info">
+                  <div class="item-name">${item.menu_item.name_ar}</div>
+                  <div class="item-details">
+                    ${item.menu_item.category ? `📂 ${item.menu_item.category}<br>` : ''}
+                    💰 ${item.menu_item.price.toFixed(2)} ج × ${item.quantity} = <strong>${itemTotal} ج</strong>
+                  </div>
+                </div>
+                <div class="item-qty-box">×${item.quantity}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- الملاحظات -->
+        ${order.notes ? `
+          <div class="notes">
+            <div class="notes-title">📝 ملاحظات:</div>
+            <div class="notes-text">${order.notes}</div>
+          </div>
+        ` : ''}
+
+        <!-- الملخص والإجمالي -->
+        <div class="summary">
+          <div class="summary-row">
+            <span>عدد الأصناف:</span>
+            <span><strong>${order.order_items.length}</strong> صنف</span>
+          </div>
+          <div class="summary-row">
+            <span>إجمالي القطع:</span>
+            <span><strong>${totalQuantity}</strong> قطعة</span>
+          </div>
+          <div class="total-row">
+            <span>الإجمالي الكلي:</span>
+            <span>${totalAmount.toFixed(2)} ج</span>
+          </div>
+        </div>
+
+        <!-- تذييل الفاتورة -->
+        <div class="footer">
+          <div class="footer-brand">شكراً لاختياركم ${restaurantName}</div>
+          <div>طُبع في: ${new Date().toLocaleTimeString('ar-EG')}</div>
+        </div>
+      </div>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            setTimeout(function() {
+              window.close();
+            }, 500);
+          }, 250);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+
+  // فتح نافذة الطباعة
+  const printWindow = window.open('', '_blank', 'width=350,height=600');
+  
+  if (printWindow) {
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
+  } else {
+    alert('⚠️ لم نتمكن من فتح نافذة الطباعة. تأكد من السماح للنوافذ المنبثقة.');
+  }
+};
+
+console.log('✅ نظام طباعة الفاتورة الموحدة جاهز! 🎫');
+
+
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
