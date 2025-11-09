@@ -1882,3 +1882,45 @@
 }
 
 
+/* تنسيق التعليقات في المطبخ */
+.order-notes {
+    background: linear-gradient(135deg, #fffacd 0%, #fff4b8 100%);
+    padding: 14px;
+    border-radius: 10px;
+    margin: 12px 0;
+    border-right: 5px solid #ffa500;
+    font-size: 15px;
+    line-height: 1.7;
+    box-shadow: 0 2px 8px rgba(255, 165, 0, 0.15);
+    animation: slideIn 0.3s ease;
+}
+
+.order-notes strong {
+    color: #ff8c00;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* للطباعة */
+@media print {
+    .order-notes {
+        background: #fff !important;
+        border: 2px solid #ffa500 !important;
+        page-break-inside: avoid;
+    }
+}
+
