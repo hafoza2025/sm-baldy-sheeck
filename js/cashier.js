@@ -1693,9 +1693,9 @@ console.log('🚚 رسوم التوصيل المحددة:', deliveryFee);
 
 
 
-    async closeAndPrintOrder(orderId) {
+async closeAndPrintOrder(orderId) {
     try {
-        // ✅ جيب البيانات الكاملة
+        // 1️⃣ جلب بيانات الطلب الكاملة
         const { data: order, error } = await supabase
             .from('orders')
             .select(`
@@ -1712,26 +1712,39 @@ console.log('🚚 رسوم التوصيل المحددة:', deliveryFee);
         console.log('📦 Order Data:', order);
         console.log('🚚 Deliveries:', order.deliveries);
 
-        // طباعة الفاتورة
+        // 2️⃣ طباعة الفاتورة
         this.printReceipt(order);
 
-        // تحديث الحالة
+        // 3️⃣ ✅ تحديث الطلب في قاعدة البيانات بكل البيانات الضرورية
         const { error: updateError } = await supabase
             .from('orders')
-            .update({ status: 'completed' })
+            .update({ 
+                status: 'completed',
+                completed_at: new Date().toISOString(),
+                payment_method: order.payment_method || this.selectedOrderPaymentMethod || 'cash',
+                subtotal: order.subtotal || 0,
+                tax: order.tax || 0,
+                delivery_fee: order.delivery_fee || 0,
+                discount: order.discount || 0,
+                discount_percentage: order.discount_percentage || 0,
+                service_charge: order.service_charge || 0,
+                total: order.total
+            })
             .eq('id', orderId);
 
         if (updateError) throw updateError;
 
+        // 4️⃣ إعادة تحميل قائمة الطلبات المفتوحة
         await this.loadOpenOrders();
-        Utils.showNotification('✅ تم إغلاق الطلب', 'success');
+        
+        // 5️⃣ رسالة نجاح
+        Utils.showNotification('✅ تم إغلاق الطلب بنجاح', 'success');
 
     } catch (error) {
-        console.error('Error:', error);
-        Utils.showNotification('❌ حدث خطأ', 'error');
+        console.error('❌ Error closing order:', error);
+        Utils.showNotification('❌ حدث خطأ أثناء إغلاق الطلب', 'error');
     }
 },
-
 
     // عرض نافذة اختيار طريقة الدفع
  showPaymentMethodDialog(order) {
@@ -2385,6 +2398,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
