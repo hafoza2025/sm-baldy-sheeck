@@ -192,6 +192,9 @@ async verifyAdminAccess() {
         this.setupEventListeners();
         this.setupRealtimeSubscriptions();
         this.updatePaymentButtons();  // ✅ أضف هذا السطر هنا
+         // 🆕 تهيئة سعر التوصيل الافتراضي
+        this.newOrderCart.delivery_fee = 20;
+        this.calculateNewOrderTotal();
 
     },
 
@@ -1277,17 +1280,66 @@ async verifyAdminAccess() {
         }
     },
 
-    calculateNewOrderTotal() {
-        const subtotal = this.newOrderCart.items.reduce((sum, item) => sum + item.total_price, 0);
-        const tax = Utils.calculateTax(subtotal);
-        const deliveryFee = SYSTEM_CONFIG.deliveryFee;
-        const total = subtotal + tax + deliveryFee;
+   calculateNewOrderTotal() {
+    const subtotal = this.newOrderCart.items.reduce((sum, item) => {
+        const price = parseFloat(item.totalprice) || item.totalprice || 0;
+        return sum + price;
+    }, 0);
+    
+    const tax = 0; // ✅ لا ضريبة في الديليفري
+    
+    // 🆕 استخدام السعر المحدد من المستخدم
+    const deliveryFee = this.newOrderCart.delivery_fee !== undefined 
+        ? parseFloat(this.newOrderCart.delivery_fee) 
+        : parseFloat(document.getElementById('deliveryFeeInput')?.value || 20);
+    
+    const total = subtotal + tax + deliveryFee;
+    
+    document.getElementById('subtotalAmount').textContent = Utils.formatCurrency(subtotal);
+    document.getElementById('taxAmount').textContent = Utils.formatCurrency(tax);
+    document.getElementById('deliveryAmount').textContent = Utils.formatCurrency(deliveryFee);
+    document.getElementById('totalAmount').textContent = Utils.formatCurrency(total);
+},
 
-        document.getElementById('subtotalAmount').textContent = Utils.formatCurrency(subtotal);
-        document.getElementById('taxAmount').textContent = Utils.formatCurrency(tax);
-        document.getElementById('deliveryAmount').textContent = Utils.formatCurrency(deliveryFee);
-        document.getElementById('totalAmount').textContent = Utils.formatCurrency(total);
-    },
+// 🆕 تحديث رسوم التوصيل
+updateDeliveryFee() {
+    const input = document.getElementById('deliveryFeeInput');
+    if (!input) return;
+    
+    let value = parseFloat(input.value) || 0;
+    
+    // تأكد أنها رقم موجب
+    if (value < 0) value = 0;
+    
+    // حفظ القيمة في الـ cart
+    this.newOrderCart.delivery_fee = value;
+    
+    // تحديث العرض
+    this.calculateNewOrderTotal();
+    
+    console.log('🚚 تم تحديث رسوم التوصيل:', value);
+},
+
+// 🆕 تعيين سعر توصيل جاهز
+setDeliveryFee(amount) {
+    const input = document.getElementById('deliveryFeeInput');
+    if (!input) return;
+    
+    input.value = amount;
+    this.newOrderCart.delivery_fee = amount;
+    this.calculateNewOrderTotal();
+    
+    const messages = {
+        0: '✅ توصيل مجاني',
+        10: '✅ رسوم التوصيل: 10 جنيه',
+        20: '✅ رسوم التوصيل: 20 جنيه',
+        30: '✅ رسوم التوصيل: 30 جنيه',
+        50: '✅ رسوم التوصيل: 50 جنيه'
+    };
+    
+    Utils.showNotification(messages[amount] || `رسوم التوصيل: ${amount} جنيه`, 'success');
+},
+
 
 async sendNewOrder() {
     if (this.newOrderCart.items.length === 0) {
@@ -1316,7 +1368,13 @@ async sendNewOrder() {
         }, 0);
         
         const tax = 0; // ✅ لا ضريبة في التوصيل
-        const deliveryFee = parseFloat(SYSTEM_CONFIG.deliveryFee) || 0;
+       // 🆕 استخدام السعر الذي حدده الكاشير
+const deliveryFee = this.newOrderCart.delivery_fee !== undefined 
+    ? parseFloat(this.newOrderCart.delivery_fee) 
+    : parseFloat(document.getElementById('deliveryFeeInput')?.value || 20);
+
+console.log('🚚 رسوم التوصيل المحددة:', deliveryFee);
+
         const total = subtotal + deliveryFee;
 
         console.log('💰 الحسابات:', { subtotal, tax, deliveryFee, total });
@@ -1927,11 +1985,18 @@ getPaymentMethodName(method) {
         const cancelEditBtn = document.getElementById('cancelEditBtn');
 
         if (sendBtn) sendBtn.addEventListener('click', () => this.sendNewOrder());
-        if (clearBtn) clearBtn.addEventListener('click', () => {
-            this.newOrderCart.items = [];
-            this.newOrderCart.payment_method = 'cash';  // ✅ إعادة تعيين
-            this.updateNewOrderDisplay();
-        });
+       if (clearBtn) clearBtn.addEventListener('click', () => {
+         this.newOrderCart.items = [];
+         this.newOrderCart.payment_method = 'cash';
+         this.newOrderCart.delivery_fee = 20; // 🆕 إعادة تعيين
+    
+         const input = document.getElementById('deliveryFeeInput');
+         if (input) input.value = 20; // 🆕 تحديث الحقل
+    
+          this.updateNewOrderDisplay();
+          Utils.showNotification('تم مسح الطلب', 'info');
+          });
+
         if (saveEditBtn) saveEditBtn.addEventListener('click', () => this.saveEditedOrder());
         if (cancelEditBtn) cancelEditBtn.addEventListener('click', () => this.cancelEdit());
     },
@@ -2071,6 +2136,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
