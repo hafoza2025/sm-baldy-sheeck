@@ -1,5 +1,6 @@
 // js/staff.js
 // وظائف صفحة الموظف (التابلت)
+// 🆕 محسّن بميزة التعليقات + سرعة إرسال أفضل
 
 const StaffTablet = {
     currentUser: null,
@@ -178,9 +179,10 @@ const StaffTablet = {
         cartModal.classList.toggle('active');
     },
 
-    // إرسال الطلب
+    // 🆕 إرسال الطلب (محسّن - سريع + مع تعليقات)
     async sendOrder() {
         const tableNumber = document.getElementById('tableSelect').value;
+        const orderNotes = document.getElementById('orderNotesInput')?.value?.trim() || null; // 🆕 جلب التعليق
 
         if (!tableNumber) {
             Utils.showNotification('يرجى اختيار رقم الطاولة', 'error');
@@ -191,6 +193,13 @@ const StaffTablet = {
             Utils.showNotification('السلة فارغة', 'error');
             return;
         }
+
+        // 🆕 عرض Loading على الزر
+        const sendBtn = document.getElementById('sendOrderBtn');
+        const originalText = sendBtn.textContent;
+        sendBtn.disabled = true;
+        sendBtn.textContent = '⏳ جاري الإرسال...';
+        sendBtn.style.opacity = '0.6';
 
         try {
             const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -208,7 +217,8 @@ const StaffTablet = {
                 tax: tax,
                 discount: 0,
                 delivery_fee: 0,
-                total: total
+                total: total,
+                notes: orderNotes  // 🆕 إضافة التعليق
             };
 
             const { data: order, error: orderError } = await supabase
@@ -234,37 +244,45 @@ const StaffTablet = {
 
             if (itemsError) throw itemsError;
 
-            // تحديث حالة الطاولة
-            await supabase
-                .from('tables')
-                .update({
-                    status: 'occupied',
-                    current_order_id: order.id
-                })
-                .eq('table_number', tableNumber);
+            // 🆕 تحديث الطاولة + خصم المخزون بشكل متوازي (أسرع!)
+            await Promise.all([
+                supabase
+                    .from('tables')
+                    .update({
+                        status: 'occupied',
+                        current_order_id: order.id
+                    })
+                    .eq('table_number', tableNumber),
+                
+                this.deductInventory(order.id)
+            ]);
 
-            // خصم المخزون
-            await this.deductInventory(order.id);
+            Utils.showNotification('✅ تم إرسال الطلب بنجاح!', 'success');
 
-            Utils.showNotification('تم إرسال الطلب للمطبخ بنجاح', 'success');
-
-            // إرسال إشعار
+            // إرسال إشعار (بدون انتظار - أسرع!)
             Utils.sendTelegramNotification(
                 `📝 <b>طلب جديد من ${this.currentUser.full_name}</b>\n` +
                 `رقم الطلب: #${order.order_number}\n` +
                 `الطاولة: ${tableNumber}\n` +
+                (orderNotes ? `💬 ملاحظات: ${orderNotes}\n` : '') + // 🆕 إضافة التعليق للإشعار
                 `الإجمالي: ${Utils.formatCurrency(total)}`
             );
 
-            // إعادة تعيين السلة
+            // إعادة تعيين السلة + تنظيف حقل التعليق
             this.cart = [];
+            document.getElementById('orderNotesInput').value = ''; // 🆕 تنظيف التعليق
             this.updateCartDisplay();
             this.toggleCart();
             this.loadTables();
 
         } catch (error) {
             console.error('Error sending order:', error);
-            Utils.showNotification('حدث خطأ أثناء إرسال الطلب', 'error');
+            Utils.showNotification('❌ حدث خطأ أثناء إرسال الطلب', 'error');
+        } finally {
+            // 🆕 إعادة تفعيل الزر بعد الانتهاء
+            sendBtn.disabled = false;
+            sendBtn.textContent = originalText;
+            sendBtn.style.opacity = '1';
         }
     },
 
@@ -374,4 +392,4 @@ if (typeof StaffTablet !== 'undefined' && StaffTablet.loadTables) {
   StaffTablet.loadTables = protectAsync(originalLoadTables, 'load-tables', false);
 }
 
-console.log('✅ Staff functions protected');
+console.log('✅ Staff functions protected (Enhanced with Comments + Speed)');
