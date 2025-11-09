@@ -1473,7 +1473,7 @@ console.log('✅ Single Order Receipt System Ready! 🎫');
 
 // ===================================
 // 🖨️ نظام طباعة فاتورة الأوردر الموحدة - Xprinter 80mm
-// (يُضاف في آخر الملف - مستقل تماماً)
+// (بدون أسعار - فقط الأصناف والكميات)
 // ===================================
 
 // دالة طباعة فاتورة الأوردر الكاملة (مستقلة)
@@ -1497,7 +1497,7 @@ KitchenDisplay.printSingleOrderReceipt = async function(orderId) {
         order_items(
           id,
           quantity,
-          menu_item:menu_item_id(name_ar, category, price)
+          menu_item:menu_item_id(name_ar, category)
         ),
         deliveries(customer_address, customer_name, customer_phone)
       `)
@@ -1532,7 +1532,7 @@ KitchenDisplay.printSingleOrderReceipt = async function(orderId) {
   }
 };
 
-// دالة توليد HTML للفاتورة الموحدة
+// دالة توليد HTML للفاتورة الموحدة (بدون أسعار)
 KitchenDisplay.generateSingleOrderReceipt = function(order) {
   const now = new Date();
 
@@ -1583,20 +1583,18 @@ KitchenDisplay.generateSingleOrderReceipt = function(order) {
     locationInfo = 'جاهز للاستلام';
   }
 
-  // جلب بيانات العميل (من orders أو deliveries)
-  const customerName = order.customer_name || (order.deliveries && order.deliveries[0] && order.deliveries[0].customer_name);
-  const customerPhone = order.customer_phone || (order.deliveries && order.deliveries[0] && order.deliveries[0].customer_phone);
+  // جلب بيانات العميل (من deliveries فقط)
+  const customerName = (order.deliveries && order.deliveries[0] && order.deliveries[0].customer_name) || null;
+  const customerPhone = (order.deliveries && order.deliveries[0] && order.deliveries[0].customer_phone) || null;
 
-  // حساب الإجمالي والكميات
-  let totalAmount = 0;
+  // حساب الكميات فقط (بدون أسعار)
   let totalQuantity = 0;
   
   order.order_items.forEach(item => {
-    totalAmount += item.menu_item.price * item.quantity;
     totalQuantity += item.quantity;
   });
 
-  // توليد HTML للفاتورة
+  // توليد HTML للفاتورة (بدون أسعار)
   const printHTML = `
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -1774,17 +1772,8 @@ KitchenDisplay.generateSingleOrderReceipt = function(order) {
           display: flex;
           justify-content: space-between;
           margin: 1mm 0;
-          font-size: 10px;
-        }
-
-        .total-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 14px;
+          font-size: 11px;
           font-weight: bold;
-          padding: 1mm 0;
-          border-top: 1px dashed #000;
-          margin-top: 1mm;
         }
 
         .footer {
@@ -1840,18 +1829,14 @@ KitchenDisplay.generateSingleOrderReceipt = function(order) {
         <!-- عنوان الأصناف -->
         <div class="section-header">📋 الأصناف المطلوبة</div>
 
-        <!-- قائمة الأصناف -->
+        <!-- قائمة الأصناف (بدون أسعار) -->
         <div class="items">
           ${order.order_items.map((item, idx) => {
-            const itemTotal = (item.menu_item.price * item.quantity).toFixed(2);
             return `
               <div class="item">
                 <div class="item-info">
                   <div class="item-name">${item.menu_item.name_ar}</div>
-                  <div class="item-details">
-                    ${item.menu_item.category ? `📂 ${item.menu_item.category}<br>` : ''}
-                    💰 ${item.menu_item.price.toFixed(2)} ج × ${item.quantity} = <strong>${itemTotal} ج</strong>
-                  </div>
+                  ${item.menu_item.category ? `<div class="item-details">📂 ${item.menu_item.category}</div>` : ''}
                 </div>
                 <div class="item-qty-box">×${item.quantity}</div>
               </div>
@@ -1867,19 +1852,15 @@ KitchenDisplay.generateSingleOrderReceipt = function(order) {
           </div>
         ` : ''}
 
-        <!-- الملخص والإجمالي -->
+        <!-- الملخص (بدون أسعار) -->
         <div class="summary">
           <div class="summary-row">
             <span>عدد الأصناف:</span>
-            <span><strong>${order.order_items.length}</strong> صنف</span>
+            <span>${order.order_items.length} صنف</span>
           </div>
           <div class="summary-row">
             <span>إجمالي القطع:</span>
-            <span><strong>${totalQuantity}</strong> قطعة</span>
-          </div>
-          <div class="total-row">
-            <span>الإجمالي الكلي:</span>
-            <span>${totalAmount.toFixed(2)} ج</span>
+            <span>${totalQuantity} قطعة</span>
           </div>
         </div>
 
@@ -1915,11 +1896,13 @@ KitchenDisplay.generateSingleOrderReceipt = function(order) {
   }
 };
 
-console.log('✅ نظام طباعة الفاتورة الموحدة جاهز! 🎫');
+console.log('✅ نظام طباعة الفاتورة الموحدة (بدون أسعار) جاهز! 🎫');
+
 
 
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
