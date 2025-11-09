@@ -197,6 +197,132 @@ async verifyAdminAccess() {
         this.calculateNewOrderTotal();
 
     },
+     // ==================== نظام الخصم ورسوم الخدمة ====================
+
+// تطبيق خصم بنسبة معينة
+async applyDiscount(percentage) {
+    if (!this.selectedOrder) {
+        Utils.showNotification('يرجى اختيار فاتورة أولاً', 'error');
+        return;
+    }
+
+    // ✅ طلب تأكيد Admin
+    const hasAccess = await this.verifyAdminAccess();
+    if (!hasAccess) {
+        Utils.showNotification('❌ لم يتم التحقق من الصلاحية', 'error');
+        return;
+    }
+
+    if (!confirm(`تطبيق خصم ${percentage}% على الفاتورة؟`)) return;
+
+    try {
+        const discountAmount = (this.selectedOrder.subtotal * percentage) / 100;
+        const newTotal = this.selectedOrder.subtotal + this.selectedOrder.tax + 
+                        (this.selectedOrder.delivery_fee || 0) - discountAmount;
+
+        const { error } = await supabase
+            .from('orders')
+            .update({
+                discount: discountAmount,
+                discount_percentage: percentage,
+                total: newTotal
+            })
+            .eq('id', this.selectedOrder.id);
+
+        if (error) throw error;
+
+        Utils.showNotification(`✅ تم تطبيق خصم ${percentage}% بقيمة ${Utils.formatCurrency(discountAmount)}`, 'success');
+
+        await this.loadOpenOrders();
+        this.selectedOrder = this.openOrders.find(o => o.id === this.selectedOrder.id);
+        this.displayFullEditSection();
+
+    } catch (error) {
+        console.error('Error applying discount:', error);
+        Utils.showNotification('حدث خطأ', 'error');
+    }
+},
+
+// تطبيق رسوم خدمة 12%
+async applyServiceCharge() {
+    if (!this.selectedOrder) {
+        Utils.showNotification('يرجى اختيار فاتورة أولاً', 'error');
+        return;
+    }
+
+    // ✅ طلب تأكيد Admin
+    const hasAccess = await this.verifyAdminAccess();
+    if (!hasAccess) {
+        Utils.showNotification('❌ لم يتم التحقق من الصلاحية', 'error');
+        return;
+    }
+
+    if (!confirm('إضافة رسوم خدمة 12% على الفاتورة؟')) return;
+
+    try {
+        const serviceCharge = (this.selectedOrder.subtotal * 12) / 100;
+        const newTotal = this.selectedOrder.subtotal + this.selectedOrder.tax + 
+                        (this.selectedOrder.delivery_fee || 0) + serviceCharge - 
+                        (this.selectedOrder.discount || 0);
+
+        const { error } = await supabase
+            .from('orders')
+            .update({
+                service_charge: serviceCharge,
+                total: newTotal
+            })
+            .eq('id', this.selectedOrder.id);
+
+        if (error) throw error;
+
+        Utils.showNotification(`✅ تمت إضافة رسوم خدمة 12% بقيمة ${Utils.formatCurrency(serviceCharge)}`, 'success');
+
+        await this.loadOpenOrders();
+        this.selectedOrder = this.openOrders.find(o => o.id === this.selectedOrder.id);
+        this.displayFullEditSection();
+
+    } catch (error) {
+        console.error('Error applying service charge:', error);
+        Utils.showNotification('حدث خطأ', 'error');
+    }
+},
+
+// إلغاء الخصم ورسوم الخدمة
+async resetDiscountAndService() {
+    if (!this.selectedOrder) {
+        Utils.showNotification('يرجى اختيار فاتورة أولاً', 'error');
+        return;
+    }
+
+    if (!confirm('إلغاء الخصم ورسوم الخدمة؟')) return;
+
+    try {
+        const newTotal = this.selectedOrder.subtotal + this.selectedOrder.tax + 
+                        (this.selectedOrder.delivery_fee || 0);
+
+        const { error } = await supabase
+            .from('orders')
+            .update({
+                discount: 0,
+                discount_percentage: 0,
+                service_charge: 0,
+                total: newTotal
+            })
+            .eq('id', this.selectedOrder.id);
+
+        if (error) throw error;
+
+        Utils.showNotification('✅ تم إلغاء الخصم والخدمة', 'success');
+
+        await this.loadOpenOrders();
+        this.selectedOrder = this.openOrders.find(o => o.id === this.selectedOrder.id);
+        this.displayFullEditSection();
+
+    } catch (error) {
+        console.error('Error resetting:', error);
+        Utils.showNotification('حدث خطأ', 'error');
+    }
+},
 
     // تحميل المنيو
     async loadMenu() {
@@ -522,7 +648,7 @@ async verifyAdminAccess() {
 
   async selectOrderForFullEdit(orderId) {
     // ✅ التحقق من صلاحية الأدمن أولاً
-    const hasAccess = await this.verifyAdminAccess();
+    const hasAccess = await this.();
     
     if (!hasAccess) {
         Utils.showNotification('❌ لم يتم التحقق من الصلاحية', 'error');
@@ -553,31 +679,44 @@ async verifyAdminAccess() {
         const container = document.getElementById('editOrderItems');
         if (!container || !this.selectedOrder) return;
 
-        const orderInfo = `
-            <div style="background: #667eea; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0 0 8px 0; font-size: 22px;">
-                            ${this.selectedOrder.order_type === 'delivery'
-                                ? `🛵 ${this.selectedOrder.deliveries[0]?.customer_name}`
-                                : `🍽️ طاولة ${this.selectedOrder.table_number}`}
-                        </h3>
-                        <div style="font-size: 14px; opacity: 0.9;">
-                            الطلب #${this.selectedOrder.order_number} • 
-                            ${Utils.formatTime(this.selectedOrder.created_at)}
-                        </div>
-                    </div>
-                    <div style="text-align: left;">
-                        <div style="font-size: 28px; font-weight: bold;" id="currentOrderTotal">
-                            ${Utils.formatCurrency(this.selectedOrder.total)}
-                        </div>
-                        <div style="font-size: 12px; opacity: 0.9;">
-                            ${this.selectedOrder.order_items?.length || 0} صنف
-                        </div>
-                    </div>
+       const orderInfo = `
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="flex: 1;">
+                <h3 style="margin: 0 0 8px 0; font-size: 22px; font-weight: bold;">
+                    ${this.selectedOrder.order_type === 'delivery'
+                        ? `🛵 ${this.selectedOrder.deliveries?.[0]?.customer_name || 'ديليفري'}`
+                        : `🍽️ طاولة ${this.selectedOrder.table_number}`}
+                </h3>
+                <div style="font-size: 14px; opacity: 0.95; margin-bottom: 8px;">
+                    الطلب #${this.selectedOrder.order_number} • 
+                    ${Utils.formatTime(this.selectedOrder.created_at)}
+                </div>
+                
+                <!-- 🆕 عرض الخصم والخدمة -->
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                    ${this.selectedOrder.discount > 0 ? 
+                        `<div style="background: rgba(76, 175, 80, 0.9); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 2px solid white;">
+                            🏷️ خصم ${this.selectedOrder.discount_percentage}% (-${Utils.formatCurrency(this.selectedOrder.discount)})
+                        </div>` : ''}
+                    ${this.selectedOrder.service_charge > 0 ?
+                        `<div style="background: rgba(255, 152, 0, 0.9); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; border: 2px solid white;">
+                            💼 خدمة 12% (+${Utils.formatCurrency(this.selectedOrder.service_charge)})
+                        </div>` : ''}
                 </div>
             </div>
-        `;
+            <div style="text-align: left;">
+                <div style="font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
+                    ${Utils.formatCurrency(this.selectedOrder.total)}
+                </div>
+                <div style="font-size: 13px; opacity: 0.95;">
+                    ${this.selectedOrder.order_items?.length || 0} صنف
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+
 
         const existingItems = `
             <div style="background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 2px solid #e0e0e0;">
@@ -642,6 +781,58 @@ async verifyAdminAccess() {
             </div>
         ` : '';
 
+
+        // 🆕 ملخص مالي محسّن
+let summaryHTML = `
+    <div style="background: linear-gradient(135deg, #f9f9f9 0%, #f0f0f0 100%); padding: 18px; border-radius: 10px; margin-top: 15px; border: 2px solid #e0e0e0;">
+        <!-- المجموع الفرعي -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px;">
+            <span style="font-weight: 600; color: #333;">المجموع الفرعي:</span>
+            <span style="font-weight: bold; color: #667eea;">${Utils.formatCurrency(this.selectedOrder.subtotal)}</span>
+        </div>
+        
+        <!-- الضريبة -->
+        ${this.selectedOrder.tax > 0 ? `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span style="color: #666;">الضريبة (14%):</span>
+            <span style="color: #666;">${Utils.formatCurrency(this.selectedOrder.tax)}</span>
+        </div>
+        ` : ''}
+        
+        <!-- رسوم التوصيل -->
+        ${this.selectedOrder.delivery_fee > 0 ? `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span style="color: #666;">🚚 رسوم التوصيل:</span>
+            <span style="color: #666;">${Utils.formatCurrency(this.selectedOrder.delivery_fee)}</span>
+        </div>
+        ` : ''}
+        
+        <!-- 🆕 الخصم -->
+        ${this.selectedOrder.discount > 0 ? `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 8px; background: rgba(76, 175, 80, 0.1); border-radius: 6px; border-right: 3px solid #4caf50;">
+            <span style="color: #4caf50; font-weight: bold;">🏷️ خصم (${this.selectedOrder.discount_percentage}%):</span>
+            <span style="color: #4caf50; font-weight: bold;">-${Utils.formatCurrency(this.selectedOrder.discount)}</span>
+        </div>
+        ` : ''}
+        
+        <!-- 🆕 رسوم الخدمة -->
+        ${this.selectedOrder.service_charge > 0 ? `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 8px; background: rgba(255, 152, 0, 0.1); border-radius: 6px; border-right: 3px solid #ff9800;">
+            <span style="color: #ff9800; font-weight: bold;">💼 رسوم خدمة (12%):</span>
+            <span style="color: #ff9800; font-weight: bold;">+${Utils.formatCurrency(this.selectedOrder.service_charge)}</span>
+        </div>
+        ` : ''}
+        
+        <!-- الإجمالي النهائي -->
+        <div style="border-top: 3px solid #667eea; padding-top: 12px; margin-top: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 18px; font-weight: bold; color: #333;">الإجمالي:</span>
+                <span style="font-size: 24px; font-weight: bold; color: #667eea;">${Utils.formatCurrency(this.selectedOrder.total)}</span>
+            </div>
+        </div>
+    </div>
+`;
+
         const actions = `
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="CashierSystem.addItemToCart" style="width: 100%;">
@@ -659,7 +850,8 @@ async verifyAdminAccess() {
             </div>
         `;
 
-        container.innerHTML = orderInfo + existingItems + newItems + actions;
+      container.innerHTML = orderInfo + existingItems + newItems + summaryHTML + actions;
+
     },
 
     // سأكمل في الرد التالي بسبب الطول...
@@ -2156,6 +2348,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
