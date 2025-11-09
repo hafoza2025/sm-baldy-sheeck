@@ -115,6 +115,18 @@ const KitchenDisplay = {
               <strong>العنوان:</strong> ${order.deliveries[0]?.customer_address}
             </div>
           ` : ''}
+          <!-- 🆕 عرض الملاحظات من Staff -->
+${order.notes ? `
+  <div style="background: linear-gradient(135deg, #fff9c4 0%, #fff59d 100%); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-right: 5px solid #ff9800; box-shadow: 0 2px 8px rgba(255, 152, 0, 0.2);">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+      <span style="font-size: 20px;">💬</span>
+      <strong style="color: #e65100; font-size: 15px;">ملاحظات الطلب:</strong>
+    </div>
+    <div style="color: #000; line-height: 1.7; padding-right: 28px; font-size: 14px; font-weight: 600; white-space: pre-wrap;">
+      ${order.notes}
+    </div>
+  </div>
+` : ''}
 
           <div class="order-items-list">
             ${order.order_items.map(item => `
@@ -1912,6 +1924,7 @@ console.log('✅ نظام طباعة الفاتورة الموحدة (بدون �
 
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
