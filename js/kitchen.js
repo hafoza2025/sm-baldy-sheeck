@@ -1492,8 +1492,6 @@ KitchenDisplay.printSingleOrderReceipt = async function(orderId) {
         order_number,
         order_type,
         table_number,
-        customer_name,
-        customer_phone,
         notes,
         created_at,
         order_items(
@@ -1922,6 +1920,7 @@ console.log('✅ نظام طباعة الفاتورة الموحدة جاهز! �
 
 
 console.log('✅ Kitchen Display with All Recipes Printing initialized');
+
 
 
 
