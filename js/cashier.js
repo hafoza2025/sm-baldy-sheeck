@@ -1281,20 +1281,40 @@ async verifyAdminAccess() {
     },
 
    calculateNewOrderTotal() {
+    // 🔍 حساب مجموع الأصناف - تعامل مع كل الحالات
     const subtotal = this.newOrderCart.items.reduce((sum, item) => {
-        const price = parseFloat(item.totalprice) || item.totalprice || 0;
-        return sum + price;
+        // جرب كل الاحتمالات للسعر
+        let itemPrice = 0;
+        
+        if (item.total_price !== undefined) {
+            itemPrice = parseFloat(item.total_price);
+        } else if (item.totalprice !== undefined) {
+            itemPrice = parseFloat(item.totalprice);
+        } else if (item.price !== undefined && item.quantity !== undefined) {
+            itemPrice = parseFloat(item.price) * parseInt(item.quantity);
+        }
+        
+        console.log('📦 Item:', item.name || item.menu_item?.name_ar, 'Price:', itemPrice);
+        
+        return sum + (isNaN(itemPrice) ? 0 : itemPrice);
     }, 0);
     
-    const tax = 0; // ✅ لا ضريبة في الديليفري
+    console.log('💰 المجموع الفرعي:', subtotal);
     
-    // 🆕 استخدام السعر المحدد من المستخدم
+    const tax = 0; // لا ضريبة في الديليفري
+    
+    // 🚚 رسوم التوصيل
     const deliveryFee = this.newOrderCart.delivery_fee !== undefined 
         ? parseFloat(this.newOrderCart.delivery_fee) 
         : parseFloat(document.getElementById('deliveryFeeInput')?.value || 20);
     
+    console.log('🚚 رسوم التوصيل:', deliveryFee);
+    
     const total = subtotal + tax + deliveryFee;
     
+    console.log('💵 الإجمالي النهائي:', total);
+    
+    // تحديث العرض
     document.getElementById('subtotalAmount').textContent = Utils.formatCurrency(subtotal);
     document.getElementById('taxAmount').textContent = Utils.formatCurrency(tax);
     document.getElementById('deliveryAmount').textContent = Utils.formatCurrency(deliveryFee);
@@ -2136,6 +2156,7 @@ if (typeof protectAsync !== 'undefined') {
 
 
 console.log('✅ Cashier System loaded with full control');
+
 
 
 
